@@ -61,3 +61,5 @@ Thumbs.db
 # Agent files
 .agents/
 skills-lock.json
+
+.vercel
