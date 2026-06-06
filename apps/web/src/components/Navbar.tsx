@@ -14,7 +14,7 @@ export default function Navbar() {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
+
       if (currentScrollY < 50) {
         setVisible(true);
       } else if (currentScrollY > lastScrollY) {
@@ -25,7 +25,7 @@ export default function Navbar() {
         // Scrolling up -> show navbar
         setVisible(true);
       }
-      
+
       setLastScrollY(currentScrollY);
     };
 
@@ -57,7 +57,7 @@ export default function Navbar() {
         className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6"
       >
         {/* Navbar Container */}
-        <motion.nav 
+        <motion.nav
           animate={{ height: mobileMenuOpen ? 'auto' : 'auto' }}
           className="max-w-4xl mx-auto mt-4 sm:mt-5 px-6 py-3 rounded-2xl sm:rounded-full backdrop-blur-xl bg-[#070C1E]/75 border border-white/[0.08] shadow-[0_16px_40px_rgba(0,0,0,0.6)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 overflow-hidden relative"
         >
@@ -67,8 +67,11 @@ export default function Navbar() {
           {/* Top Row (Mobile Navigation Header) */}
           <div className="flex items-center justify-between w-full sm:w-auto relative z-10">
             {/* Logo */}
-            <div 
-              onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setMobileMenuOpen(false); }}
+            <div
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setMobileMenuOpen(false);
+              }}
               className="flex items-center gap-2 cursor-pointer group"
             >
               <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-400 via-[#00D4FF] to-indigo-500 flex items-center justify-center shadow-lg shadow-cyan-500/10 group-hover:scale-105 transition-transform duration-200">
@@ -87,7 +90,7 @@ export default function Navbar() {
               >
                 Dashboard
               </Link>
-              
+
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.04] transition-all flex items-center justify-center relative focus:outline-none"
@@ -133,12 +136,13 @@ export default function Navbar() {
             >
               Login
             </Link>
-            
+
             <Link
               href="/dashboard"
               className="px-5 py-2 rounded-full bg-gradient-to-r from-[#00D4FF] to-cyan-500 hover:opacity-95 text-[#0A0F1E] font-bold text-[11px] tracking-wider uppercase transition-all shadow-[0_4px_15px_rgba(0,212,255,0.25)] flex items-center gap-1 group relative overflow-hidden"
             >
-              Start Free <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              Start Free{' '}
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
 
@@ -162,7 +166,7 @@ export default function Navbar() {
                     <ArrowRight className="w-4 h-4 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[#00D4FF]" />
                   </button>
                 ))}
-                
+
                 <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.04]">
                   <Link
                     href="/login"

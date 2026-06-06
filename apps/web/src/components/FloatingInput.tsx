@@ -11,7 +11,9 @@ export const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputPro
     const hasValue = value !== undefined && value !== null && value !== '';
 
     return (
-      <div className={`relative rounded-xl border border-white/[0.08] bg-slate-950/60 transition-all duration-200 focus-within:border-[#00D4FF] focus-within:ring-2 focus-within:ring-[#00D4FF]/20 ${className}`}>
+      <div
+        className={`relative rounded-xl border border-white/[0.08] bg-slate-950/60 transition-all duration-200 focus-within:border-[#00D4FF] focus-within:ring-2 focus-within:ring-[#00D4FF]/20 ${className}`}
+      >
         <motion.label
           initial={false}
           animate={{
@@ -42,11 +44,14 @@ export const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputPro
           {...props}
         />
         {isFocused && (
-          <div className="absolute inset-0 rounded-xl pointer-events-none" style={{ outline: '2px solid #00D4FF' }} />
+          <div
+            className="absolute inset-0 rounded-xl pointer-events-none"
+            style={{ outline: '2px solid #00D4FF' }}
+          />
         )}
       </div>
     );
-  }
+  },
 );
 
 FloatingInput.displayName = 'FloatingInput';

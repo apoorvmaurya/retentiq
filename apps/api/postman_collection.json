@@ -76,9 +76,7 @@
           "request": {
             "method": "PUT",
             "url": "{{base_url}}/api/customers/{{customer_id}}/notes",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"notes\": \"Key account — schedule quarterly business review.\"\n}"
@@ -135,9 +133,7 @@
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/events/ingest",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"events\": [\n    {\n      \"customer_id\": \"00000000-0000-0000-0000-000000000001\",\n      \"event_type\": \"user.login\",\n      \"source\": \"web-app\",\n      \"payload\": { \"browser\": \"Chrome\" }\n    },\n    {\n      \"customer_id\": \"00000000-0000-0000-0000-000000000001\",\n      \"event_type\": \"dashboard.viewed\",\n      \"source\": \"web-app\",\n      \"payload\": { \"tab\": \"billing\" }\n    },\n    {\n      \"customer_id\": \"00000000-0000-0000-0000-000000000001\",\n      \"event_type\": \"ticket.created\",\n      \"source\": \"intercom\",\n      \"payload\": { \"subject\": \"Invoice inquiry\" }\n    },\n    {\n      \"customer_id\": \"00000000-0000-0000-0000-000000000001\",\n      \"event_type\": \"feature.used\",\n      \"source\": \"web-app\",\n      \"payload\": { \"feature\": \"export_csv\" }\n    },\n    {\n      \"customer_id\": \"00000000-0000-0000-0000-000000000001\",\n      \"event_type\": \"user.logout\",\n      \"source\": \"web-app\",\n      \"payload\": {}\n    }\n  ]\n}"
@@ -225,9 +221,7 @@
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/alerts/config",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"threshold\": 35,\n  \"notify_slack\": true,\n  \"notify_email\": false\n}"

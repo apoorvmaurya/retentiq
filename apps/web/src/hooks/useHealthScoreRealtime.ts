@@ -10,7 +10,7 @@ export function useHealthScoreRealtime(
     churn_probability: number;
     top_risk_factors: string[];
     recommended_action: string;
-  }) => void
+  }) => void,
 ) {
   const [updatedRowId, setUpdatedRowId] = useState<string | null>(null);
 
@@ -49,7 +49,7 @@ export function useHealthScoreRealtime(
               setUpdatedRowId(null);
             }, 600);
           }
-        }
+        },
       )
       .subscribe();
 

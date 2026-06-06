@@ -147,47 +147,51 @@ const alertConfigSchema = z.object({
  * Upsert alert_config for the authenticated org.
  * Body: { threshold: number(1-100), notify_slack: bool, notify_email: bool }
  */
-router.post('/config', validateBody(alertConfigSchema), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const orgId = req.user!.org_id;
-    // req.body is already validated by middleware
-    const data = req.body;
+router.post(
+  '/config',
+  validateBody(alertConfigSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orgId = req.user!.org_id;
+      // req.body is already validated by middleware
+      const data = req.body;
 
-    const existing = await db
-      .select()
-      .from(schema.alertConfigs)
-      .where(eq(schema.alertConfigs.orgId, orgId))
-      .limit(1);
-
-    let result;
-
-    if (existing.length > 0) {
-      result = await db
-        .update(schema.alertConfigs)
-        .set({
-          threshold: data.threshold,
-          notifySlack: data.notify_slack,
-          notifyEmail: data.notify_email,
-          updatedAt: new Date(),
-        })
+      const existing = await db
+        .select()
+        .from(schema.alertConfigs)
         .where(eq(schema.alertConfigs.orgId, orgId))
-        .returning();
-    } else {
-      result = await db
-        .insert(schema.alertConfigs)
-        .values({
-          orgId,
-          threshold: data.threshold,
-          notifySlack: data.notify_slack,
-          notifyEmail: data.notify_email,
-        })
-        .returning();
-    }
+        .limit(1);
 
-    res.json(result[0]);
-  } catch (err) {
-    next(err);
-  }
-});
+      let result;
+
+      if (existing.length > 0) {
+        result = await db
+          .update(schema.alertConfigs)
+          .set({
+            threshold: data.threshold,
+            notifySlack: data.notify_slack,
+            notifyEmail: data.notify_email,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.alertConfigs.orgId, orgId))
+          .returning();
+      } else {
+        result = await db
+          .insert(schema.alertConfigs)
+          .values({
+            orgId,
+            threshold: data.threshold,
+            notifySlack: data.notify_slack,
+            notifyEmail: data.notify_email,
+          })
+          .returning();
+      }
+
+      res.json(result[0]);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;

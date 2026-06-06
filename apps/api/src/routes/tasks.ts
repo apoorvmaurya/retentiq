@@ -19,6 +19,7 @@ const updateTaskSchema = z.object({
   description: z.string().max(2000).optional(),
   dueDate: z.string().datetime().optional().nullable(),
   status: z.enum(['pending', 'completed']).optional(),
+  outcome: z.enum(['positive', 'neutral', 'negative']).optional(),
 });
 
 /**
@@ -48,6 +49,9 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         description: schema.tasks.description,
         dueDate: schema.tasks.dueDate,
         status: schema.tasks.status,
+        outcome: schema.tasks.outcome,
+        completedBy: schema.tasks.completedBy,
+        completedAt: schema.tasks.completedAt,
         createdAt: schema.tasks.createdAt,
         customerName: schema.customers.name,
         customerCompany: schema.customers.company,
@@ -105,13 +109,26 @@ router.put(
     try {
       const { id } = req.params;
       const orgId = req.user!.org_id;
-      const { title, description, dueDate, status } = req.body;
+      const { title, description, dueDate, status, outcome } = req.body;
 
       const updateFields: any = {};
       if (title !== undefined) updateFields.title = title;
       if (description !== undefined) updateFields.description = description;
       if (dueDate !== undefined) updateFields.dueDate = dueDate ? new Date(dueDate) : null;
-      if (status !== undefined) updateFields.status = status;
+      if (status !== undefined) {
+        updateFields.status = status;
+        if (status === 'completed') {
+          updateFields.completedAt = new Date();
+          updateFields.completedBy = req.user!.email || 'unknown';
+          updateFields.outcome = outcome || 'neutral';
+        } else {
+          updateFields.completedAt = null;
+          updateFields.completedBy = null;
+          updateFields.outcome = null;
+        }
+      } else if (outcome !== undefined) {
+        updateFields.outcome = outcome;
+      }
 
       const updated = await db
         .update(schema.tasks)

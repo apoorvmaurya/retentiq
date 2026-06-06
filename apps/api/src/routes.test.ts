@@ -14,9 +14,7 @@ describe('RetentIQ API Routes', () => {
 
   describe('POST /api/events/ingest (Auth / Validation fallback)', () => {
     it('should return 422 for invalid body structure', async () => {
-      const response = await request(app)
-        .post('/api/events/ingest')
-        .send({ events: [] }); // events cannot be empty
+      const response = await request(app).post('/api/events/ingest').send({ events: [] }); // events cannot be empty
 
       expect(response.status).toBe(422);
       expect(response.body).toHaveProperty('error', 'Validation failed');
@@ -26,9 +24,7 @@ describe('RetentIQ API Routes', () => {
     });
 
     it('should return 422 for missing events field', async () => {
-      const response = await request(app)
-        .post('/api/events/ingest')
-        .send({}); // events is required
+      const response = await request(app).post('/api/events/ingest').send({}); // events is required
 
       expect(response.status).toBe(422);
       expect(response.body).toHaveProperty('error', 'Validation failed');

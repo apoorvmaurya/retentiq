@@ -24,36 +24,43 @@ const ingestSchema = z.object({
  * Bulk ingest events. Validated with Zod (max 500 per call).
  * Returns { inserted, skipped }.
  */
-router.post('/ingest', validateBody(ingestSchema), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const orgId = req.user!.org_id;
-    const data = req.body;
+router.post(
+  '/ingest',
+  validateBody(ingestSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orgId = req.user!.org_id;
+      const data = req.body;
 
-    let inserted = 0;
-    let skipped = 0;
+      let inserted = 0;
+      let skipped = 0;
 
-    for (const event of data.events) {
-      try {
-        await db.insert(schema.events).values({
-          customerId: event.customer_id,
-          orgId,
-          eventType: event.event_type,
-          source: event.source,
-          payload: event.payload,
-          occurredAt: event.occurred_at ? new Date(event.occurred_at) : new Date(),
-        });
-        inserted++;
-      } catch (err) {
-        console.warn(`[events/ingest] Skipped event for customer ${event.customer_id}:`, (err as any).message);
-        skipped++;
+      for (const event of data.events) {
+        try {
+          await db.insert(schema.events).values({
+            customerId: event.customer_id,
+            orgId,
+            eventType: event.event_type,
+            source: event.source,
+            payload: event.payload,
+            occurredAt: event.occurred_at ? new Date(event.occurred_at) : new Date(),
+          });
+          inserted++;
+        } catch (err) {
+          console.warn(
+            `[events/ingest] Skipped event for customer ${event.customer_id}:`,
+            (err as any).message,
+          );
+          skipped++;
+        }
       }
-    }
 
-    res.json({ inserted, skipped });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ inserted, skipped });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 /**
  * GET /api/events/:customer_id
@@ -68,10 +75,7 @@ router.get('/:customer_id', async (req: Request, res: Response, next: NextFuncti
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit as string) || 50));
     const beforeCursor = req.query.before_cursor as string | undefined;
 
-    const conditions = [
-      eq(schema.events.customerId, customer_id),
-      eq(schema.events.orgId, orgId),
-    ];
+    const conditions = [eq(schema.events.customerId, customer_id), eq(schema.events.orgId, orgId)];
 
     if (beforeCursor) {
       conditions.push(lt(schema.events.occurredAt, new Date(beforeCursor)));
@@ -84,9 +88,10 @@ router.get('/:customer_id', async (req: Request, res: Response, next: NextFuncti
       .orderBy(desc(schema.events.occurredAt))
       .limit(limit);
 
-    const nextCursor = eventsList.length > 0
-      ? (eventsList[eventsList.length - 1].occurredAt as Date)?.toISOString() || null
-      : null;
+    const nextCursor =
+      eventsList.length > 0
+        ? (eventsList[eventsList.length - 1].occurredAt as Date)?.toISOString() || null
+        : null;
 
     res.json({
       data: eventsList,

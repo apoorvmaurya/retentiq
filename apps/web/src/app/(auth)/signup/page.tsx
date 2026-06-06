@@ -75,14 +75,10 @@ export default function SignupPage() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00D4FF] to-indigo-500 flex items-center justify-center shadow-lg">
             <Brain className="w-4.5 h-4.5 text-[#0A0F1E]" />
           </div>
-          <span className="font-bold text-sm tracking-widest text-white uppercase">
-            RetentIQ
-          </span>
+          <span className="font-bold text-sm tracking-widest text-white uppercase">RetentIQ</span>
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          Create your account
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Create your account</h1>
         <p className="text-sm text-[#8B95AB]">
           Sign up to build your custom customer health dashboard
         </p>
@@ -136,13 +132,30 @@ export default function SignupPage() {
             disabled={loading}
             className="w-4 h-4 rounded border-white/[0.08] bg-slate-950 text-[#00D4FF] focus:ring-[#00D4FF] focus:ring-offset-slate-950 mt-0.5 cursor-pointer accent-[#00D4FF]"
           />
-          <label htmlFor="agreeTerms" className="text-xs text-[#8B95AB] leading-relaxed cursor-pointer select-none">
+          <label
+            htmlFor="agreeTerms"
+            className="text-xs text-[#8B95AB] leading-relaxed cursor-pointer select-none"
+          >
             I agree to the{' '}
-            <Link href="#" className="text-[#00D4FF] hover:underline font-semibold" onClick={(e) => { e.preventDefault(); alert("Terms of Service is coming soon."); }}>
+            <Link
+              href="#"
+              className="text-[#00D4FF] hover:underline font-semibold"
+              onClick={(e) => {
+                e.preventDefault();
+                alert('Terms of Service is coming soon.');
+              }}
+            >
               Terms of Service
             </Link>{' '}
             and{' '}
-            <Link href="#" className="text-[#00D4FF] hover:underline font-semibold" onClick={(e) => { e.preventDefault(); alert("Privacy Policy is coming soon."); }}>
+            <Link
+              href="#"
+              className="text-[#00D4FF] hover:underline font-semibold"
+              onClick={(e) => {
+                e.preventDefault();
+                alert('Privacy Policy is coming soon.');
+              }}
+            >
               Privacy Policy
             </Link>
           </label>
@@ -179,10 +192,7 @@ export default function SignupPage() {
       {/* Login Link */}
       <div className="text-center text-xs text-[#8B95AB] mt-6">
         Already have an account?{' '}
-        <Link
-          href="/login"
-          className="text-[#00D4FF] hover:underline font-semibold"
-        >
+        <Link href="/login" className="text-[#00D4FF] hover:underline font-semibold">
           Sign in
         </Link>
       </div>

@@ -16,7 +16,13 @@ interface CustomDropdownProps {
   className?: string;
 }
 
-export function CustomDropdown({ options, value, onChange, label, className = '' }: CustomDropdownProps) {
+export function CustomDropdown({
+  options,
+  value,
+  onChange,
+  label,
+  className = '',
+}: CustomDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -78,9 +84,7 @@ export function CustomDropdown({ options, value, onChange, label, className = ''
                     : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'
                 }`}
               >
-                <span className="flex items-center shrink-0">
-                  {option.icon}
-                </span>
+                <span className="flex items-center shrink-0">{option.icon}</span>
                 <span className="truncate">{option.label}</span>
               </button>
             ))}

@@ -16,6 +16,7 @@ export const organizations = pgTable('organizations', {
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
   teamSize: integer('team_size').default(1),
+  productCategory: text('product_category').default('B2B'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
@@ -163,7 +164,12 @@ export const tasks = pgTable('tasks', {
   title: text('title').notNull(),
   description: text('description'),
   dueDate: timestamp('due_date', { withTimezone: true }),
-  status: text('status', { enum: ['pending', 'completed'] }).notNull().default('pending'),
+  status: text('status', { enum: ['pending', 'completed'] })
+    .notNull()
+    .default('pending'),
+  outcome: text('outcome', { enum: ['positive', 'neutral', 'negative'] }),
+  completedBy: text('completed_by'),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
@@ -174,7 +180,9 @@ export const playbooks = pgTable('playbooks', {
     .notNull()
     .references(() => organizations.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
-  triggerType: text('trigger_type', { enum: ['health_drop', 'manual'] }).notNull().default('manual'),
+  triggerType: text('trigger_type', { enum: ['health_drop', 'manual'] })
+    .notNull()
+    .default('manual'),
   triggerThreshold: integer('trigger_threshold').default(40),
   steps: jsonb('steps').notNull().default([]), // Array of steps: { step: number, headline: string, detail: string }
   isActive: boolean('is_active').default(true),
@@ -189,7 +197,9 @@ export const jobs = pgTable('jobs', {
     .references(() => organizations.id, { onDelete: 'cascade' }),
   type: text('type').notNull(), // 'stripe' | 'intercom' | 'mixpanel' | 'csv'
   payload: jsonb('payload').notNull().default({}),
-  status: text('status', { enum: ['queued', 'processing', 'completed', 'failed'] }).notNull().default('queued'),
+  status: text('status', { enum: ['queued', 'processing', 'completed', 'failed'] })
+    .notNull()
+    .default('queued'),
   error: text('error'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
@@ -206,12 +216,80 @@ export const roiAggregates = pgTable('roi_aggregates', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
+// 15. Invites
+export const invites = pgTable('invites', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orgId: uuid('org_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  role: text('role', { enum: ['owner', 'admin', 'member', 'viewer'] })
+    .notNull()
+    .default('member'),
+  token: text('token').notNull(),
+  status: text('status', { enum: ['pending', 'accepted', 'expired'] })
+    .notNull()
+    .default('pending'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+});
+
+// 16. Score Weights
+export const scoreWeights = pgTable('score_weights', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orgId: uuid('org_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' })
+    .unique(),
+  loginFrequency30dWeight: integer('login_frequency_30d_weight').default(15),
+  loginFrequency14dWeight: integer('login_frequency_14d_weight').default(10),
+  loginFrequency7dWeight: integer('login_frequency_7d_weight').default(10),
+  featureAdoptionWeight: integer('feature_adoption_weight').default(20),
+  usageTrendWeight: integer('usage_trend_weight').default(15),
+  supportVolumeWeight: integer('support_volume_weight').default(10),
+  supportSentimentWeight: integer('support_sentiment_weight').default(5),
+  billingEventsWeight: integer('billing_events_weight').default(10),
+  onboardingTimeWeight: integer('onboarding_time_weight').default(5),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+// 17. Email Templates
+export const emailTemplates = pgTable('email_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orgId: uuid('org_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(), // 'critical_score_drop' | 'billing_failure' | '30d_inactivity' | 'renewal_risk'
+  subject: text('subject').notNull(),
+  body: text('body').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+// 18. Alert Rules
+export const alertRules = pgTable('alert_rules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orgId: uuid('org_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  conditions: jsonb('conditions').notNull().default([]), // Array of conditions
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
 // --- Relations ---
 
 export const organizationsRelations = relations(organizations, ({ many, one }) => ({
   users: many(users),
   customers: many(customers),
   integrations: many(integrations),
+  invites: many(invites),
+  scoreWeights: one(scoreWeights, {
+    fields: [organizations.id],
+    references: [scoreWeights.orgId],
+  }),
+  emailTemplates: many(emailTemplates),
+  alertRules: many(alertRules),
   alertConfig: one(alertConfigs, {
     fields: [organizations.id],
     references: [alertConfigs.orgId],
@@ -334,3 +412,30 @@ export const roiAggregatesRelations = relations(roiAggregates, ({ one }) => ({
   }),
 }));
 
+export const invitesRelations = relations(invites, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [invites.orgId],
+    references: [organizations.id],
+  }),
+}));
+
+export const scoreWeightsRelations = relations(scoreWeights, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [scoreWeights.orgId],
+    references: [organizations.id],
+  }),
+}));
+
+export const emailTemplatesRelations = relations(emailTemplates, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [emailTemplates.orgId],
+    references: [organizations.id],
+  }),
+}));
+
+export const alertRulesRelations = relations(alertRules, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [alertRules.orgId],
+    references: [organizations.id],
+  }),
+}));

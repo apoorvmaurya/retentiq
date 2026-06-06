@@ -60,34 +60,38 @@ import { computeAndTriggerRescore } from '../lib/featureEngine.js';
  * Trigger a re-score for ALL customers in the org by batch-calling the AI service.
  * Returns a job_id and customer_count.
  */
-router.post('/refresh', validateBody(z.object({}).strict().optional()), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const orgId = req.user!.org_id;
+router.post(
+  '/refresh',
+  validateBody(z.object({}).strict().optional()),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orgId = req.user!.org_id;
 
-    const customersList = await db
-      .select()
-      .from(schema.customers)
-      .where(eq(schema.customers.orgId, orgId));
+      const customersList = await db
+        .select()
+        .from(schema.customers)
+        .where(eq(schema.customers.orgId, orgId));
 
-    const jobId = `refresh-${Date.now()}`;
+      const jobId = `refresh-${Date.now()}`;
 
-    // Fire-and-forget: batch score all customers asynchronously using the real feature engine
-    (async () => {
-      for (const customer of customersList) {
-        try {
-          await computeAndTriggerRescore(customer.id, orgId);
-        } catch (e) {
-          console.error(`[refresh] Failed to score customer ${customer.id}:`, e);
+      // Fire-and-forget: batch score all customers asynchronously using the real feature engine
+      (async () => {
+        for (const customer of customersList) {
+          try {
+            await computeAndTriggerRescore(customer.id, orgId);
+          } catch (e) {
+            console.error(`[refresh] Failed to score customer ${customer.id}:`, e);
+          }
         }
-      }
-      console.log(`[refresh] Job ${jobId} completed for ${customersList.length} customers.`);
-    })();
+        console.log(`[refresh] Job ${jobId} completed for ${customersList.length} customers.`);
+      })();
 
-    res.json({ job_id: jobId, customer_count: customersList.length });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ job_id: jobId, customer_count: customersList.length });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 /**
  * GET /api/health-scores/:customer_id/history

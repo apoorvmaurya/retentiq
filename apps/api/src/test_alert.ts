@@ -10,13 +10,13 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 import { checkAndDeliverAlerts } from './workers/alertWorker.js';
 
-console.log("Triggering manual checkAndDeliverAlerts()...");
+console.log('Triggering manual checkAndDeliverAlerts()...');
 checkAndDeliverAlerts()
   .then(() => {
-    console.log("Alert delivery check completed successfully!");
+    console.log('Alert delivery check completed successfully!');
     process.exit(0);
   })
   .catch((err) => {
-    console.error("Alert delivery check failed:", err);
+    console.error('Alert delivery check failed:', err);
     process.exit(1);
   });

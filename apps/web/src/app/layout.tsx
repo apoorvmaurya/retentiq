@@ -17,10 +17,12 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: 'RetentIQ — Customer Health Intelligence',
-  description: 'Spot SaaS churn risk 30–60 days early. AI-powered health scores, smart alerts, and retention playbooks.',
+  description:
+    'Spot SaaS churn risk 30–60 days early. AI-powered health scores, smart alerts, and retention playbooks.',
   openGraph: {
     title: 'RetentIQ — Customer Health Intelligence',
-    description: 'Spot SaaS churn risk 30–60 days early. AI-powered health scores, smart alerts, and retention playbooks.',
+    description:
+      'Spot SaaS churn risk 30–60 days early. AI-powered health scores, smart alerts, and retention playbooks.',
     images: [
       {
         url: '/og-image.png',
@@ -32,11 +34,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${instrumentSerif.variable} ${dmSans.variable} dark h-full`}>
       <body className="font-sans antialiased text-slate-200 bg-[#020205] h-full">{children}</body>

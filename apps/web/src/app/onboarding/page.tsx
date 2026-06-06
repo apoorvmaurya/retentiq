@@ -20,14 +20,18 @@ import {
 // Wrapper component to enable search params in Next.js 15+
 export default function OnboardingPageWrapper() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#020205] flex items-center justify-center text-white">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-[#00D4FF] border-r-transparent animate-spin" />
-          <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-semibold">Loading Wizard...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#020205] flex items-center justify-center text-white">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-[#00D4FF] border-r-transparent animate-spin" />
+            <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-semibold">
+              Loading Wizard...
+            </p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <OnboardingWizard />
     </Suspense>
   );
@@ -45,6 +49,7 @@ function OnboardingWizard() {
   // State storage
   const [orgName, setOrgName] = useState('');
   const [teamSize, setTeamSize] = useState('');
+  const [productCategory, setProductCategory] = useState('B2B');
   const [integration, setIntegration] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [teamEmails, setTeamEmails] = useState<string[]>([]);
@@ -101,6 +106,7 @@ function OnboardingWizard() {
     const res = await completeOnboarding({
       orgName,
       teamSize,
+      productCategory,
       integration,
       teamEmails,
     });
@@ -117,10 +123,34 @@ function OnboardingWizard() {
   const teamSizes = ['1–10', '11–50', '51–200', '200+'];
 
   const sources = [
-    { id: 'Stripe', label: 'Stripe', desc: 'Billing events', icon: CreditCard, color: 'text-indigo-400' },
-    { id: 'Mixpanel', label: 'Mixpanel', desc: 'Product usage', icon: Activity, color: 'text-purple-400' },
-    { id: 'Intercom', label: 'Intercom', desc: 'Support tickets', icon: MessageSquare, color: 'text-blue-400' },
-    { id: 'Manual CSV', label: 'Manual CSV', desc: 'Upload later', icon: FileSpreadsheet, color: 'text-slate-400' },
+    {
+      id: 'Stripe',
+      label: 'Stripe',
+      desc: 'Billing events',
+      icon: CreditCard,
+      color: 'text-indigo-400',
+    },
+    {
+      id: 'Mixpanel',
+      label: 'Mixpanel',
+      desc: 'Product usage',
+      icon: Activity,
+      color: 'text-purple-400',
+    },
+    {
+      id: 'Intercom',
+      label: 'Intercom',
+      desc: 'Support tickets',
+      icon: MessageSquare,
+      color: 'text-blue-400',
+    },
+    {
+      id: 'Manual CSV',
+      label: 'Manual CSV',
+      desc: 'Upload later',
+      icon: FileSpreadsheet,
+      color: 'text-slate-400',
+    },
   ];
 
   return (
@@ -135,9 +165,7 @@ function OnboardingWizard() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00D4FF] to-indigo-500 flex items-center justify-center shadow-lg">
             <Brain className="w-4.5 h-4.5 text-[#0A0F1E]" />
           </div>
-          <span className="font-bold text-sm tracking-widest text-white uppercase">
-            RetentIQ
-          </span>
+          <span className="font-bold text-sm tracking-widest text-white uppercase">RetentIQ</span>
         </div>
         <div className="text-[10px] uppercase font-bold tracking-wider text-[#8B95AB]">
           Setup Wizard &bull; Step {step} of 3
@@ -195,6 +223,28 @@ function OnboardingWizard() {
 
                     <div className="space-y-2">
                       <label className="text-xs font-semibold text-slate-400">
+                        Primary SaaS Product Category
+                      </label>
+                      <div className="grid grid-cols-3 gap-3.5">
+                        {['B2B', 'PLG', 'Enterprise'].map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setProductCategory(cat)}
+                            className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                              productCategory === cat
+                                ? 'border-[#00D4FF] bg-[#00D4FF]/5 text-white shadow-[0_0_15px_rgba(0,212,255,0.08)]'
+                                : 'border-white/[0.08] hover:border-white/[0.12] bg-white/[0.01] text-[#8B95AB]'
+                            }`}
+                          >
+                            <span className="text-xs font-bold">{cat}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-400">
                         Estimate team size
                       </label>
                       <div className="grid grid-cols-2 gap-3.5">
@@ -219,7 +269,7 @@ function OnboardingWizard() {
                   <div className="pt-4">
                     <button
                       type="button"
-                      disabled={!orgName || !teamSize}
+                      disabled={!orgName || !teamSize || !productCategory}
                       onClick={() => setStep(2)}
                       className="w-full py-3 rounded-xl bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0F1E] font-bold text-xs tracking-wider uppercase transition-all shadow-[0_4px_20px_rgba(0,212,255,0.15)] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
                     >
@@ -262,7 +312,9 @@ function OnboardingWizard() {
                               : 'border-white/[0.08] hover:border-white/[0.12] bg-white/[0.01] text-[#8B95AB]'
                           }`}
                         >
-                          <div className={`p-2 rounded-lg bg-white/[0.03] border border-white/[0.06] w-fit ${src.color}`}>
+                          <div
+                            className={`p-2 rounded-lg bg-white/[0.03] border border-white/[0.06] w-fit ${src.color}`}
+                          >
                             <Icon className="w-4.5 h-4.5" />
                           </div>
                           <div>

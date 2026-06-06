@@ -1,3 +1,6 @@
+import dns from 'dns';
+dns.setDefaultResultOrder('ipv4first');
+
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema.js';
@@ -200,6 +203,7 @@ async function main() {
       name: 'Acme Churn Control',
       slug: 'acme-churn-control',
       teamSize: 5,
+      productCategory: 'B2B',
     })
     .returning();
 

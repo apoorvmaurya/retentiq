@@ -139,27 +139,31 @@ const notesSchema = z.object({
   notes: z.string().max(2000, 'Notes must be 2000 characters or less'),
 });
 
-router.put('/:id/notes', validateBody(notesSchema), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    const orgId = req.user!.org_id;
-    const data = req.body;
+router.put(
+  '/:id/notes',
+  validateBody(notesSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const orgId = req.user!.org_id;
+      const data = req.body;
 
-    const customer = await db
-      .update(schema.customers)
-      .set({ notes: data.notes })
-      .where(and(eq(schema.customers.id, id), eq(schema.customers.orgId, orgId)))
-      .returning();
+      const customer = await db
+        .update(schema.customers)
+        .set({ notes: data.notes })
+        .where(and(eq(schema.customers.id, id), eq(schema.customers.orgId, orgId)))
+        .returning();
 
-    if (customer.length === 0) {
-      res.status(404).json({ error: 'Customer not found', code: 'NOT_FOUND' });
-      return;
+      if (customer.length === 0) {
+        res.status(404).json({ error: 'Customer not found', code: 'NOT_FOUND' });
+        return;
+      }
+
+      res.json(customer[0]);
+    } catch (err) {
+      next(err);
     }
-
-    res.json(customer[0]);
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 export default router;

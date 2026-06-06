@@ -11,12 +11,14 @@ import { Suspense } from 'react';
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="flex flex-col items-center justify-center p-8 text-center text-xs text-[#8B95AB] uppercase tracking-wider font-semibold">
-        <div className="w-5 h-5 rounded-full border border-[#00D4FF] border-r-transparent animate-spin mb-2" />
-        Loading login form...
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center p-8 text-center text-xs text-[#8B95AB] uppercase tracking-wider font-semibold">
+          <div className="w-5 h-5 rounded-full border border-[#00D4FF] border-r-transparent animate-spin mb-2" />
+          Loading login form...
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );
@@ -83,14 +85,10 @@ function LoginForm() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00D4FF] to-indigo-500 flex items-center justify-center shadow-lg">
             <Brain className="w-4.5 h-4.5 text-[#0A0F1E]" />
           </div>
-          <span className="font-bold text-sm tracking-widest text-white uppercase">
-            RetentIQ
-          </span>
+          <span className="font-bold text-sm tracking-widest text-white uppercase">RetentIQ</span>
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          Welcome back
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Welcome back</h1>
         <p className="text-sm text-[#8B95AB]">
           Enter your credentials to access your churn dashboard
         </p>
@@ -131,7 +129,7 @@ function LoginForm() {
             className="text-[#00D4FF] hover:underline font-semibold"
             onClick={(e) => {
               e.preventDefault();
-              alert("Password recovery is currently disabled. Please contact support.");
+              alert('Password recovery is currently disabled. Please contact support.');
             }}
           >
             Forgot password?
@@ -169,10 +167,7 @@ function LoginForm() {
       {/* Signup Link */}
       <div className="text-center text-xs text-[#8B95AB] mt-6">
         Don&apos;t have an account?{' '}
-        <Link
-          href="/signup"
-          className="text-[#00D4FF] hover:underline font-semibold"
-        >
+        <Link href="/signup" className="text-[#00D4FF] hover:underline font-semibold">
           Sign up
         </Link>
       </div>

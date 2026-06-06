@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, useScroll, useTransform, useInView, AnimatePresence, animate } from 'framer-motion';
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useInView,
+  AnimatePresence,
+  animate,
+} from 'framer-motion';
 import {
   ArrowRight,
   Check,
@@ -18,7 +25,15 @@ import {
 import Navbar from '@/components/Navbar';
 
 // --- CUSTOM COUNTER COMPONENT ---
-function Counter({ value, suffix = '', duration = 1.5 }: { value: number; suffix?: string; duration?: number }) {
+function Counter({
+  value,
+  suffix = '',
+  duration = 1.5,
+}: {
+  value: number;
+  suffix?: string;
+  duration?: number;
+}) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
   const [count, setCount] = useState(0);
@@ -34,11 +49,22 @@ function Counter({ value, suffix = '', duration = 1.5 }: { value: number; suffix
     }
   }, [isInView, value, duration]);
 
-  return <span ref={ref}>{count}{suffix}</span>;
+  return (
+    <span ref={ref}>
+      {count}
+      {suffix}
+    </span>
+  );
 }
 
 // --- SPOTLIGHT CARD COMPONENT ---
-function SpotlightCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+function SpotlightCard({
+  children,
+  className = '',
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
@@ -115,7 +141,10 @@ export default function MarketingPage() {
       <Navbar />
 
       {/* 1. HERO SECTION */}
-      <section ref={heroRef} className="relative pt-32 pb-20 md:pt-40 md:pb-32 px-4 md:px-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <section
+        ref={heroRef}
+        className="relative pt-32 pb-20 md:pt-40 md:pb-32 px-4 md:px-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center"
+      >
         <div className="lg:col-span-7 space-y-8 text-left z-10">
           {/* Tag */}
           <motion.div
@@ -150,7 +179,8 @@ export default function MarketingPage() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-base md:text-lg text-[#8B95AB] leading-relaxed max-w-xl"
           >
-            RetentIQ spots churn risk 30–60 days before it happens by aggregating usage metrics, payment patterns, and tickets. Keep the revenue you've already earned.
+            RetentIQ spots churn risk 30–60 days before it happens by aggregating usage metrics,
+            payment patterns, and tickets. Keep the revenue you've already earned.
           </motion.p>
 
           {/* Ticker */}
@@ -186,7 +216,8 @@ export default function MarketingPage() {
               href="/dashboard"
               className="px-6 py-3 rounded-full bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0F1E] font-bold text-xs tracking-wider uppercase transition-all shadow-[0_4px_20px_rgba(0,212,255,0.25)] flex items-center gap-2 group relative overflow-hidden"
             >
-              Start Free <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              Start Free{' '}
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </a>
             <button
               onClick={() => {
@@ -230,7 +261,9 @@ export default function MarketingPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-[#F8F6F0]">System health warning</p>
-                <p className="text-[10px] text-[#8B95AB] mt-0.5">3 accounts at critical risk index</p>
+                <p className="text-[10px] text-[#8B95AB] mt-0.5">
+                  3 accounts at critical risk index
+                </p>
               </div>
             </div>
 
@@ -269,7 +302,11 @@ export default function MarketingPage() {
       </section>
 
       {/* 2. HOW IT WORKS SECTION */}
-      <section id="how-it-works" ref={stepsRef} className="py-20 md:py-32 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04]">
+      <section
+        id="how-it-works"
+        ref={stepsRef}
+        className="py-20 md:py-32 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04]"
+      >
         <div className="text-center max-w-xl mx-auto mb-16 md:mb-24 space-y-4">
           <span className="text-[10px] text-[#00D4FF] font-bold uppercase tracking-widest block">
             Operation Playbook
@@ -281,7 +318,6 @@ export default function MarketingPage() {
 
         {/* Step cards grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-6 relative">
-          
           {/* Scroll Animated SVG Connecting Line */}
           <div className="absolute top-[28%] left-[12%] right-[12%] h-0.5 hidden md:block pointer-events-none z-0">
             <svg className="w-full h-2 overflow-visible" fill="none">
@@ -302,10 +338,26 @@ export default function MarketingPage() {
 
           {/* Cards */}
           {[
-            { step: '01', title: 'Ingest Signals', desc: 'Sync billing alerts, support ticket activity, and application logs.' },
-            { step: '02', title: 'ML Health Score', desc: 'Our FastAPI predictive engine constructs an organic health index.' },
-            { step: '03', title: 'Early Alert', desc: 'Slack notifications trigger immediately when scores drop below bounds.' },
-            { step: '04', title: 'Playbook', desc: 'Run targeted CSM outreaches with custom recommendations.' },
+            {
+              step: '01',
+              title: 'Ingest Signals',
+              desc: 'Sync billing alerts, support ticket activity, and application logs.',
+            },
+            {
+              step: '02',
+              title: 'ML Health Score',
+              desc: 'Our FastAPI predictive engine constructs an organic health index.',
+            },
+            {
+              step: '03',
+              title: 'Early Alert',
+              desc: 'Slack notifications trigger immediately when scores drop below bounds.',
+            },
+            {
+              step: '04',
+              title: 'Playbook',
+              desc: 'Run targeted CSM outreaches with custom recommendations.',
+            },
           ].map((item, idx) => (
             <motion.div
               key={idx}
@@ -324,8 +376,10 @@ export default function MarketingPage() {
       </section>
 
       {/* 3. FEATURES SECTION (Alternating side entries) */}
-      <section id="features" className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] space-y-24 md:space-y-36">
-        
+      <section
+        id="features"
+        className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] space-y-24 md:space-y-36"
+      >
         {/* Title */}
         <div className="text-center max-w-xl mx-auto space-y-4">
           <span className="text-[10px] text-[#00D4FF] font-bold uppercase tracking-widest block">
@@ -351,7 +405,9 @@ export default function MarketingPage() {
               Unified behavioral signals.
             </h3>
             <p className="text-sm text-[#8B95AB] leading-relaxed">
-              RetentIQ syncs directly with billing, usage telemetry, and support systems to construct a single source of customer health truth. Connect Stripe, Mixpanel, and Intercom seamlessly.
+              RetentIQ syncs directly with billing, usage telemetry, and support systems to
+              construct a single source of customer health truth. Connect Stripe, Mixpanel, and
+              Intercom seamlessly.
             </p>
           </motion.div>
 
@@ -389,7 +445,9 @@ export default function MarketingPage() {
               FastAPI AI Health Scoring.
             </h3>
             <p className="text-sm text-[#8B95AB] leading-relaxed">
-              We leverage GROQ's Llama-3.3 layer to evaluate customer signals on the fly, outputting a precise health index (0–100) and mapping top churn variables directly into your dashboard.
+              We leverage GROQ's Llama-3.3 layer to evaluate customer signals on the fly, outputting
+              a precise health index (0–100) and mapping top churn variables directly into your
+              dashboard.
             </p>
           </motion.div>
 
@@ -406,7 +464,9 @@ export default function MarketingPage() {
                 <div className="absolute inset-0 rounded-full border-4 border-[#00D4FF] border-r-transparent animate-spin-slow" />
                 <Brain className="w-8 h-8 text-[#00D4FF]" />
               </div>
-              <span className="text-xs font-bold text-[#F8F6F0] tracking-wider uppercase">Llama-3.3 Scoring Active</span>
+              <span className="text-xs font-bold text-[#F8F6F0] tracking-wider uppercase">
+                Llama-3.3 Scoring Active
+              </span>
             </SpotlightCard>
           </motion.div>
         </div>
@@ -424,7 +484,8 @@ export default function MarketingPage() {
               Interactive visual trends.
             </h3>
             <p className="text-sm text-[#8B95AB] leading-relaxed">
-              Inspect historical health charts and metrics over time. Watch risk segments decrease as your retention playbooks resolve accounts before subscription periods end.
+              Inspect historical health charts and metrics over time. Watch risk segments decrease
+              as your retention playbooks resolve accounts before subscription periods end.
             </p>
           </motion.div>
 
@@ -463,7 +524,9 @@ export default function MarketingPage() {
               Slack & email notifications.
             </h3>
             <p className="text-sm text-[#8B95AB] leading-relaxed">
-              Set customized thresholds. RetentIQ fires automated Slack webhooks and emails immediately to your Customer Success Managers, including detailed playbooks to start resolving concerns right away.
+              Set customized thresholds. RetentIQ fires automated Slack webhooks and emails
+              immediately to your Customer Success Managers, including detailed playbooks to start
+              resolving concerns right away.
             </p>
           </motion.div>
 
@@ -479,13 +542,17 @@ export default function MarketingPage() {
                 <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center">
                   <Slack className="w-8 h-8 text-emerald-400" />
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Slack Webhook</span>
+                <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">
+                  Slack Webhook
+                </span>
               </div>
               <div className="flex flex-col items-center gap-2">
                 <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center">
                   <Mail className="w-8 h-8 text-cyan-400" />
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">CS Email Dispatch</span>
+                <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">
+                  CS Email Dispatch
+                </span>
               </div>
             </SpotlightCard>
           </motion.div>
@@ -504,7 +571,8 @@ export default function MarketingPage() {
               Retention ROI tracker.
             </h3>
             <p className="text-sm text-[#8B95AB] leading-relaxed">
-              Track how much revenue your teams have successfully saved. Monitor overall save rate and calculate real-time ROI values directly on your executive dashboard.
+              Track how much revenue your teams have successfully saved. Monitor overall save rate
+              and calculate real-time ROI values directly on your executive dashboard.
             </p>
           </motion.div>
 
@@ -528,13 +596,11 @@ export default function MarketingPage() {
             </SpotlightCard>
           </motion.div>
         </div>
-
       </section>
 
       {/* 4. STATS BAR SECTION */}
       <section className="py-16 md:py-24 bg-white/[0.01] border-y border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-left">
-          
           <div className="space-y-2">
             <h3 className="font-serif text-5xl md:text-6xl text-[#00D4FF] font-normal tracking-tight">
               <Counter value={8} suffix="%" />
@@ -561,13 +627,11 @@ export default function MarketingPage() {
               SaaS Teams Missing Churn Signals
             </p>
           </div>
-
         </div>
       </section>
 
       {/* 5. PRICING SECTION */}
       <section id="pricing" className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8">
-        
         {/* Header */}
         <div className="text-center max-w-xl mx-auto mb-16 md:mb-20 space-y-6">
           <span className="text-[10px] text-[#00D4FF] font-bold uppercase tracking-widest block">
@@ -598,9 +662,13 @@ export default function MarketingPage() {
               }`}
             >
               Annual
-              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
-                billingPeriod === 'annual' ? 'bg-[#0A0F1E] text-[#00D4FF]' : 'bg-[#00D4FF]/20 text-[#00D4FF]'
-              }`}>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                  billingPeriod === 'annual'
+                    ? 'bg-[#0A0F1E] text-[#00D4FF]'
+                    : 'bg-[#00D4FF]/20 text-[#00D4FF]'
+                }`}
+              >
                 -20%
               </span>
             </button>
@@ -609,7 +677,6 @@ export default function MarketingPage() {
 
         {/* Tiers list */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto items-stretch">
-          
           {/* Card 1: Starter */}
           <motion.div
             whileHover={{ y: -4 }}
@@ -626,8 +693,10 @@ export default function MarketingPage() {
                 {billingPeriod === 'monthly' ? '$49' : '$39'}
                 <span className="text-sm font-sans font-medium text-[#8B95AB] ml-2">/mo</span>
               </h3>
-              <p className="text-xs text-[#8B95AB] mb-6">Best for small SaaS applications looking to build early indicators.</p>
-              
+              <p className="text-xs text-[#8B95AB] mb-6">
+                Best for small SaaS applications looking to build early indicators.
+              </p>
+
               <ul className="space-y-3 border-t border-white/[0.06] pt-6 mb-8 text-xs text-[#F8F6F0]">
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-[#00D4FF]" />
@@ -679,8 +748,10 @@ export default function MarketingPage() {
                 {billingPeriod === 'monthly' ? '$149' : '$119'}
                 <span className="text-sm font-sans font-medium text-[#8B95AB] ml-2">/mo</span>
               </h3>
-              <p className="text-xs text-[#8B95AB] mb-6">For scaling applications looking to automate retention outreaches.</p>
-              
+              <p className="text-xs text-[#8B95AB] mb-6">
+                For scaling applications looking to automate retention outreaches.
+              </p>
+
               <ul className="space-y-3 border-t border-white/[0.06] pt-6 mb-8 text-xs text-[#F8F6F0]">
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-[#00D4FF]" />
@@ -712,14 +783,12 @@ export default function MarketingPage() {
               Get Started Now
             </a>
           </motion.div>
-
         </div>
       </section>
 
       {/* 6. FOOTER SECTION */}
       <footer className="py-12 md:py-20 border-t border-white/[0.04] bg-[#070b16]">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8 mb-12">
-          
           <div className="md:col-span-5 space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-400 to-indigo-500 flex items-center justify-center">
@@ -730,51 +799,96 @@ export default function MarketingPage() {
               </span>
             </div>
             <p className="text-xs text-[#8B95AB] leading-relaxed max-w-sm">
-              AI-powered customer churn-intelligence platform built on Supabase, FastAPI, and Llama 3.3.
+              AI-powered customer churn-intelligence platform built on Supabase, FastAPI, and Llama
+              3.3.
             </p>
           </div>
 
           <div className="md:col-span-7 grid grid-cols-3 gap-6">
             <div className="space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Product</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Product
+              </h4>
               <ul className="space-y-2 text-xs text-[#8B95AB]">
-                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
+                <li>
+                  <a href="#features" className="hover:text-white transition-colors">
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a href="#how-it-works" className="hover:text-white transition-colors">
+                    How It Works
+                  </a>
+                </li>
+                <li>
+                  <a href="#pricing" className="hover:text-white transition-colors">
+                    Pricing
+                  </a>
+                </li>
               </ul>
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Company</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Company
+              </h4>
               <ul className="space-y-2 text-xs text-[#8B95AB]">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+                <li>
+                  <a href="#" className="hover:text-white transition-colors">
+                    About Us
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition-colors">
+                    Careers
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition-colors">
+                    Contact
+                  </a>
+                </li>
               </ul>
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Legal</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Legal
+              </h4>
               <ul className="space-y-2 text-xs text-[#8B95AB]">
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
+                <li>
+                  <a href="#" className="hover:text-white transition-colors">
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition-colors">
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition-colors">
+                    Security
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
-
         </div>
 
         <div className="max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#8B95AB]">
           <p>© {new Date().getFullYear()} RetentIQ Inc. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-white transition-colors">Documentation</a>
+            <a href="#" className="hover:text-white transition-colors">
+              Documentation
+            </a>
             <span>•</span>
-            <a href="#" className="hover:text-white transition-colors">Status Logs</a>
+            <a href="#" className="hover:text-white transition-colors">
+              Status Logs
+            </a>
           </div>
         </div>
       </footer>
-
     </div>
   );
 }

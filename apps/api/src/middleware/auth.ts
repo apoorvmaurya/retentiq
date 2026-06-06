@@ -7,6 +7,7 @@ export interface AuthenticatedUser {
   id: string;
   org_id: string;
   email?: string;
+  role?: 'owner' | 'admin' | 'member' | 'viewer';
 }
 
 declare global {
@@ -17,7 +18,11 @@ declare global {
   }
 }
 
-export async function verifySupabaseJWT(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function verifySupabaseJWT(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   // Bypass JWT verification for public webhooks
   if (
     req.path.includes('/stripe/webhook') ||
@@ -39,7 +44,10 @@ export async function verifySupabaseJWT(req: Request, res: Response, next: NextF
     if (supabaseUrl && supabaseServiceKey) {
       try {
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        const { data: { user }, error } = await supabase.auth.getUser(token);
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser(token);
 
         if (error || !user) {
           res.status(401).json({ error: 'Invalid or expired token', code: 'AUTH_INVALID_TOKEN' });
@@ -48,13 +56,24 @@ export async function verifySupabaseJWT(req: Request, res: Response, next: NextF
 
         // Look up user profile in our users table
         const profile = await db
-          .select({ id: schema.users.id, orgId: schema.users.orgId })
+          .select({ id: schema.users.id, orgId: schema.users.orgId, role: schema.users.role })
           .from(schema.users)
           .where(eq(schema.users.id, user.id))
           .limit(1);
 
         if (profile.length > 0) {
-          req.user = { id: profile[0].id, org_id: profile[0].orgId, email: user.email };
+          req.user = {
+            id: profile[0].id,
+            org_id: profile[0].orgId,
+            email: user.email,
+            role: profile[0].role,
+          };
+          next();
+          return;
+        }
+
+        if (req.path.includes('/invites/accept/') || req.originalUrl.includes('/invites/accept/')) {
+          req.user = { id: user.id, org_id: '', email: user.email };
           next();
           return;
         }
@@ -66,12 +85,20 @@ export async function verifySupabaseJWT(req: Request, res: Response, next: NextF
     }
   }
 
-  // Development fallback: attach the first available org (only in dev mode)
-  if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+  // Development fallback: attach the first available org (only in dev/test mode)
+  if (
+    process.env.NODE_ENV === 'development' ||
+    process.env.NODE_ENV === 'test' ||
+    !process.env.NODE_ENV
+  ) {
     try {
       const orgs = await db.select().from(schema.organizations).limit(1);
       if (orgs.length > 0) {
-        req.user = { id: '00000000-0000-0000-0000-000000000001', org_id: orgs[0].id, email: 'owner@retentiq.io' };
+        req.user = {
+          id: '00000000-0000-0000-0000-000000000001',
+          org_id: orgs[0].id,
+          email: 'owner@retentiq.io',
+        };
         next();
         return;
       }
@@ -82,4 +109,3 @@ export async function verifySupabaseJWT(req: Request, res: Response, next: NextF
 
   res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
 }
-

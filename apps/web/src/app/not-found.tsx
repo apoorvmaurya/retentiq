@@ -28,7 +28,8 @@ export default function NotFound() {
         </h2>
 
         <p className="mt-4 text-slate-400 text-sm md:text-base max-w-md mx-auto leading-relaxed">
-          The customer intelligence path you are looking for does not exist or has been archived. Check your metrics link or return to dashboard.
+          The customer intelligence path you are looking for does not exist or has been archived.
+          Check your metrics link or return to dashboard.
         </p>
 
         {/* Action Buttons */}

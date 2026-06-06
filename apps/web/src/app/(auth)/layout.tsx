@@ -6,30 +6,26 @@ import { Brain } from 'lucide-react';
 
 const quotes = [
   {
-    text: "RetentIQ allowed us to identify at-risk customers 2 months before renewal. Our expansion revenue grew by 22%.",
-    author: "Sarah Jenkins",
-    role: "VP of Customer Success",
-    company: "CloudScale",
+    text: 'RetentIQ allowed us to identify at-risk customers 2 months before renewal. Our expansion revenue grew by 22%.',
+    author: 'Sarah Jenkins',
+    role: 'VP of Customer Success',
+    company: 'CloudScale',
   },
   {
     text: "The Groq AI integration analyzes support tickets and payment trends organically. It's like having a data scientist for customer health.",
-    author: "David Chen",
-    role: "CEO",
-    company: "InnovateFlow",
+    author: 'David Chen',
+    role: 'CEO',
+    company: 'InnovateFlow',
   },
   {
-    text: "Since deploying RetentIQ, our logo churn dropped to under 1.2% monthly. The Slack notifications keep our CS team incredibly fast.",
-    author: "Elena Rostova",
-    role: "Head of CS",
-    company: "ApexSystems",
+    text: 'Since deploying RetentIQ, our logo churn dropped to under 1.2% monthly. The Slack notifications keep our CS team incredibly fast.',
+    author: 'Elena Rostova',
+    role: 'Head of CS',
+    company: 'ApexSystems',
   },
 ];
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -52,9 +48,7 @@ export default function AuthLayout({
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00D4FF] to-indigo-500 flex items-center justify-center shadow-lg shadow-[#00D4FF]/10">
             <Brain className="w-4.5 h-4.5 text-[#0A0F1E]" />
           </div>
-          <span className="font-bold text-sm tracking-widest text-white uppercase">
-            RetentIQ
-          </span>
+          <span className="font-bold text-sm tracking-widest text-white uppercase">RetentIQ</span>
         </div>
 
         {/* Quote Block Centered */}
@@ -78,9 +72,7 @@ export default function AuthLayout({
                   </p>
                   <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-bold text-white">
-                        {quotes[activeIndex].author}
-                      </p>
+                      <p className="text-sm font-bold text-white">{quotes[activeIndex].author}</p>
                       <p className="text-[11px] text-[#8B95AB] font-medium">
                         {quotes[activeIndex].role} &bull; {quotes[activeIndex].company}
                       </p>
@@ -99,8 +91,12 @@ export default function AuthLayout({
         <div className="z-10 flex items-center justify-between text-[11px] text-[#8B95AB] font-medium">
           <p>© {new Date().getFullYear()} RetentIQ Inc.</p>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-white transition-colors">Security</a>
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">
+              Security
+            </a>
+            <a href="#" className="hover:text-white transition-colors">
+              Privacy
+            </a>
           </div>
         </div>
       </div>

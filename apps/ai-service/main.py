@@ -49,12 +49,20 @@ app.add_middleware(
 # Pydantic Schemas
 
 class FeatureDict(BaseModel):
-    login_frequency_30d: float = Field(..., description="Login count in 30 days divided by 30")
-    feature_adoption_score: float = Field(..., description="Distinct features used / 12")
-    support_ticket_volume: int = Field(..., description="Support tickets in last 30 days")
-    billing_change_pct: float = Field(..., description="Billing change percentage")
-    days_since_last_login: int = Field(..., description="Days since last login")
-    plan_tier: str = Field(..., description="Plan tier, e.g. Basic, Pro, Enterprise")
+    login_frequency_30d: float = Field(0.0, description="Login count in 30 days divided by 30")
+    login_frequency_14d: float = Field(0.0, description="Login count in 14 days divided by 14")
+    login_frequency_7d: float = Field(0.0, description="Login count in 7 days divided by 7")
+    feature_adoption_score: float = Field(0.0, description="Distinct features used / 12")
+    usage_trend: float = Field(0.0, description="WoW usage trend change percentage")
+    days_since_last_login: int = Field(999, description="Days since last login")
+    support_ticket_volume: int = Field(0, description="Support tickets in last 30 days")
+    support_sentiment_score: float = Field(0.5, description="Average sentiment score (-1 to +1)")
+    billing_events: int = Field(0, description="Billing events or failures count")
+    onboarding_time: float = Field(0.0, description="Time to onboarding completion in days")
+    nps_csat_score: float = Field(8.0, description="NPS/CSAT score")
+    renewal_proximity: float = Field(365.0, description="Contract renewal proximity in days")
+    plan_tier: str = Field("Basic", description="Plan tier, e.g. Basic, Pro, Enterprise")
+
 
 class ScoreCustomerRequest(BaseModel):
     customer_id: str
@@ -485,14 +493,83 @@ def read_root():
         "model": settings.MODEL_ID
     }
 
+def apply_score_weights(base_score: int, features: FeatureDict, weights: Optional[dict]) -> int:
+    if not weights:
+        # Default weights matching schema.ts
+        weights = {
+            "login_frequency_30d_weight": 15,
+            "login_frequency_14d_weight": 10,
+            "login_frequency_7d_weight": 10,
+            "feature_adoption_weight": 20,
+            "usage_trend_weight": 15,
+            "support_volume_weight": 10,
+            "support_sentiment_weight": 5,
+            "billing_events_weight": 10,
+            "onboarding_time_weight": 5,
+        }
+    
+    # Calculate normalized components (each on a 0-100 scale)
+    login_30d_comp = min(100.0, features.login_frequency_30d * 100.0)
+    login_14d_comp = min(100.0, features.login_frequency_14d * 100.0)
+    login_7d_comp = min(100.0, features.login_frequency_7d * 100.0)
+    feat_comp = min(100.0, features.feature_adoption_score * 100.0)
+    trend_comp = min(100.0, max(0.0, (features.usage_trend + 1.0) / 2.0 * 100.0))
+    days_comp = max(0.0, min(100.0, (30.0 - features.days_since_last_login) / 30.0 * 100.0))
+    support_vol_comp = max(0.0, min(100.0, (10.0 - features.support_ticket_volume) / 10.0 * 100.0))
+    support_sent_comp = min(100.0, max(0.0, (features.support_sentiment_score + 1.0) / 2.0 * 100.0))
+    billing_comp = max(0.0, min(100.0, (3.0 - features.billing_events) / 3.0 * 100.0))
+    onboarding_comp = max(0.0, min(100.0, (30.0 - features.onboarding_time) / 30.0 * 100.0))
+    
+    # Get weights
+    w_login_30d = float(weights.get("login_frequency_30d_weight", 15) or 15)
+    w_login_14d = float(weights.get("login_frequency_14d_weight", 10) or 10)
+    w_login_7d = float(weights.get("login_frequency_7d_weight", 10) or 10)
+    w_feat = float(weights.get("feature_adoption_weight", 20) or 20)
+    w_trend = float(weights.get("usage_trend_weight", 15) or 15)
+    w_support_vol = float(weights.get("support_volume_weight", 10) or 10)
+    w_support_sent = float(weights.get("support_sentiment_weight", 5) or 5)
+    w_billing = float(weights.get("billing_events_weight", 10) or 10)
+    w_onboarding = float(weights.get("onboarding_time_weight", 5) or 5)
+    
+    total_weight = w_login_30d + w_login_14d + w_login_7d + w_feat + w_trend + w_support_vol + w_support_sent + w_billing + w_onboarding
+    if total_weight <= 0:
+        total_weight = 100.0
+        
+    weighted_sum = (
+        login_30d_comp * w_login_30d +
+        login_14d_comp * w_login_14d +
+        login_7d_comp * w_login_7d +
+        feat_comp * w_feat +
+        trend_comp * w_trend +
+        days_comp * ((w_login_30d + w_login_14d + w_login_7d) / 3.0) +
+        support_vol_comp * w_support_vol +
+        support_sent_comp * w_support_sent +
+        billing_comp * w_billing +
+        onboarding_comp * w_onboarding
+    )
+    
+    weighted_score = weighted_sum / total_weight
+    
+    # Combine predictions and weights
+    final_score = int(0.5 * base_score + 0.5 * weighted_score)
+    return max(0, min(100, final_score))
+
 def get_numerical_metrics(features: FeatureDict) -> tuple[int, float]:
     """Helper to calculate numerical health score and churn probability using scikit-learn."""
     try:
         prob = classifier.predict_churn(
             login_frequency_30d=features.login_frequency_30d,
+            login_frequency_14d=features.login_frequency_14d,
+            login_frequency_7d=features.login_frequency_7d,
             feature_adoption_score=features.feature_adoption_score,
+            usage_trend=features.usage_trend,
+            days_since_last_login=features.days_since_last_login,
             support_ticket_volume=features.support_ticket_volume,
-            days_since_last_login=features.days_since_last_login
+            support_sentiment_score=features.support_sentiment_score,
+            billing_events=features.billing_events,
+            onboarding_time=features.onboarding_time,
+            nps_csat_score=features.nps_csat_score,
+            renewal_proximity=features.renewal_proximity
         )
         score = int((1.0 - prob) * 100)
         score = max(0, min(100, score))
@@ -500,6 +577,7 @@ def get_numerical_metrics(features: FeatureDict) -> tuple[int, float]:
     except Exception as e:
         logger.error(f"Failed to compute scikit-learn metrics: {e}")
         return 50, 0.50
+
 
 def get_fallback_with_sklearn(features: FeatureDict, score: int, prob: float) -> HealthScoreOutput:
     if score >= 80:
@@ -548,6 +626,21 @@ async def score_customer(request: ScoreCustomerRequest):
         features = FeatureDict(**features_dict)
         
     score, prob = get_numerical_metrics(features)
+
+    # Query custom weights if available in Supabase
+    weights = None
+    if supabase_client:
+        try:
+            db_org_id = resolve_uuid(request.org_id, "org")
+            weights_res = supabase_client.table("score_weights").select("*").eq("org_id", db_org_id).execute()
+            if weights_res.data:
+                weights = weights_res.data[0]
+        except Exception as w_err:
+            logger.warning(f"Failed to query score weights for org {request.org_id}: {w_err}")
+
+    score = apply_score_weights(score, features, weights)
+    prob = round((100.0 - score) / 100.0, 2)
+
     
     # 2. Invoke GROQ or Fallback
     if not groq_client:
@@ -671,6 +764,21 @@ async def score_single_customer_for_bulk(customer_id: str, org_id: str) -> bool:
         features = FeatureDict(**features_dict)
         
         score, prob = get_numerical_metrics(features)
+
+        # Query custom weights if available in Supabase
+        weights = None
+        if supabase_client:
+            try:
+                db_org_id = resolve_uuid(org_id, "org")
+                weights_res = supabase_client.table("score_weights").select("*").eq("org_id", db_org_id).execute()
+                if weights_res.data:
+                    weights = weights_res.data[0]
+            except Exception as w_err:
+                logger.warning(f"Failed to query score weights for org {org_id}: {w_err}")
+
+        score = apply_score_weights(score, features, weights)
+        prob = round((100.0 - score) / 100.0, 2)
+
         
         # Check if Groq client is offline
         if not groq_client:
@@ -1077,15 +1185,36 @@ async def predict_churn(request: ChurnAnalysisRequest):
         
     features_dict = {
         "login_frequency_30d": request.login_frequency / 30.0,
+        "login_frequency_14d": request.login_frequency / 30.0,
+        "login_frequency_7d": request.login_frequency / 30.0,
         "feature_adoption_score": max(0.0, 1.0 - (request.feature_usage_drop_percent / 100.0)),
-        "support_ticket_volume": request.ticket_count,
-        "billing_change_pct": 0.0,
+        "usage_trend": -request.feature_usage_drop_percent / 100.0,
         "days_since_last_login": request.days_since_last_login,
+        "support_ticket_volume": request.ticket_count,
+        "support_sentiment_score": 0.5,
+        "billing_events": 0,
+        "onboarding_time": 10.0,
+        "nps_csat_score": 8.0,
+        "renewal_proximity": 180.0,
         "plan_tier": request.plan_tier
     }
     features = FeatureDict(**features_dict)
     
     score, prob = get_numerical_metrics(features)
+
+    # Query custom weights if available in Supabase
+    weights = None
+    if supabase_client:
+        try:
+            db_org_id = resolve_uuid(org_id, "org")
+            weights_res = supabase_client.table("score_weights").select("*").eq("org_id", db_org_id).execute()
+            if weights_res.data:
+                weights = weights_res.data[0]
+        except Exception as w_err:
+            logger.warning(f"Failed to query score weights for org {org_id}: {w_err}")
+
+    score = apply_score_weights(score, features, weights)
+    prob = round((100.0 - score) / 100.0, 2)
     
     # Check if Groq client is configured. If not, use fallback
     if not groq_client:
@@ -1173,6 +1302,17 @@ async def predict_churn(request: ChurnAnalysisRequest):
             cost_usd=0.0
         )
 
+@app.post("/model/retrain")
+def retrain_model():
+    """Trigger retraining of the Gradient Boosting Classifier."""
+    try:
+        classifier.train_model(supabase_client=supabase_client)
+        return {"status": "success", "message": "Model retrained successfully"}
+    except Exception as e:
+        logger.error(f"Failed to retrain model: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrain model: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+

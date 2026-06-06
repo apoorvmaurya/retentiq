@@ -48,6 +48,8 @@ export default function OverviewPage() {
   >([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [atRiskCustomers, setAtRiskCustomers] = useState<any[]>([]);
+  const [rawCustomers, setRawCustomers] = useState<any[]>([]);
+  const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>('all');
   const [roiHistory, setRoiHistory] = useState<any[]>([]);
 
   const loadDashboardData = async () => {
@@ -69,7 +71,6 @@ export default function OverviewPage() {
 
       // 3. Fetch recent open alerts
       const openAlerts = await fetchFromApi('/alerts?status=open&limit=5');
-      // Format alerts response (which is innerJoin format: { alert: Alert, customer: CustomerInitials })
       const formattedAlerts = openAlerts.map((item: any) => ({
         id: item.alert.id,
         score_at_trigger: item.alert.scoreAtTrigger ?? item.alert.score_at_trigger,
@@ -80,9 +81,11 @@ export default function OverviewPage() {
       }));
       setAlerts(formattedAlerts);
 
-      // 4. Fetch customers sorted by score asc (to get highest risk)
-      const custResp = await fetchFromApi('/customers?sort=score&order=asc&limit=10');
-      setAtRiskCustomers(custResp.data || []);
+      // 4. Fetch customers (fetch larger set for slicing filter)
+      const custResp = await fetchFromApi('/customers?sort=score&order=asc&limit=100');
+      const customersList = custResp.data || [];
+      setRawCustomers(customersList);
+      setAtRiskCustomers(customersList);
 
       // 5. Fetch ROI aggregates history
       const history = await fetchFromApi('/analytics/roi-history');
@@ -102,12 +105,66 @@ export default function OverviewPage() {
     loadDashboardData();
   }, []);
 
+  // Handle Client-Side Cohort Slicing & Metrics Re-indexing
+  useEffect(() => {
+    let list = rawCustomers;
+    if (selectedPlanFilter !== 'all') {
+      list = rawCustomers.filter(
+        (c) => (c.plan_tier || '').toLowerCase() === selectedPlanFilter.toLowerCase(),
+      );
+    }
+    setAtRiskCustomers(list);
+
+    // Recompute metrics based on selected slice
+    const totalCount = list.length;
+    let totalScore = 0;
+    let scoredCount = 0;
+    let atRisk = 0;
+    let revAtRisk = 0;
+    let low = 0,
+      medium = 0,
+      high = 0,
+      critical = 0;
+
+    for (const c of list) {
+      const hs = c.healthScore;
+      if (hs) {
+        const score = hs.score;
+        totalScore += score;
+        scoredCount++;
+
+        if (score < 40) {
+          atRisk++;
+          revAtRisk += parseFloat(c.mrr || '0');
+        }
+
+        const tier = hs.risk_tier || hs.riskTier || 'none';
+        if (tier === 'low') low++;
+        else if (tier === 'medium') medium++;
+        else if (tier === 'high') high++;
+        else if (tier === 'critical') critical++;
+      }
+    }
+
+    setMetrics({
+      total_customers: totalCount,
+      avg_health_score: scoredCount > 0 ? Math.round(totalScore / scoredCount) : 0,
+      at_risk_count: atRisk,
+      revenue_at_risk: Math.round(revAtRisk * 100) / 100,
+    });
+
+    setDistribution([
+      { name: 'Low Risk', value: low, color: '#10B981' },
+      { name: 'Medium Risk', value: medium, color: '#F59E0B' },
+      { name: 'High Risk', value: high, color: '#F97316' },
+      { name: 'Critical Risk', value: critical, color: '#EF4444' },
+    ]);
+  }, [selectedPlanFilter, rawCustomers]);
+
   const handleResolveAlert = async (alertId: string) => {
     try {
       await fetchFromApi(`/alerts/${alertId}/resolve`, { method: 'PUT' });
-      // Remove alert from state
       setAlerts((prev) => prev.filter((a) => a.id !== alertId));
-      // Re-fetch metrics and overview distribution
       const ov = await fetchFromApi('/analytics/overview');
       setMetrics(ov);
     } catch (err) {
@@ -150,10 +207,28 @@ export default function OverviewPage() {
             Aggregated churn statistics and active metrics at a glance.
           </p>
         </div>
-        <button onClick={loadDashboardData} disabled={loading} className="btn-secondary">
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Sync Analytics
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Cohort Slicing Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+              Cohort Slice:
+            </span>
+            <select
+              value={selectedPlanFilter}
+              onChange={(e) => setSelectedPlanFilter(e.target.value)}
+              className="dashboard-input bg-slate-900 border-slate-800 text-slate-300 text-xs py-1.5 px-3 h-fit cursor-pointer"
+            >
+              <option value="all">All Cohorts & Plans</option>
+              <option value="basic">Basic Plan</option>
+              <option value="pro">Pro Plan</option>
+              <option value="enterprise">Enterprise Plan</option>
+            </select>
+          </div>
+          <button onClick={loadDashboardData} disabled={loading} className="btn-secondary">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Sync Analytics
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -598,11 +673,36 @@ export default function OverviewPage() {
                       className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.04]"
                     >
                       <td className="p-4">
-                        <div className="font-bold text-[#F8F6F0]">{cust.company}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-[#F8F6F0]">{cust.company}</span>
+                          {score < 45 ? (
+                            <span
+                              className="text-rose-500 font-extrabold text-sm"
+                              title="Declining trend"
+                            >
+                              ↓
+                            </span>
+                          ) : score >= 75 ? (
+                            <span
+                              className="text-emerald-500 font-extrabold text-sm"
+                              title="Improving trend"
+                            >
+                              ↑
+                            </span>
+                          ) : (
+                            <span
+                              className="text-slate-500 font-extrabold text-sm"
+                              title="Stable trend"
+                            >
+                              →
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-slate-400 mt-0.5">
                           {cust.name} • {cust.email}
                         </div>
                       </td>
+
                       <td className="p-4">
                         <span className="px-2 py-0.5 bg-white/[0.03] border border-white/[0.08] text-slate-300 rounded text-[10px] font-bold">
                           {cust.plan_tier}

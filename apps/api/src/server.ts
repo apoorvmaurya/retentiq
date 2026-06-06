@@ -26,6 +26,7 @@ import analyticsRouter from './routes/analytics.js';
 import usersRouter from './routes/users.js';
 import tasksRouter from './routes/tasks.js';
 import playbooksRouter from './routes/playbooks.js';
+import settingsRouter from './routes/settings.js';
 
 import { fileURLToPath } from 'url';
 
@@ -137,6 +138,7 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/playbooks', playbooksRouter);
+app.use('/api/settings', settingsRouter);
 
 // ─── Global Error Handler ────────────────────────────────────────
 app.use(errorHandler);

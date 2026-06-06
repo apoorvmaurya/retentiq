@@ -1,12 +1,19 @@
 import { db, schema } from './db.js';
-import { eq, and, gte, desc, sql } from 'drizzle-orm';
+import { eq, and, gte, desc, sql, asc } from 'drizzle-orm';
 
 export interface FeatureDict {
   login_frequency_30d: number;
+  login_frequency_14d: number;
+  login_frequency_7d: number;
   feature_adoption_score: number;
-  support_ticket_volume: number;
-  billing_change_pct: number;
+  usage_trend: number;
   days_since_last_login: number;
+  support_ticket_volume: number;
+  support_sentiment_score: number;
+  billing_events: number;
+  onboarding_time: number;
+  nps_csat_score: number;
+  renewal_proximity: number;
   plan_tier: string;
 }
 
@@ -14,16 +21,22 @@ export interface FeatureDict {
  * Computes engagement features for a customer based on historical events (last 30 days).
  */
 export async function computeFeatures(customerId: string, orgId: string): Promise<FeatureDict> {
+  const now = new Date();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const fourteenDaysAgo = new Date();
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   // Fetch customer plan_tier
   const customerRows = await db
-    .select({ planTier: schema.customers.planTier })
+    .select()
     .from(schema.customers)
     .where(eq(schema.customers.id, customerId))
     .limit(1);
-  const plan_tier = customerRows[0]?.planTier || 'Basic';
+  const customer = customerRows[0];
+  const plan_tier = customer?.planTier || 'Basic';
 
   // Fetch last 30 days of events
   const events30d = await db
@@ -33,15 +46,20 @@ export async function computeFeatures(customerId: string, orgId: string): Promis
       and(
         eq(schema.events.customerId, customerId),
         eq(schema.events.orgId, orgId),
-        gte(schema.events.occurredAt, thirtyDaysAgo)
-      )
+        gte(schema.events.occurredAt, thirtyDaysAgo),
+      ),
     );
 
-  // 1. login_frequency_30d
-  const loginEvents = events30d.filter(
-    (e) => e.eventType === 'login' || e.eventType === 'user.login'
+  // 1. login frequency (30d, 14d, 7d)
+  const logins30d = events30d.filter(
+    (e) => e.eventType === 'login' || e.eventType === 'user.login' || e.eventType === 'identify',
   );
-  const login_frequency_30d = loginEvents.length / 30.0;
+  const logins14d = logins30d.filter((e) => new Date(e.occurredAt!) >= fourteenDaysAgo);
+  const logins7d = logins30d.filter((e) => new Date(e.occurredAt!) >= sevenDaysAgo);
+
+  const login_frequency_30d = logins30d.length / 30.0;
+  const login_frequency_14d = logins14d.length / 14.0;
+  const login_frequency_7d = logins7d.length / 7.0;
 
   // 2. feature_adoption_score
   const uniqueFeatures = new Set<string>();
@@ -55,52 +73,111 @@ export async function computeFeatures(customerId: string, orgId: string): Promis
   }
   const feature_adoption_score = uniqueFeatures.size / 12.0;
 
-  // 3. support_ticket_volume
-  const ticketEvents = events30d.filter(
+  // 3. usage_trend: WoW logins change percentage
+  const logins8_14d = logins14d.filter((e) => new Date(e.occurredAt!) < sevenDaysAgo);
+  const usage_trend =
+    logins8_14d.length > 0
+      ? (logins7d.length - logins8_14d.length) / logins8_14d.length
+      : logins7d.length > 0
+        ? 1.0
+        : 0.0;
+
+  // 4. days_since_last_login
+  let days_since_last_login = 999;
+  if (logins30d.length > 0) {
+    const sortedLogins = [...logins30d].sort(
+      (a, b) => new Date(b.occurredAt!).getTime() - new Date(a.occurredAt!).getTime(),
+    );
+    const latestLogin = sortedLogins[0];
+    if (latestLogin && latestLogin.occurredAt) {
+      const diffTime = Math.abs(now.getTime() - new Date(latestLogin.occurredAt).getTime());
+      days_since_last_login = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    }
+  }
+
+  // 5. support_ticket_volume
+  const supportTickets = events30d.filter(
     (e) =>
       e.eventType === 'support_ticket' ||
       e.eventType === 'ticket.created' ||
-      e.eventType === 'ticket.opened'
+      e.eventType === 'ticket.opened',
   );
-  const support_ticket_volume = ticketEvents.length;
+  const support_ticket_volume = supportTickets.length;
 
-  // 4. billing_change_pct
-  const billingEvents = events30d
-    .filter((e) => e.eventType.includes('billing'))
-    .sort((a, b) => new Date(b.occurredAt!).getTime() - new Date(a.occurredAt!).getTime());
-  const billing_change_pct =
-    billingEvents.length > 0
-      ? (billingEvents[0].payload as any).billing_change_pct ||
-        (billingEvents[0].payload as any).change_pct ||
-        0.0
-      : 0.0;
+  // 6. support_sentiment_score (average CSAT mapped to -1 to +1)
+  const csatEvents = events30d.filter((e) => e.eventType === 'csat_response');
+  let support_sentiment_score = 0.5; // neutral default
+  if (csatEvents.length > 0) {
+    let totalScore = 0;
+    for (const e of csatEvents) {
+      const rating = (e.payload as any).rating || 3; // 0-5 scale
+      totalScore += (rating - 2.5) / 2.5; // map 0-5 to -1 to +1
+    }
+    support_sentiment_score = totalScore / csatEvents.length;
+  }
 
-  // 5. days_since_last_login
-  const latestLogin = await db
+  // 7. billing_events count (failures or cancels/downgrades)
+  const billingEvents = events30d.filter(
+    (e) =>
+      e.eventType === 'payment_failed' ||
+      (e.eventType === 'billing_change' && (e.payload as any).to === 'churned'),
+  );
+  const billing_events = billingEvents.length;
+
+  // 8. onboarding_time (days between customer creation and first event)
+  let onboarding_time = 0;
+  if (customer && customer.createdAt) {
+    const firstEvent = await db
+      .select()
+      .from(schema.events)
+      .where(eq(schema.events.customerId, customerId))
+      .orderBy(asc(schema.events.occurredAt))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (firstEvent && firstEvent.occurredAt) {
+      const diffTime = Math.abs(
+        new Date(firstEvent.occurredAt).getTime() - new Date(customer.createdAt).getTime(),
+      );
+      onboarding_time = Math.max(0.1, diffTime / (1000 * 60 * 60 * 24));
+    }
+  }
+
+  // 9. nps_csat_score and renewal_proximity from CRM sync
+  const crmSyncEvents = await db
     .select()
     .from(schema.events)
-    .where(
-      and(
-        eq(schema.events.customerId, customerId),
-        eq(schema.events.orgId, orgId),
-        sql`${schema.events.eventType} IN ('login', 'user.login')`
-      )
-    )
+    .where(and(eq(schema.events.customerId, customerId), eq(schema.events.eventType, 'crm_sync')))
     .orderBy(desc(schema.events.occurredAt))
-    .limit(1);
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  let days_since_last_login = 999;
-  if (latestLogin.length > 0 && latestLogin[0].occurredAt) {
-    const diffTime = Math.abs(Date.now() - new Date(latestLogin[0].occurredAt).getTime());
-    days_since_last_login = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  let nps_csat_score = 8; // default healthy NPS
+  let renewal_proximity = 365; // default far away renewal
+  if (crmSyncEvents && crmSyncEvents.payload) {
+    const payload = crmSyncEvents.payload as any;
+    if (payload.nps_score !== undefined) {
+      nps_csat_score = payload.nps_score;
+    }
+    if (payload.renewal_date) {
+      const diffTime = new Date(payload.renewal_date).getTime() - now.getTime();
+      renewal_proximity = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+    }
   }
 
   return {
     login_frequency_30d,
+    login_frequency_14d,
+    login_frequency_7d,
     feature_adoption_score,
-    support_ticket_volume,
-    billing_change_pct,
+    usage_trend,
     days_since_last_login,
+    support_ticket_volume,
+    support_sentiment_score,
+    billing_events,
+    onboarding_time,
+    nps_csat_score,
+    renewal_proximity,
     plan_tier,
   };
 }

@@ -16,6 +16,7 @@ import {
   Sparkles,
   CheckSquare,
   Zap,
+  BarChart2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -23,6 +24,7 @@ import { fetchFromApi } from '@/lib/api';
 
 const navItems = [
   { href: '/dashboard/overview', label: 'Overview', icon: LayoutDashboard },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart2 },
   { href: '/dashboard/customers', label: 'Customers', icon: Users },
   { href: '/dashboard/alerts', label: 'Alerts', icon: AlertTriangle },
   { href: '/dashboard/tasks', label: 'Tasks', icon: CheckSquare },
