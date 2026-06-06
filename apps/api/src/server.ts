@@ -7,7 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -27,6 +27,7 @@ import usersRouter from './routes/users.js';
 import tasksRouter from './routes/tasks.js';
 import playbooksRouter from './routes/playbooks.js';
 import settingsRouter from './routes/settings.js';
+import cronRouter from './routes/cron.js';
 
 import { fileURLToPath } from 'url';
 
@@ -44,7 +45,7 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 // ─── Global Middleware ───────────────────────────────────────────
 
 // Security headers
-app.use(helmet());
+app.use((helmet as any)());
 
 // CORS — whitelist the web app origin
 app.use(
@@ -123,6 +124,9 @@ app.get('/health', publicLimiter, async (_req, res) => {
   });
 });
 
+// Expose secure cron triggers for serverless environments (like Vercel)
+app.use('/cron', cronRouter);
+
 // ─── Authenticated API Routes ────────────────────────────────────
 
 // Apply auth middleware and authenticated rate limiter to all /api/* routes
@@ -148,7 +152,7 @@ import { startIngestionWorker } from './workers/ingestionWorker.js';
 
 // ─── Start Server ────────────────────────────────────────────────
 let server: any;
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   server = app.listen(port, () => {
     console.log(`🚀 RetentIQ API server listening at http://localhost:${port}`);
     console.log(`   Health check:  GET http://localhost:${port}/health`);
