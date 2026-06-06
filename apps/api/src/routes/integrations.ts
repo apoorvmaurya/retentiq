@@ -1,0 +1,91 @@
+import { Router, Request, Response, NextFunction } from 'express';
+import { db, schema } from '../lib/db.js';
+import { eq } from 'drizzle-orm';
+
+import stripeRouter from '../integrations/stripe.js';
+import intercomRouter from '../integrations/intercom.js';
+import mixpanelRouter from '../integrations/mixpanel.js';
+import csvRouter from '../integrations/csv.js';
+
+const router = Router();
+
+// Mount integration sub-routes
+router.use('/stripe', stripeRouter);
+router.use('/intercom', intercomRouter);
+router.use('/', mixpanelRouter);
+router.use('/', csvRouter);
+
+/**
+ * GET /api/integrations
+ * List all integrations for the authenticated org.
+ * Returns { provider, status, last_synced_at, config }.
+ */
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const orgId = req.user!.org_id;
+
+    const integrationsList = await db
+      .select()
+      .from(schema.integrations)
+      .where(eq(schema.integrations.orgId, orgId));
+
+    res.json(integrationsList);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/integrations/sync/:provider
+ * Trigger a manual data sync for a specific provider.
+ * Returns { job_id, status: 'queued' }.
+ */
+router.get('/sync/:provider', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { provider } = req.params;
+    const orgId = req.user!.org_id;
+
+    // Handle mixpanel redirect to its specialized sync endpoint
+    if (provider === 'mixpanel') {
+      res.redirect(307, '/api/integrations/sync/mixpanel');
+      return;
+    }
+
+    const integration = await db
+      .select()
+      .from(schema.integrations)
+      .where(eq(schema.integrations.orgId, orgId))
+      .then(rows => rows.find(r => r.provider === provider));
+
+    if (!integration) {
+      res.status(404).json({ error: `Integration '${provider}' not found`, code: 'NOT_FOUND' });
+      return;
+    }
+
+    if (integration.status !== 'active') {
+      res.status(400).json({ error: `Integration '${provider}' is not active`, code: 'INTEGRATION_INACTIVE' });
+      return;
+    }
+
+    const jobId = `sync-${provider}-${Date.now()}`;
+
+    // Fire-and-forget: simulate a sync
+    setTimeout(async () => {
+      try {
+        await db
+          .update(schema.integrations)
+          .set({ lastSyncedAt: new Date() })
+          .where(eq(schema.integrations.id, integration.id));
+        console.log(`[sync] Job ${jobId} for ${provider} completed.`);
+      } catch (e) {
+        console.error(`[sync] Job ${jobId} failed:`, e);
+      }
+    }, 2000);
+
+    res.json({ job_id: jobId, status: 'queued' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+export default router;

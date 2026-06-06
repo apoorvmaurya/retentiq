@@ -1,0 +1,270 @@
+{
+  "info": {
+    "name": "RetentIQ API",
+    "description": "Full REST API for RetentIQ — SaaS Churn Intelligence & Customer Health Platform",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "bearer_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearer_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health",
+            "description": "Public health check endpoint. Returns status, version, and uptime."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "GET /api/customers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/customers?page=1&limit=25&sort=name&order=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "25" },
+                { "key": "sort", "value": "name" },
+                { "key": "order", "value": "asc" },
+                { "key": "risk_tier", "value": "", "disabled": true }
+              ]
+            },
+            "description": "List customers with latest health scores, paginated and filterable."
+          }
+        },
+        {
+          "name": "GET /api/customers/:id",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/customers/{{customer_id}}",
+            "description": "Get detailed customer profile with latest health score and last 20 events."
+          }
+        },
+        {
+          "name": "PUT /api/customers/:id/notes",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/customers/{{customer_id}}/notes",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Key account — schedule quarterly business review.\"\n}"
+            },
+            "description": "Update customer notes. Max 2000 characters, Zod validated."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Scores",
+      "item": [
+        {
+          "name": "GET /api/health-scores",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/health-scores?page=1&limit=25&sort=scored_at&order=desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health-scores"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "25" },
+                { "key": "sort", "value": "scored_at" },
+                { "key": "order", "value": "desc" }
+              ]
+            },
+            "description": "All health scores for org, paginated and sortable."
+          }
+        },
+        {
+          "name": "POST /api/health-scores/refresh",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/health-scores/refresh",
+            "description": "Trigger re-score for ALL customers in org (batch call to ai-service)."
+          }
+        },
+        {
+          "name": "GET /api/health-scores/:customer_id/history",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/health-scores/{{customer_id}}/history",
+            "description": "Array of { score, churn_probability, scored_at } for last 90 days."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "POST /api/events/ingest",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/events/ingest",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"customer_id\": \"00000000-0000-0000-0000-000000000001\",\n      \"event_type\": \"user.login\",\n      \"source\": \"web-app\",\n      \"payload\": { \"browser\": \"Chrome\" }\n    },\n    {\n      \"customer_id\": \"00000000-0000-0000-0000-000000000001\",\n      \"event_type\": \"dashboard.viewed\",\n      \"source\": \"web-app\",\n      \"payload\": { \"tab\": \"billing\" }\n    },\n    {\n      \"customer_id\": \"00000000-0000-0000-0000-000000000001\",\n      \"event_type\": \"ticket.created\",\n      \"source\": \"intercom\",\n      \"payload\": { \"subject\": \"Invoice inquiry\" }\n    },\n    {\n      \"customer_id\": \"00000000-0000-0000-0000-000000000001\",\n      \"event_type\": \"feature.used\",\n      \"source\": \"web-app\",\n      \"payload\": { \"feature\": \"export_csv\" }\n    },\n    {\n      \"customer_id\": \"00000000-0000-0000-0000-000000000001\",\n      \"event_type\": \"user.logout\",\n      \"source\": \"web-app\",\n      \"payload\": {}\n    }\n  ]\n}"
+            },
+            "description": "Bulk ingest events. Zod validated, max 500 per call. Returns { inserted, skipped }."
+          }
+        },
+        {
+          "name": "GET /api/events/:customer_id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/events/{{customer_id}}?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "events", "{{customer_id}}"],
+              "query": [
+                { "key": "limit", "value": "50" },
+                { "key": "before_cursor", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Paginated event stream for a customer with cursor-based pagination."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations",
+      "item": [
+        {
+          "name": "GET /api/integrations",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/integrations",
+            "description": "List integrations for org with { provider, status, last_synced_at }."
+          }
+        },
+        {
+          "name": "GET /api/integrations/sync/:provider",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/integrations/sync/stripe",
+            "description": "Trigger manual data sync for provider. Returns { job_id, status: 'queued' }."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "GET /api/alerts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/alerts?status=open&limit=25&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "alerts"],
+              "query": [
+                { "key": "status", "value": "open" },
+                { "key": "limit", "value": "25" },
+                { "key": "page", "value": "1" }
+              ]
+            },
+            "description": "List alerts for org. Filter by status: open|resolved."
+          }
+        },
+        {
+          "name": "PUT /api/alerts/:id/resolve",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/alerts/{{alert_id}}/resolve",
+            "description": "Resolve an alert: set resolved_at = now, acknowledged = true."
+          }
+        },
+        {
+          "name": "GET /api/alerts/config",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/alerts/config",
+            "description": "Get current alert_config for org (or defaults)."
+          }
+        },
+        {
+          "name": "POST /api/alerts/config",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/alerts/config",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"threshold\": 35,\n  \"notify_slack\": true,\n  \"notify_email\": false\n}"
+            },
+            "description": "Upsert alert_config for org."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "GET /api/analytics/overview",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/analytics/overview",
+            "description": "Aggregated overview: total_customers, avg_health_score, at_risk_count, critical_count, revenue_at_risk."
+          }
+        },
+        {
+          "name": "GET /api/analytics/retention-roi",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/analytics/retention-roi",
+            "description": "Retention ROI: accounts_saved, total_revenue_saved, actions_this_month."
+          }
+        },
+        {
+          "name": "GET /api/analytics/score-distribution",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/analytics/score-distribution",
+            "description": "Score distribution: { low, medium, high, critical } count by risk_tier."
+          }
+        }
+      ]
+    }
+  ]
+}

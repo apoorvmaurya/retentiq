@@ -1,0 +1,58 @@
+# Dependency directories
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Compilation/Build outputs
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+next-env.d.ts
+
+# Python virtual envs and caches
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.poetry/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Local databases and CLI logs
+pg_logfile
+.supabase/
+supabase/.temp/
+.lhci/
+coverage/
+
+# Environment configurations (Keep examples and templates committed)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

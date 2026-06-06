@@ -1,0 +1,3 @@
+customer_id,event_type,occurred_at,feature,payload
+1e682014-b14d-4844-a98f-1f85592f0427,login,2026-06-06T00:00:00Z,,
+1e682014-b14d-4844-a98f-1f85592f0427,feature_use,2026-06-06T02:05:00Z,feature_dashboard,{"test":true}
