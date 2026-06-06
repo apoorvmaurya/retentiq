@@ -4,6 +4,61 @@ import logging
 
 logger = logging.getLogger("ai-service.compat_db")
 
+def parse_dsn(dsn_str):
+    if not dsn_str.startswith("postgresql://") and not dsn_str.startswith("postgres://"):
+        return {"dsn": dsn_str}
+        
+    # Strip protocol
+    raw = dsn_str.split("://", 1)[1]
+    
+    # Split on the last '@' to separate credentials from host
+    if "@" not in raw:
+        return {"dsn": dsn_str}
+        
+    creds, host_part = raw.rsplit("@", 1)
+    
+    # Split credentials on the first ':'
+    user = creds
+    password = ""
+    if ":" in creds:
+        user, password = creds.split(":", 1)
+        
+    import urllib.parse
+    user = urllib.parse.unquote(user)
+    password = urllib.parse.unquote(password)
+    
+    # Strip query parameters from host_part
+    query_options = ""
+    if "?" in host_part:
+        host_part, query_options = host_part.split("?", 1)
+        
+    sslmode = "prefer"
+    if query_options:
+        params = urllib.parse.parse_qs(query_options)
+        if "sslmode" in params:
+            sslmode = params["sslmode"][0]
+            
+    # Split host_part on the first '/'
+    host_port = host_part
+    dbname = "postgres"
+    if "/" in host_part:
+        host_port, dbname = host_part.split("/", 1)
+            
+    # Split host_port on ':'
+    host = host_port
+    port = "5432"
+    if ":" in host_port:
+        host, port = host_port.split(":", 1)
+        
+    return {
+        "user": user,
+        "password": password,
+        "host": host,
+        "port": port,
+        "database": dbname,
+        "sslmode": sslmode
+    }
+
 class PostgresCompatResult:
     def __init__(self, data):
         self.data = data
@@ -46,7 +101,18 @@ class PostgresTableQueryBuilder:
         return self
 
     def execute(self):
-        conn = psycopg2.connect(self.dsn)
+        parsed = parse_dsn(self.dsn)
+        if "dsn" in parsed:
+            conn = psycopg2.connect(parsed["dsn"])
+        else:
+            conn = psycopg2.connect(
+                user=parsed["user"],
+                password=parsed["password"],
+                host=parsed["host"],
+                port=parsed["port"],
+                database=parsed["database"],
+                sslmode=parsed["sslmode"]
+            )
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         try:
             if self.action == "insert":
