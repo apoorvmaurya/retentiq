@@ -34,7 +34,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 const app = express();
-const port = parseInt(process.env.API_PORT || '4000', 10);
+const port = parseInt(process.env.PORT || process.env.API_PORT || '4000', 10);
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 // ─── Global Middleware ───────────────────────────────────────────
