@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["schema.ts", "seed.ts", "drizzle.config.ts"]
+  "include": ["index.ts", "schema.ts", "seed.ts", "drizzle.config.ts"]
 }
