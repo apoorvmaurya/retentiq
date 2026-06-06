@@ -21,6 +21,8 @@ import integrationsRouter from './routes/integrations.js';
 import alertsRouter from './routes/alerts.js';
 import analyticsRouter from './routes/analytics.js';
 import usersRouter from './routes/users.js';
+import tasksRouter from './routes/tasks.js';
+import playbooksRouter from './routes/playbooks.js';
 
 import { fileURLToPath } from 'url';
 
@@ -130,11 +132,14 @@ app.use('/api/integrations', integrationsRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/tasks', tasksRouter);
+app.use('/api/playbooks', playbooksRouter);
 
 // ─── Global Error Handler ────────────────────────────────────────
 app.use(errorHandler);
 
 import { startAlertWorker } from './workers/alertWorker.js';
+import { startIngestionWorker } from './workers/ingestionWorker.js';
 
 // ─── Start Server ────────────────────────────────────────────────
 let server: any;
@@ -144,19 +149,20 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`   Health check:  GET http://localhost:${port}/health`);
     console.log(`   API base:      http://localhost:${port}/api`);
     console.log(`   CORS origin:   ${appUrl}`);
-    
+
     // Start background cron worker
     startAlertWorker();
+    startIngestionWorker();
   });
 
   // Graceful Shutdown Handler
   const gracefulShutdown = (signal: string) => {
     console.log(`\n[Server] Received ${signal}. Starting graceful shutdown...`);
-    
+
     // Stop accepting new connections
     server.close(async () => {
       console.log('[Server] Closed out remaining connections.');
-      
+
       try {
         console.log('[Server] Closing database connection pool...');
         await pgClient.end();

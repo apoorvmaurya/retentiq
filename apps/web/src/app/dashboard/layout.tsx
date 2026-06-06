@@ -3,58 +3,45 @@
 import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Users, 
-  AlertTriangle, 
-  Puzzle, 
-  Settings, 
-  ChevronDown, 
+import {
+  LayoutDashboard,
+  Users,
+  AlertTriangle,
+  Puzzle,
+  Settings,
+  ChevronDown,
   LogOut,
   Brain,
   X,
-  Sparkles
+  Sparkles,
+  CheckSquare,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { fetchFromApi } from '@/lib/api';
 
 const navItems = [
   { href: '/dashboard/overview', label: 'Overview', icon: LayoutDashboard },
   { href: '/dashboard/customers', label: 'Customers', icon: Users },
   { href: '/dashboard/alerts', label: 'Alerts', icon: AlertTriangle },
+  { href: '/dashboard/tasks', label: 'Tasks', icon: CheckSquare },
+  { href: '/dashboard/playbooks', label: 'Playbooks', icon: Zap },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Puzzle },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
-
-async function fetchFromApi(endpoint: string) {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-  const response = await fetch(`${baseUrl}${endpoint}`, { headers });
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
-  }
-  return response.json();
-}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  
+
   const [orgName, setOrgName] = useState('Loading Org...');
   const [userEmail, setUserEmail] = useState('user@retentiq.io');
   const [userInitials, setUserInitials] = useState('U');
   const [userName, setUserName] = useState('');
   const [userAvatar, setUserAvatar] = useState('');
-  
+
   const [bannerOpen, setBannerOpen] = useState(false);
 
   const fetchUserData = async () => {
@@ -64,7 +51,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setOrgName(profile.org_name || 'Sandbox Org');
       setUserName(profile.name || '');
       setUserAvatar(profile.avatar_url || '');
-      
+
       const displayString = profile.name || profile.email || 'U';
       setUserInitials(displayString.slice(0, 2).toUpperCase());
     } catch (err) {
@@ -72,18 +59,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       // Fallback directly to Supabase Auth
       try {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           setUserEmail(user.email || 'user@retentiq.io');
           setUserInitials(user.email ? user.email.slice(0, 2).toUpperCase() : 'U');
         }
-      } catch (_) {}
+      } catch {
+        // Fallback silently if session isn't available
+      }
     }
   };
 
   useEffect(() => {
     fetchUserData();
-    
+
     // Check if banner was dismissed
     const isDismissed = sessionStorage.getItem('premium_banner_dismissed');
     if (!isDismissed) {
@@ -110,7 +101,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex h-screen overflow-hidden bg-[#0A0F1E] text-slate-100 font-sans antialiased">
       {/* Left Sidebar */}
       <aside className="w-16 md:w-[220px] bg-[#070B16] border-r border-[#152347] flex flex-col justify-between transition-all duration-300 shrink-0 select-none">
-        
         {/* Top: Logo + Nav */}
         <div className="flex flex-col">
           {/* Logo area */}
@@ -139,8 +129,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   onMouseEnter={() => setHoveredIdx(idx)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
-                    isActive 
-                      ? 'border-l-4 border-cyan-400 bg-cyan-950/20 text-cyan-400 font-bold' 
+                    isActive
+                      ? 'border-l-4 border-cyan-400 bg-cyan-950/20 text-cyan-400 font-bold'
                       : 'text-slate-400 hover:text-slate-200'
                   } justify-center md:justify-start`}
                 >
@@ -165,7 +155,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Bottom: Org Switcher + User Info */}
         <div className="border-t border-[#152347] bg-[#040812] p-2 md:p-3 space-y-3">
-          
           {/* Org Switcher */}
           <div className="flex items-center justify-between p-1.5 rounded-lg hover:bg-[#141F3E]/40 transition-colors cursor-pointer justify-center md:justify-between">
             <div className="flex items-center gap-2 overflow-hidden">
@@ -173,8 +162,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {orgName.slice(0, 1).toUpperCase()}
               </div>
               <div className="hidden md:block overflow-hidden">
-                <p className="text-[11px] font-bold text-slate-200 truncate leading-tight">{orgName}</p>
-                <p className="text-[8px] text-slate-500 font-semibold tracking-wider uppercase">Workspace</p>
+                <p className="text-[11px] font-bold text-slate-200 truncate leading-tight">
+                  {orgName}
+                </p>
+                <p className="text-[8px] text-slate-500 font-semibold tracking-wider uppercase">
+                  Workspace
+                </p>
               </div>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-500 hidden md:block shrink-0" />
@@ -184,10 +177,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center justify-between gap-2 p-1 border-t border-[#152347]/50 pt-3 justify-center md:justify-between">
             <div className="flex items-center gap-2 overflow-hidden">
               {userAvatar ? (
-                <img 
-                  src={userAvatar} 
-                  alt="User Avatar" 
-                  className="w-7.5 h-7.5 rounded-full object-cover border border-cyan-400/30 shrink-0" 
+                <img
+                  src={userAvatar}
+                  alt="User Avatar"
+                  className="w-7.5 h-7.5 rounded-full object-cover border border-cyan-400/30 shrink-0"
                 />
               ) : (
                 <div className="w-7.5 h-7.5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-xs font-bold shrink-0 border border-cyan-400/30">
@@ -195,10 +188,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               )}
               <div className="hidden md:block overflow-hidden">
-                <p className="text-[10px] font-bold text-slate-300 truncate max-w-[110px] leading-tight">{userName || userEmail}</p>
+                <p className="text-[10px] font-bold text-slate-300 truncate max-w-[110px] leading-tight">
+                  {userName || userEmail}
+                </p>
               </div>
             </div>
-            <button 
+            <button
               onClick={handleLogout}
               className="p-1.5 hover:bg-rose-950/30 border border-transparent hover:border-rose-900/30 rounded-lg text-slate-500 hover:text-rose-400 transition-colors cursor-pointer shrink-0"
               title="Logout"
@@ -207,11 +202,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
           </div>
         </div>
-
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 bg-[#F0F4FA] overflow-hidden flex flex-col">
+      <div className="flex-1 bg-[#0A0F1E] overflow-hidden flex flex-col">
         {/* Dynamic Premium Banner */}
         <AnimatePresence>
           {bannerOpen && (
@@ -224,7 +218,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               {/* Bottom glowing line */}
               <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400 via-indigo-500 via-purple-500 to-transparent opacity-85" />
-              
+
               <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-200 mx-auto text-center justify-center font-medium">
                   {/* Glowing Preview Badge */}
@@ -233,18 +227,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     Pro Preview
                   </span>
                   <span>
-                    RetentIQ's premium AI engines are temporarily unlocked for all workspaces. Soon, advanced diagnoses will require a <strong className="text-cyan-400 font-extrabold font-sans">Pro</strong> or <strong className="text-indigo-400 font-extrabold font-sans">Ultra</strong> membership.
+                    RetentIQ's premium AI engines are temporarily unlocked for all workspaces. Soon,
+                    advanced diagnoses will require a{' '}
+                    <strong className="text-cyan-400 font-extrabold font-sans">Pro</strong> or{' '}
+                    <strong className="text-indigo-400 font-extrabold font-sans">Ultra</strong>{' '}
+                    membership.
                   </span>
-                  <Link 
-                    href="/dashboard/settings" 
+                  <Link
+                    href="/dashboard/settings"
                     className="ml-1 text-cyan-400 hover:text-cyan-300 font-bold transition-colors underline decoration-cyan-400/40 hover:decoration-cyan-300/80 underline-offset-2 flex items-center gap-0.5"
                   >
                     View Details
                     <span className="text-[10px]">&rarr;</span>
                   </Link>
                 </div>
-                
-                <button 
+
+                <button
                   onClick={handleDismissBanner}
                   className="p-1 hover:bg-slate-800 border border-transparent hover:border-slate-700/50 rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer shrink-0"
                   aria-label="Dismiss Banner"

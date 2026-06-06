@@ -31,7 +31,7 @@ export default function ErrorBoundary({
         </div>
 
         {/* Heading */}
-        <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white via-slate-200 to-slate-450 leading-none select-none">
+        <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white via-slate-200 to-slate-400 leading-none select-none">
           System Exception
         </h1>
 
@@ -40,14 +40,17 @@ export default function ErrorBoundary({
         </h2>
 
         <p className="mt-4 text-slate-400 text-sm md:text-base max-w-md mx-auto leading-relaxed">
-          The dashboard encountered a runtime rendering exception. This can occur due to missing network endpoints or corrupted session state.
+          The dashboard encountered a runtime rendering exception. This can occur due to missing
+          network endpoints or corrupted session state.
         </p>
 
         {/* Technical details container */}
-        <div className="mt-6 p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 text-left backdrop-blur-md max-h-40 overflow-y-auto font-mono text-xs text-red-350 select-text leading-relaxed">
-          <div className="font-semibold text-slate-350 border-b border-slate-800/60 pb-1.5 mb-1.5 flex justify-between">
+        <div className="mt-6 p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 text-left backdrop-blur-md max-h-40 overflow-y-auto font-mono text-xs text-red-400 select-text leading-relaxed">
+          <div className="font-semibold text-slate-300 border-b border-slate-800/60 pb-1.5 mb-1.5 flex justify-between">
             <span>Exception Log</span>
-            {error.digest && <span className="text-slate-500 text-[10px]">Digest: {error.digest}</span>}
+            {error.digest && (
+              <span className="text-slate-500 text-[10px]">Digest: {error.digest}</span>
+            )}
           </div>
           <div>{error.message || 'Unknown render exception occurred.'}</div>
         </div>

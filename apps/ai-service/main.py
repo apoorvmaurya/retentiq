@@ -15,6 +15,8 @@ from supabase import create_client, Client
 
 # Import compute_features and resolve_uuid helpers
 from feature_engine import compute_features, resolve_uuid
+from classifier import ChurnClassifier
+classifier = ChurnClassifier()
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../.env"))
@@ -224,6 +226,10 @@ async def select_best_model():
 @app.on_event("startup")
 async def startup():
     await select_best_model()
+    try:
+        classifier.train_model(supabase_client=supabase_client)
+    except Exception as e:
+        logger.error(f"Failed to train scikit-learn classifier on startup: {e}")
 
 # Helper: parse JSON safely from LLM output, stripping markdown fences
 def clean_and_parse_json(content: str) -> dict:
@@ -479,6 +485,57 @@ def read_root():
         "model": settings.MODEL_ID
     }
 
+def get_numerical_metrics(features: FeatureDict) -> tuple[int, float]:
+    """Helper to calculate numerical health score and churn probability using scikit-learn."""
+    try:
+        prob = classifier.predict_churn(
+            login_frequency_30d=features.login_frequency_30d,
+            feature_adoption_score=features.feature_adoption_score,
+            support_ticket_volume=features.support_ticket_volume,
+            days_since_last_login=features.days_since_last_login
+        )
+        score = int((1.0 - prob) * 100)
+        score = max(0, min(100, score))
+        return score, float(prob)
+    except Exception as e:
+        logger.error(f"Failed to compute scikit-learn metrics: {e}")
+        return 50, 0.50
+
+def get_fallback_with_sklearn(features: FeatureDict, score: int, prob: float) -> HealthScoreOutput:
+    if score >= 80:
+        rt = "low"
+        ra = "Continue standard engagement."
+    elif score >= 50:
+        rt = "medium"
+        ra = "Send feature adoption guides and monitor."
+    elif score >= 25:
+        rt = "high"
+        ra = "Initiate CSM outreach and review tickets."
+    else:
+        rt = "critical"
+        ra = "Executive escalation required. Offer discount/direct support."
+        
+    factors = []
+    if features.login_frequency_30d < 0.2:
+        factors.append("Low login frequency")
+    if features.feature_adoption_score < 0.3:
+        factors.append("Low feature adoption score")
+    if features.support_ticket_volume > 5:
+        factors.append(f"High support ticket volume ({features.support_ticket_volume} tickets)")
+    if features.days_since_last_login > 10:
+        factors.append(f"Inactive for {features.days_since_last_login} days")
+    if not factors:
+        factors = ["Consistent login activity", "Healthy feature adoption"]
+        
+    return HealthScoreOutput(
+        health_score=score,
+        churn_probability=prob,
+        risk_tier=rt,
+        top_risk_factors=factors[:3],
+        recommended_action=ra,
+        confidence=0.85
+    )
+
 @app.post("/score/customer")
 async def score_customer(request: ScoreCustomerRequest):
     if not supabase_client:
@@ -490,10 +547,12 @@ async def score_customer(request: ScoreCustomerRequest):
         features_dict = compute_features(request.customer_id, request.org_id, supabase_client)
         features = FeatureDict(**features_dict)
         
+    score, prob = get_numerical_metrics(features)
+    
     # 2. Invoke GROQ or Fallback
     if not groq_client:
-        logger.info("Using rule-based fallback for score_customer (Groq client offline).")
-        validated = calculate_fallback_score_from_features(features)
+        logger.info("Using scikit-learn & rule fallback for score_customer (Groq client offline).")
+        validated = get_fallback_with_sklearn(features, score, prob)
         total_tokens = 0
         cost = 0.0
         
@@ -517,20 +576,26 @@ async def score_customer(request: ScoreCustomerRequest):
             "recommended_action": validated.recommended_action,
             "confidence": validated.confidence,
             "tokens_used": total_tokens,
-            "model": "rule-based-fallback",
+            "model": "scikit-learn-local",
             "cost_usd": cost
         }
 
     try:
+        prompt_content = {
+            "features": features.model_dump(),
+            "calculated_health_score": score,
+            "calculated_churn_probability": prob
+        }
+        
         response = await call_groq_with_retry(
             groq_client.chat.completions.create,
             model=settings.MODEL_ID,
             messages=[
                 {
                     "role": "system", 
-                    "content": "You are a customer health analyst AI for a SaaS platform. Analyze these behavioral signals and return ONLY valid JSON with no preamble. Fields: health_score (int 0-100), churn_probability (float 0.0-1.0), risk_tier (one of: low|medium|high|critical), top_risk_factors (array of 3 strings, specific and actionable), recommended_action (string, imperative sentence), confidence (float 0.0-1.0)."
+                    "content": "You are a customer health analyst AI for a SaaS platform. Analyze these signals and return ONLY valid JSON matching the schema. Use the calculated_health_score and calculated_churn_probability as the base fields, providing qualitative risk factors, risk tier, and recommended actions. Fields: health_score (int 0-100), churn_probability (float 0.0-1.0), risk_tier (low|medium|high|critical), top_risk_factors (array of 3 strings), recommended_action (string), confidence (float 0.0-1.0)."
                 },
-                {"role": "user", "content": json.dumps(features.model_dump())}
+                {"role": "user", "content": json.dumps(prompt_content)}
             ],
             temperature=0.1,
             max_tokens=400
@@ -540,6 +605,9 @@ async def score_customer(request: ScoreCustomerRequest):
         
         # Parse and clamp values
         data = clean_and_parse_json(raw_content)
+        # Force the sklearn values to prevent LLM hallucination of numerical probability
+        data["health_score"] = score
+        data["churn_probability"] = prob
         validated = clamp_health_data(data)
         
         prompt_tokens = getattr(response.usage, 'prompt_tokens', 0)
@@ -572,9 +640,8 @@ async def score_customer(request: ScoreCustomerRequest):
         }
         
     except Exception as e:
-        logger.error(f"Error scoring customer {request.customer_id}: {e}. Falling back to rule-based.")
-        # Fallback to rule-based on failure
-        validated = calculate_fallback_score_from_features(features)
+        logger.error(f"Error scoring customer {request.customer_id}: {e}. Falling back to sklearn.")
+        validated = get_fallback_with_sklearn(features, score, prob)
         await save_health_score_and_usage(
             customer_id=request.customer_id,
             org_id=request.org_id,
@@ -593,7 +660,7 @@ async def score_customer(request: ScoreCustomerRequest):
             "recommended_action": validated.recommended_action,
             "confidence": validated.confidence,
             "tokens_used": 0,
-            "model": "rule-based-fallback",
+            "model": "scikit-learn-local",
             "cost_usd": 0.0
         }
 
@@ -603,10 +670,12 @@ async def score_single_customer_for_bulk(customer_id: str, org_id: str) -> bool:
         features_dict = compute_features(customer_id, org_id, supabase_client)
         features = FeatureDict(**features_dict)
         
+        score, prob = get_numerical_metrics(features)
+        
         # Check if Groq client is offline
         if not groq_client:
-            logger.info("Using rule-based fallback for score_single_customer_for_bulk (Groq client offline).")
-            validated = calculate_fallback_score_from_features(features)
+            logger.info("Using sklearn fallback for score_single_customer_for_bulk (Groq client offline).")
+            validated = get_fallback_with_sklearn(features, score, prob)
             await save_health_score_and_usage(
                 customer_id=customer_id,
                 org_id=org_id,
@@ -618,21 +687,29 @@ async def score_single_customer_for_bulk(customer_id: str, org_id: str) -> bool:
             return True
             
         try:
+            prompt_content = {
+                "features": features.model_dump(),
+                "calculated_health_score": score,
+                "calculated_churn_probability": prob
+            }
+            
             response = await call_groq_with_retry(
                 groq_client.chat.completions.create,
                 model=settings.MODEL_ID,
                 messages=[
                     {
                         "role": "system", 
-                        "content": "You are a customer health analyst AI for a SaaS platform. Analyze these behavioral signals and return ONLY valid JSON with no preamble. Fields: health_score (int 0-100), churn_probability (float 0.0-1.0), risk_tier (one of: low|medium|high|critical), top_risk_factors (array of 3 strings, specific and actionable), recommended_action (string, imperative sentence), confidence (float 0.0-1.0)."
+                        "content": "You are a customer health analyst AI for a SaaS platform. Analyze these signals and return ONLY valid JSON matching the schema. Use the calculated_health_score and calculated_churn_probability as the base fields, providing qualitative risk factors, risk tier, and recommended actions. Fields: health_score (int 0-100), churn_probability (float 0.0-1.0), risk_tier (low|medium|high|critical), top_risk_factors (array of 3 strings), recommended_action (string), confidence (float 0.0-1.0)."
                     },
-                    {"role": "user", "content": json.dumps(features.model_dump())}
+                    {"role": "user", "content": json.dumps(prompt_content)}
                 ],
                 temperature=0.1,
                 max_tokens=400
             )
             raw_content = response.choices[0].message.content
             data = clean_and_parse_json(raw_content)
+            data["health_score"] = score
+            data["churn_probability"] = prob
             validated = clamp_health_data(data)
             
             prompt_tokens = getattr(response.usage, 'prompt_tokens', 0)
@@ -652,7 +729,7 @@ async def score_single_customer_for_bulk(customer_id: str, org_id: str) -> bool:
             return True
         except Exception as groq_err:
             logger.error(f"Groq bulk scoring failed for customer {customer_id}, falling back: {groq_err}")
-            validated = calculate_fallback_score_from_features(features)
+            validated = get_fallback_with_sklearn(features, score, prob)
             await save_health_score_and_usage(
                 customer_id=customer_id,
                 org_id=org_id,
@@ -985,11 +1062,6 @@ async def predict_churn(request: ChurnAnalysisRequest):
     """Legacy endpoint supporting predict-churn used by the Express API server."""
     logger.info(f"Legacy predict-churn called for customer {request.customer_id}")
     
-    # Check if Groq client is configured. If not, use fallback
-    if not groq_client:
-        logger.info("Using rule-based fallback model (Groq client offline).")
-        return calculate_fallback_churn(request)
-        
     org_id = None
     db_cust_id = resolve_uuid(request.customer_id, "customer")
     if supabase_client:
@@ -1003,7 +1075,7 @@ async def predict_churn(request: ChurnAnalysisRequest):
     if not org_id:
         org_id = "00000000-0000-0000-0000-000000000000"
         
-    features = {
+    features_dict = {
         "login_frequency_30d": request.login_frequency / 30.0,
         "feature_adoption_score": max(0.0, 1.0 - (request.feature_usage_drop_percent / 100.0)),
         "support_ticket_volume": request.ticket_count,
@@ -1011,23 +1083,51 @@ async def predict_churn(request: ChurnAnalysisRequest):
         "days_since_last_login": request.days_since_last_login,
         "plan_tier": request.plan_tier
     }
+    features = FeatureDict(**features_dict)
+    
+    score, prob = get_numerical_metrics(features)
+    
+    # Check if Groq client is configured. If not, use fallback
+    if not groq_client:
+        logger.info("Using sklearn fallback model for legacy predict_churn (Groq client offline).")
+        validated = get_fallback_with_sklearn(features, score, prob)
+        return ChurnAnalysisResponse(
+            customer_id=request.customer_id,
+            score=validated.health_score,
+            churn_probability=validated.churn_probability,
+            risk_tier=validated.risk_tier,
+            top_risk_factors=validated.top_risk_factors,
+            recommended_action=validated.recommended_action,
+            confidence=validated.confidence,
+            tokens_used=0,
+            model="scikit-learn-local",
+            cost_usd=0.0
+        )
     
     try:
+        prompt_content = {
+            "features": features.model_dump(),
+            "calculated_health_score": score,
+            "calculated_churn_probability": prob
+        }
+        
         response = await call_groq_with_retry(
             groq_client.chat.completions.create,
             model=settings.MODEL_ID,
             messages=[
                 {
                     "role": "system", 
-                    "content": "You are a customer health analyst AI for a SaaS platform. Analyze these behavioral signals and return ONLY valid JSON with no preamble. Fields: health_score (int 0-100), churn_probability (float 0.0-1.0), risk_tier (one of: low|medium|high|critical), top_risk_factors (array of 3 strings, specific and actionable), recommended_action (string, imperative sentence), confidence (float 0.0-1.0)."
+                    "content": "You are a customer health analyst AI for a SaaS platform. Analyze these signals and return ONLY valid JSON matching the schema. Use the calculated_health_score and calculated_churn_probability as the base fields, providing qualitative risk factors, risk tier, and recommended actions. Fields: health_score (int 0-100), churn_probability (float 0.0-1.0), risk_tier (low|medium|high|critical), top_risk_factors (array of 3 strings), recommended_action (string), confidence (float 0.0-1.0)."
                 },
-                {"role": "user", "content": json.dumps(features)}
+                {"role": "user", "content": json.dumps(prompt_content)}
             ],
             temperature=0.1,
             max_tokens=400
         )
         raw_content = response.choices[0].message.content
         data = clean_and_parse_json(raw_content)
+        data["health_score"] = score
+        data["churn_probability"] = prob
         validated = clamp_health_data(data)
         
         prompt_tokens = getattr(response.usage, 'prompt_tokens', 0)
@@ -1059,7 +1159,19 @@ async def predict_churn(request: ChurnAnalysisRequest):
         )
     except Exception as e:
         logger.error(f"Error in predict_churn: {e}. Using fallback.")
-        return calculate_fallback_churn(request)
+        validated = get_fallback_with_sklearn(features, score, prob)
+        return ChurnAnalysisResponse(
+            customer_id=request.customer_id,
+            score=validated.health_score,
+            churn_probability=validated.churn_probability,
+            risk_tier=validated.risk_tier,
+            top_risk_factors=validated.top_risk_factors,
+            recommended_action=validated.recommended_action,
+            confidence=validated.confidence,
+            tokens_used=0,
+            model="scikit-learn-local",
+            cost_usd=0.0
+        )
 
 if __name__ == "__main__":
     import uvicorn

@@ -72,20 +72,20 @@ export async function checkAndDeliverAlerts(): Promise<void> {
           .where(
             and(
               eq((schema.alerts as any).customerId, customer.id),
-              gte((schema.alerts as any).triggeredAt, twentyFourHoursAgo)
-            )
+              gte((schema.alerts as any).triggeredAt, twentyFourHoursAgo),
+            ),
           )
           .limit(1)) as any[];
 
         if (recentAlerts.length > 0) {
           console.log(
-            `[AlertWorker] Skipping customer ${customer.name} (ID: ${customer.id}) — alert already sent in last 24h.`
+            `[AlertWorker] Skipping customer ${customer.name} (ID: ${customer.id}) — alert already sent in last 24h.`,
           );
           continue;
         }
 
         console.log(
-          `[AlertWorker] Triggering alert for customer ${customer.name} (ID: ${customer.id}) — score ${latestScore.score} < ${threshold}.`
+          `[AlertWorker] Triggering alert for customer ${customer.name} (ID: ${customer.id}) — score ${latestScore.score} < ${threshold}.`,
         );
 
         // 1. Insert alert row
@@ -178,7 +178,12 @@ export async function checkAndDeliverAlerts(): Promise<void> {
         if (alertConfig.notifyEmail) {
           try {
             const riskFactorsList = Array.isArray(latestScore.topRiskFactors)
-              ? latestScore.topRiskFactors.map((f: string) => `<li style="margin-bottom: 8px; font-size: 14px; color: #475569;">${f}</li>`).join('')
+              ? latestScore.topRiskFactors
+                  .map(
+                    (f: string) =>
+                      `<li style="margin-bottom: 8px; font-size: 14px; color: #475569;">${f}</li>`,
+                  )
+                  .join('')
               : '<li style="margin-bottom: 8px; font-size: 14px; color: #475569;">No specific risk factors logged.</li>';
 
             const emailHtml = `
@@ -254,15 +259,77 @@ export async function checkAndDeliverAlerts(): Promise<void> {
   }
 }
 
+export async function runRoiAggregation(): Promise<void> {
+  console.log('[AlertWorker] Running ROI aggregation task...');
+  try {
+    const rawAggregates = await db
+      .select({
+        orgId: schema.retentionActions.orgId,
+        month: sql<string>`to_char(${schema.retentionActions.actionedAt}, 'YYYY-MM')`,
+        accountsSaved: sql<number>`count(distinct ${schema.retentionActions.customerId})::int`,
+        revenueSaved: sql<string>`coalesce(sum(${schema.retentionActions.revenueSaved}), 0)::text`,
+      })
+      .from(schema.retentionActions)
+      .groupBy(
+        schema.retentionActions.orgId,
+        sql`to_char(${schema.retentionActions.actionedAt}, 'YYYY-MM')`,
+      );
+
+    for (const agg of rawAggregates) {
+      if (!agg.orgId || !agg.month) continue;
+
+      const existing = await db
+        .select()
+        .from(schema.roiAggregates)
+        .where(
+          and(eq(schema.roiAggregates.orgId, agg.orgId), eq(schema.roiAggregates.month, agg.month)),
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        await db
+          .update(schema.roiAggregates)
+          .set({
+            accountsSaved: agg.accountsSaved,
+            revenueSaved: agg.revenueSaved,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.roiAggregates.id, existing[0].id));
+      } else {
+        await db.insert(schema.roiAggregates).values({
+          orgId: agg.orgId,
+          month: agg.month,
+          accountsSaved: agg.accountsSaved,
+          revenueSaved: agg.revenueSaved,
+        });
+      }
+    }
+    console.log('[AlertWorker] ROI aggregation completed successfully.');
+  } catch (err: any) {
+    console.error('[AlertWorker] ROI aggregation failed:', err.message);
+  }
+}
+
+import { sql } from 'drizzle-orm';
+
 export function startAlertWorker() {
   console.log('[AlertWorker] Initializing alert delivery cron job (running every 5 minutes)...');
-  // Runs every 5 minutes: '*/5 * * * *'
   cron.schedule('*/5 * * * *', async () => {
     console.log('[AlertWorker] Cron triggered. Running health check...');
     try {
       await checkAndDeliverAlerts();
     } catch (err: any) {
       console.error('[AlertWorker] Cron job execution failed:', err.message);
+    }
+  });
+
+  console.log('[AlertWorker] Initializing ROI aggregation cron job (running every 5 minutes)...');
+  cron.schedule('*/5 * * * *', async () => {
+    console.log('[AlertWorker] ROI Cron triggered. Running aggregation...');
+    try {
+      await runRoiAggregation();
+    } catch (err: any) {
+      console.error('[AlertWorker] ROI aggregation cron failed:', err.message);
     }
   });
 }

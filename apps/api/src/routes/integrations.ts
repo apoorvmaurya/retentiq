@@ -55,7 +55,7 @@ router.get('/sync/:provider', async (req: Request, res: Response, next: NextFunc
       .select()
       .from(schema.integrations)
       .where(eq(schema.integrations.orgId, orgId))
-      .then(rows => rows.find(r => r.provider === provider));
+      .then((rows) => rows.find((r) => r.provider === provider));
 
     if (!integration) {
       res.status(404).json({ error: `Integration '${provider}' not found`, code: 'NOT_FOUND' });
@@ -63,26 +63,23 @@ router.get('/sync/:provider', async (req: Request, res: Response, next: NextFunc
     }
 
     if (integration.status !== 'active') {
-      res.status(400).json({ error: `Integration '${provider}' is not active`, code: 'INTEGRATION_INACTIVE' });
+      res
+        .status(400)
+        .json({ error: `Integration '${provider}' is not active`, code: 'INTEGRATION_INACTIVE' });
       return;
     }
 
-    const jobId = `sync-${provider}-${Date.now()}`;
+    const newJob = await db
+      .insert(schema.jobs)
+      .values({
+        orgId,
+        type: provider,
+        payload: { manual: true },
+        status: 'queued',
+      })
+      .returning();
 
-    // Fire-and-forget: simulate a sync
-    setTimeout(async () => {
-      try {
-        await db
-          .update(schema.integrations)
-          .set({ lastSyncedAt: new Date() })
-          .where(eq(schema.integrations.id, integration.id));
-        console.log(`[sync] Job ${jobId} for ${provider} completed.`);
-      } catch (e) {
-        console.error(`[sync] Job ${jobId} failed:`, e);
-      }
-    }, 2000);
-
-    res.json({ job_id: jobId, status: 'queued' });
+    res.json({ job_id: newJob[0].id, status: 'queued' });
   } catch (err) {
     next(err);
   }
