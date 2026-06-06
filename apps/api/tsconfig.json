@@ -8,11 +8,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
-    "paths": {
-      "@retentiq/db": ["../../packages/db/index.ts"]
-    }
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*"]
 }
