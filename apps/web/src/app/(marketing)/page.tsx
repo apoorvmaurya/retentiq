@@ -25,6 +25,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import Image from 'next/image';
 
 // --- CUSTOM COUNTER COMPONENT ---
 function Counter({
@@ -104,7 +105,13 @@ function TimelineNode({ index, progress }: { index: number; progress: any }) {
   const [active, setActive] = useState(false);
 
   useMotionValueEvent(progress, 'change', (latest: number) => {
-    setActive(latest >= threshold);
+    const isNextActive = latest >= threshold;
+    setActive((prevActive) => {
+      if (prevActive !== isNextActive) {
+        return isNextActive;
+      }
+      return prevActive;
+    });
   });
 
   return (
@@ -154,8 +161,11 @@ export default function MarketingPage() {
   const stepsRef = useRef(null);
   const { scrollYProgress: stepsScrollProgress } = useScroll({
     target: stepsRef,
-    offset: ['start end', 'end center'],
+    offset: ['start center', 'end center'],
   });
+
+  // Dynamic vertical tracer position for the glowing tip
+  const tracerY = useTransform(stepsScrollProgress, [0, 1], ['0%', '100%']);
 
   // Pricing settings
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
@@ -266,6 +276,8 @@ export default function MarketingPage() {
           style={{ y: parallaxY }}
           className="lg:col-span-5 relative z-10 hidden lg:block"
         >
+          {/* Neon back-glow */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#00D4FF]/20 to-indigo-500/10 blur-[40px] rounded-2xl -z-10 pointer-events-none scale-[0.98]" />
           <div className="rounded-2xl border border-white/[0.08] bg-[#0c1224] p-6 shadow-[0_24px_50px_rgba(0,0,0,0.6)] flex flex-col gap-6 relative overflow-hidden">
             {/* Gloss reflection overlay */}
             <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none" />
@@ -335,7 +347,7 @@ export default function MarketingPage() {
       <section
         id="how-it-works"
         ref={stepsRef}
-        className="py-20 md:py-32 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] scroll-mt-24"
+        className="py-20 md:py-32 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] scroll-mt-24 content-visibility-auto"
       >
         <div className="text-center max-w-xl mx-auto mb-16 md:mb-24 space-y-4">
           <span className="text-[10px] text-[#00D4FF] font-bold uppercase tracking-widest block">
@@ -346,30 +358,18 @@ export default function MarketingPage() {
           </h2>
         </div>
 
-        {/* Step cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-6 relative pl-10 md:pl-0">
-          {/* Desktop Horizontal Timeline Track */}
-          <div className="absolute top-[39px] left-[12.5%] right-[12.5%] h-[2px] bg-white/[0.04] hidden md:block z-0">
-            <motion.div
-              style={{ scaleX: stepsScrollProgress, originX: 0 }}
-              className="w-full h-full bg-gradient-to-r from-[#00D4FF] via-cyan-400 to-indigo-500 shadow-[0_0_8px_rgba(0,212,255,0.6)]"
-            />
-          </div>
-
-          {/* Desktop Timeline Nodes */}
-          <div className="absolute top-[39px] left-[12.5%] right-[12.5%] hidden md:flex justify-between items-center -translate-y-1/2 pointer-events-none z-10">
-            {[0, 1, 2, 3].map((idx) => (
-              <div key={idx} className="relative flex items-center justify-center -translate-x-1/2">
-                <TimelineNode index={idx} progress={stepsScrollProgress} />
-              </div>
-            ))}
-          </div>
-
-          {/* Mobile Vertical Timeline Track */}
-          <div className="absolute left-[18px] top-[40px] bottom-[40px] w-[2px] bg-white/[0.04] md:hidden z-0">
+        {/* Step cards container */}
+        <div className="relative max-w-5xl mx-auto pl-10 md:pl-0 flex flex-col gap-16 md:gap-28">
+          {/* Vertical Timeline Track (Mobile: left-[18px], Desktop: centered) */}
+          <div className="absolute left-[18px] md:left-1/2 top-[40px] md:top-[12.5%] bottom-[40px] md:bottom-[12.5%] w-[2px] md:-translate-x-1/2 bg-white/[0.04]">
             <motion.div
               style={{ scaleY: stepsScrollProgress, originY: 0 }}
-              className="w-full h-full bg-gradient-to-b from-[#00D4FF] via-cyan-400 to-indigo-500 shadow-[0_0_8px_rgba(0,212,255,0.6)]"
+              className="w-full h-full bg-gradient-to-b from-[#00D4FF] via-cyan-400 to-indigo-500 shadow-[0_0_8px_rgba(0,212,255,0.6)] will-change-transform"
+            />
+            {/* Glowing tracer tip dot tracking scroll progress */}
+            <motion.div
+              style={{ top: tracerY }}
+              className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#00D4FF] shadow-[0_0_15px_rgba(0,212,255,1),_0_0_5px_rgba(255,255,255,0.8)] z-10 pointer-events-none will-change-[top]"
             />
           </div>
 
@@ -379,48 +379,153 @@ export default function MarketingPage() {
               step: '01',
               title: 'Ingest Signals',
               desc: 'Sync billing alerts, support ticket activity, and application logs.',
+              image: '/images/playbook-ingest.webp',
             },
             {
               step: '02',
               title: 'ML Health Score',
               desc: 'Our FastAPI predictive engine constructs an organic health index.',
+              image: '/images/playbook-score.webp',
             },
             {
               step: '03',
               title: 'Early Alert',
               desc: 'Slack notifications trigger immediately when scores drop below bounds.',
+              image: '/images/playbook-alert.webp',
             },
             {
               step: '04',
               title: 'Playbook',
               desc: 'Run targeted CSM outreaches with custom recommendations.',
+              image: '/images/playbook-playbook.webp',
             },
-          ].map((item, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: idx * 0.15 }}
-              className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 flex flex-col gap-4 relative z-10 backdrop-blur-sm shadow-xl"
-            >
-              {/* Mobile Timeline Node */}
-              <div className="absolute left-[-22px] top-[39px] -translate-x-1/2 -translate-y-1/2 md:hidden z-20">
-                <TimelineNode index={idx} progress={stepsScrollProgress} />
-              </div>
+          ].map((item, idx) => {
+            const isEven = idx % 2 === 0;
+            return (
+              <div
+                key={idx}
+                className="relative grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-24 items-center"
+              >
+                {/* Timeline Node */}
+                {/* Mobile: aligns with vertical line at left-[18px]. Placed at left-[-22px] and top-[39px] */}
+                {/* Desktop: aligns with vertical line at left-1/2. Placed at left-1/2 and top-1/2 */}
+                <div className="absolute left-[-22px] md:left-1/2 top-[39px] md:top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+                  <TimelineNode index={idx} progress={stepsScrollProgress} />
+                </div>
 
-              <span className="font-serif text-3xl italic text-[#00D4FF]/40">{item.step}</span>
-              <h3 className="text-base font-bold text-[#F8F6F0]">{item.title}</h3>
-              <p className="text-xs text-[#8B95AB] leading-relaxed">{item.desc}</p>
-            </motion.div>
-          ))}
+                {isEven ? (
+                  <>
+                    {/* Step Card (Left Column on Desktop) */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -50 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: '-100px' }}
+                      transition={{ duration: 0.6, delay: 0.15 }}
+                      className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 md:p-8 flex flex-col gap-4 relative z-10 backdrop-blur-sm shadow-xl text-left font-sans"
+                    >
+                      <span className="font-serif text-3xl italic text-[#00D4FF]/40">
+                        {item.step}
+                      </span>
+                      <h3 className="text-lg font-bold text-[#F8F6F0]">{item.title}</h3>
+                      <p className="text-xs md:text-sm text-[#8B95AB] leading-relaxed">
+                        {item.desc}
+                      </p>
+
+                      {/* Mobile-only Image */}
+                      <div className="mt-4 block md:hidden rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-white/[0.01]">
+                        <Image
+                          src={item.image}
+                          alt={item.title}
+                          width={600}
+                          height={600}
+                          className="w-full h-auto object-contain aspect-square"
+                        />
+                      </div>
+                    </motion.div>
+
+                    {/* Desktop-only Image (Right Column on Desktop) */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 50 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: '-100px' }}
+                      transition={{ duration: 0.6, delay: 0.25 }}
+                      className="hidden md:block rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl bg-[#0c1224] p-2 relative group"
+                    >
+                      <div className="relative rounded-xl overflow-hidden aspect-square w-full">
+                        {/* Gloss reflection overlay */}
+                        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none z-10" />
+                        <Image
+                          src={item.image}
+                          alt={item.title}
+                          width={1024}
+                          height={1024}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                    </motion.div>
+                  </>
+                ) : (
+                  <>
+                    {/* Desktop-only Image (Left Column on Desktop) */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -50 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: '-100px' }}
+                      transition={{ duration: 0.6, delay: 0.25 }}
+                      className="hidden md:block rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl bg-[#0c1224] p-2 relative group"
+                    >
+                      <div className="relative rounded-xl overflow-hidden aspect-square w-full">
+                        {/* Gloss reflection overlay */}
+                        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none z-10" />
+                        <Image
+                          src={item.image}
+                          alt={item.title}
+                          width={1024}
+                          height={1024}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                    </motion.div>
+
+                    {/* Step Card (Right Column on Desktop) */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 50 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: '-100px' }}
+                      transition={{ duration: 0.6, delay: 0.15 }}
+                      className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 md:p-8 flex flex-col gap-4 relative z-10 backdrop-blur-sm shadow-xl text-left font-sans"
+                    >
+                      <span className="font-serif text-3xl italic text-[#00D4FF]/40">
+                        {item.step}
+                      </span>
+                      <h3 className="text-lg font-bold text-[#F8F6F0]">{item.title}</h3>
+                      <p className="text-xs md:text-sm text-[#8B95AB] leading-relaxed">
+                        {item.desc}
+                      </p>
+
+                      {/* Mobile-only Image */}
+                      <div className="mt-4 block md:hidden rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-white/[0.01]">
+                        <Image
+                          src={item.image}
+                          alt={item.title}
+                          width={600}
+                          height={600}
+                          className="w-full h-auto object-contain aspect-square"
+                        />
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
       {/* 3. FEATURES SECTION (Alternating side entries) */}
       <section
         id="features"
-        className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] space-y-24 md:space-y-36 scroll-mt-24"
+        className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] space-y-24 md:space-y-36 scroll-mt-24 content-visibility-auto"
       >
         {/* Title */}
         <div className="text-center max-w-xl mx-auto space-y-4">
@@ -540,14 +645,14 @@ export default function MarketingPage() {
           >
             <SpotlightCard className="p-8 bg-white/[0.01]">
               {/* SVG Sparkline Spark */}
-              <svg className="w-full h-24 overflow-visible" fill="none">
+              <svg viewBox="0 0 500 100" className="w-full h-24 overflow-visible" fill="none">
                 <path
-                  d="M 0 80 Q 50 60 100 70 T 200 30 T 300 50 T 400 10 T 500 20"
+                  d="M 0 80 C 100 80, 150 20, 250 50 C 350 80, 400 15, 500 25"
                   stroke="#00D4FF"
                   strokeWidth="3"
                   strokeLinecap="round"
                 />
-                <circle cx="500" cy="20" r="5" fill="#00D4FF" className="animate-pulse" />
+                <circle cx="500" cy="25" r="5" fill="#00D4FF" className="animate-pulse" />
               </svg>
             </SpotlightCard>
           </motion.div>
@@ -641,39 +746,62 @@ export default function MarketingPage() {
       </section>
 
       {/* 4. STATS BAR SECTION */}
-      <section className="py-16 md:py-24 bg-white/[0.01] border-y border-white/[0.04]">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-left">
-          <div className="space-y-2">
-            <h3 className="font-serif text-5xl md:text-6xl text-[#00D4FF] font-normal tracking-tight">
-              <Counter value={8} suffix="%" />
-            </h3>
-            <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-semibold">
-              Average Monthly B2B Churn Rate
-            </p>
-          </div>
+      <section className="py-20 md:py-28 relative max-w-7xl mx-auto px-4 md:px-8">
+        {/* Glow effect behind stats */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[150px] bg-[#00D4FF]/5 blur-[80px] rounded-full pointer-events-none -z-10" />
 
-          <div className="space-y-2">
-            <h3 className="font-serif text-5xl md:text-6xl text-[#00D4FF] font-normal tracking-tight">
-              <Counter value={25} suffix="x" />
-            </h3>
-            <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-semibold">
-              Cost to Acquire vs Retain Customers
-            </p>
-          </div>
+        <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] rounded-3xl p-8 md:p-12 shadow-[0_24px_60px_rgba(0,0,0,0.5)] relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-0 items-center">
+            {/* Stat Item 1 */}
+            <motion.div
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-3 md:px-8 text-center md:border-r border-white/[0.06]"
+            >
+              <h3 className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight">
+                <Counter value={8} suffix="%" />
+              </h3>
+              <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-[200px] mx-auto">
+                Average Monthly B2B Churn Rate
+              </p>
+            </motion.div>
 
-          <div className="space-y-2">
-            <h3 className="font-serif text-5xl md:text-6xl text-[#00D4FF] font-normal tracking-tight">
-              <Counter value={68} suffix="%" />
-            </h3>
-            <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-semibold">
-              SaaS Teams Missing Churn Signals
-            </p>
+            {/* Stat Item 2 */}
+            <motion.div
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-3 md:px-8 text-center md:border-r border-white/[0.06]"
+            >
+              <h3 className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight">
+                <Counter value={25} suffix="x" />
+              </h3>
+              <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-[200px] mx-auto">
+                Cost to Acquire vs Retain Customers
+              </p>
+            </motion.div>
+
+            {/* Stat Item 3 */}
+            <motion.div
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-3 md:px-8 text-center"
+            >
+              <h3 className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight">
+                <Counter value={68} suffix="%" />
+              </h3>
+              <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-[200px] mx-auto">
+                SaaS Teams Missing Churn Signals
+              </p>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* 5. PRICING SECTION */}
-      <section id="pricing" className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 scroll-mt-24">
+      <section
+        id="pricing"
+        className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 scroll-mt-24 content-visibility-auto"
+      >
         {/* Header */}
         <div className="text-center max-w-xl mx-auto mb-16 md:mb-20 space-y-6">
           <span className="text-[10px] text-[#00D4FF] font-bold uppercase tracking-widest block">

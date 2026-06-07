@@ -34,3 +34,20 @@ export async function fetchFromApi(endpoint: string, options: RequestInit = {}) 
   }
   return response.json();
 }
+
+/**
+ * Centrally managed and optimized fetch utility for calling the AI service (FastAPI) via Proxy.
+ */
+export async function fetchFromAiService(endpoint: string, options: RequestInit = {}) {
+  const response = await fetch(`/ai-service${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`AI Service error: ${response.status}`);
+  }
+  return response.json();
+}

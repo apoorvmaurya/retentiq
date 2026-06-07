@@ -48,22 +48,40 @@ body {
   background: #1e3162;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* Premium Glow Utilities */
 .glass-panel {
   background: rgba(12, 18, 38, 0.65);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+  transform: translateZ(0); /* Promote to compositor layer */
+  backface-visibility: hidden;
 }
 
 .glass-card-hover {
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              background 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, border-color, box-shadow, background;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 .glass-card-hover:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) translateZ(0);
   border-color: rgba(0, 212, 255, 0.25); /* Cyan-500 glow */
   box-shadow: 0 12px 40px -12px rgba(0, 212, 255, 0.2);
   background: rgba(16, 24, 48, 0.85);
+}
+
+/* Offscreen rendering optimization */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 800px;
 }
 
 .glowing-glow {

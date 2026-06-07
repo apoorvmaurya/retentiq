@@ -8,7 +8,9 @@ import * as schema from '@retentiq/db';
 const connectionString =
   process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:54322/postgres';
 
-const client = postgres(connectionString);
+const client = postgres(connectionString, {
+  prepare: false,
+});
 
 /** Drizzle ORM database instance with full schema. */
 export const db = drizzle(client, { schema });

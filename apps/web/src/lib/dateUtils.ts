@@ -13,3 +13,16 @@ export function timeAgo(dateStr: string | null | undefined): string {
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
 }
+
+/**
+ * Formats a date string into a local date string (e.g. "Oct 12").
+ */
+export function formatLocaleDate(
+  dateStr: string | null | undefined,
+  options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' },
+): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, options);
+}

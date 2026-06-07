@@ -15,23 +15,9 @@ const CustomerHealthChart = dynamic(() => import('@/components/CustomerHealthCha
 });
 
 const PlaybookDrawer = dynamic(() => import('@/components/PlaybookDrawer'), { ssr: false });
-import { fetchFromApi } from '@/lib/api';
+import { fetchFromApi, fetchFromAiService } from '@/lib/api';
 import { useToast } from '@/components/Toast';
-
-// Fetch helper for AI service (FastAPI) via Proxy (/ai-service)
-async function fetchFromAiService(endpoint: string, options: RequestInit = {}) {
-  const response = await fetch(`/ai-service${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`AI Service error: ${response.status}`);
-  }
-  return response.json();
-}
+import { formatLocaleDate } from '@/lib/dateUtils';
 
 export default function CustomerDetailPage() {
   const toast = useToast();
@@ -235,10 +221,7 @@ export default function CustomerDetailPage() {
   };
 
   const lineChartData = healthHistory.map((item) => ({
-    date: new Date(item.scoredAt || item.scored_at).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    }),
+    date: formatLocaleDate(item.scoredAt || item.scored_at),
     score: item.score,
     tier: item.riskTier || item.risk_tier,
   }));

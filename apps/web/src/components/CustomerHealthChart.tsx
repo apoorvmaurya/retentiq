@@ -37,7 +37,7 @@ export default function CustomerHealthChart({ data }: CustomerHealthChartProps) 
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" vertical={false} />
         <XAxis dataKey="date" stroke="#94A3B8" fontSize={11} tickLine={false} />
         <YAxis stroke="#94A3B8" fontSize={11} domain={[0, 100]} tickLine={false} />
         <Tooltip
@@ -53,9 +53,9 @@ export default function CustomerHealthChart({ data }: CustomerHealthChartProps) 
         <Line
           type="monotone"
           dataKey="score"
-          stroke="#06B6D4"
+          stroke="#00D4FF"
           strokeWidth={3}
-          dot={{ r: 4, fill: '#06B6D4', strokeWidth: 0 }}
+          dot={{ r: 4, fill: '#00D4FF', strokeWidth: 0 }}
           activeDot={{ r: 6 }}
         />
       </LineChart>

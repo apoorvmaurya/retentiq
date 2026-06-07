@@ -16,6 +16,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useHealthScoreRealtime } from '@/hooks/useHealthScoreRealtime';
 import { fetchFromApi } from '@/lib/api';
+import { timeAgo } from '@/lib/dateUtils';
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -155,19 +156,6 @@ export default function CustomersPage() {
 
   const getInitials = (company: string) => {
     return company.slice(0, 2).toUpperCase();
-  };
-
-  const getRelativeTime = (dateStr: string | undefined) => {
-    if (!dateStr) return 'Never login';
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days === 0) {
-      const hours = Math.floor(diff / 3600000);
-      if (hours === 0) return 'Just now';
-      return `${hours}h ago`;
-    }
-    if (days === 1) return 'Yesterday';
-    return `${days}d ago`;
   };
 
   return (
@@ -333,7 +321,7 @@ export default function CustomersPage() {
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
-                            <svg className="w-10 h-10 transform -rotate-90">
+                            <svg viewBox="0 0 40 40" className="w-10 h-10 transform -rotate-90">
                               <circle
                                 cx="20"
                                 cy="20"
@@ -382,7 +370,7 @@ export default function CustomersPage() {
                         <div className="flex items-center justify-end gap-1.5 text-slate-400">
                           <Clock className="w-3.5 h-3.5" />
                           <span className="text-xs font-semibold">
-                            {getRelativeTime(hs?.scoredAt)}
+                            {hs?.scoredAt ? timeAgo(hs.scoredAt) : 'Never login'}
                           </span>
                         </div>
                       </td>
