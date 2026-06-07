@@ -17,7 +17,7 @@ RUN pnpm --filter @retentiq/db build
 RUN pnpm --filter @retentiq/api build
 
 # Prune dev dependencies
-RUN CI=true pnpm prune --prod
+RUN CI=true pnpm prune --prod --ignore-scripts
 
 # Stage 2: Runtime stage
 FROM node:20-alpine AS runner
