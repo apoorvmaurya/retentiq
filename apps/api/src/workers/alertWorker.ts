@@ -1,17 +1,24 @@
 import cron from 'node-cron';
 import nodemailer from 'nodemailer';
 import { db, schema } from '../lib/db.js';
-import { eq, and, gte, desc, asc, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, lt, gt, desc, asc, sql } from 'drizzle-orm';
 
 // Nodemailer transport initialization
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
-  port: parseInt(process.env.SMTP_PORT || '2525', 10),
-  auth: {
-    user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || '',
-  },
-});
+const host = process.env.SMTP_HOST || 'smtp.mailtrap.io';
+const port = parseInt(process.env.SMTP_PORT || '2525', 10);
+const user = process.env.SMTP_USER;
+const pass = process.env.SMTP_PASS;
+
+const transportOptions: any = {
+  host,
+  port,
+};
+
+if (user && pass && user !== 'your-smtp-username' && pass !== 'your-smtp-password') {
+  transportOptions.auth = { user, pass };
+}
+
+const transporter = nodemailer.createTransport(transportOptions);
 
 export async function checkAndDeliverAlerts(): Promise<void> {
   console.log('[AlertWorker] Checking health scores against configurations & custom rules...');
@@ -376,9 +383,9 @@ export async function verifyRoiRecoveries(): Promise<void> {
           and(
             eq(schema.healthScores.customerId, customerId),
             eq(schema.healthScores.orgId, orgId),
-            sql`${schema.healthScores.score} < 40`,
+            lt(schema.healthScores.score, 40),
             gte(schema.healthScores.scoredAt, thirtyDaysBefore),
-            sql`${schema.healthScores.scoredAt} <= ${actionTime}`,
+            lte(schema.healthScores.scoredAt, actionTime),
           ),
         )
         .limit(1)
@@ -400,9 +407,9 @@ export async function verifyRoiRecoveries(): Promise<void> {
           and(
             eq(schema.healthScores.customerId, customerId),
             eq(schema.healthScores.orgId, orgId),
-            sql`${schema.healthScores.score} >= 60`,
-            sql`${schema.healthScores.scoredAt} > ${actionTime}`,
-            sql`${schema.healthScores.scoredAt} <= ${ninetyDaysAfter}`,
+            gte(schema.healthScores.score, 60),
+            gt(schema.healthScores.scoredAt, actionTime),
+            lte(schema.healthScores.scoredAt, ninetyDaysAfter),
           ),
         )
         .limit(1)

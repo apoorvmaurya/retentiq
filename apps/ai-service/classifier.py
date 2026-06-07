@@ -52,8 +52,13 @@ class ChurnClassifier:
                         churn = 1 if plan_tier == "churned" else 0
                         y.append(churn)
                         
-                    real_data_loaded = True
-                    print(f"[sklearn] Successfully loaded {len(X)} real customer feature vectors for training.")
+                    if len(np.unique(y)) >= 2:
+                        real_data_loaded = True
+                        print(f"[sklearn] Successfully loaded {len(X)} real customer feature vectors for training.")
+                    else:
+                        print(f"[sklearn] Real training data contains only 1 class: {np.unique(y)}. Falling back to synthetic baseline dataset to ensure model can train.")
+                        X = []
+                        y = []
             except Exception as e:
                 print(f"[sklearn] Failed to load real training data: {e}.")
 

@@ -134,14 +134,21 @@ router.put(
   },
 );
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
-  port: parseInt(process.env.SMTP_PORT || '2525', 10),
-  auth: {
-    user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || '',
-  },
-});
+const host = process.env.SMTP_HOST || 'smtp.mailtrap.io';
+const port = parseInt(process.env.SMTP_PORT || '2525', 10);
+const user = process.env.SMTP_USER;
+const pass = process.env.SMTP_PASS;
+
+const transportOptions: any = {
+  host,
+  port,
+};
+
+if (user && pass && user !== 'your-smtp-username' && pass !== 'your-smtp-password') {
+  transportOptions.auth = { user, pass };
+}
+
+const transporter = nodemailer.createTransport(transportOptions);
 
 /**
  * GET /api/users/invites
