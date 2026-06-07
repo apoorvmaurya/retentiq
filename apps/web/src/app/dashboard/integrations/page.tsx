@@ -110,26 +110,14 @@ export default function IntegrationsPage() {
     try {
       const nextStatus = isCurrentlyActive ? 'inactive' : 'active';
 
-      // Perform the POST call to upsert the integration state
-      const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001/api'}/integrations`;
-      const token = localStorage.getItem('supabase_session_token');
-
-      const res = await fetch(url, {
+      await fetchFromApi('/integrations', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: token ? `Bearer ${token}` : '',
-        },
         body: JSON.stringify({
           provider: providerId,
           status: nextStatus,
           config: {},
         }),
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to update integration');
-      }
 
       await loadIntegrations();
     } catch (err) {
@@ -167,19 +155,7 @@ export default function IntegrationsPage() {
   const handleSyncNow = async (providerId: string) => {
     setActionLoading(`sync-${providerId}`);
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001/api'}/integrations/sync/${providerId}`;
-      const token = localStorage.getItem('supabase_session_token');
-
-      const res = await fetch(url, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : '',
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error('Sync request failed');
-      }
-
+      await fetchFromApi(`/integrations/sync/${providerId}`);
       alert(`Sync triggered for ${providerId}!`);
       await loadIntegrations();
     } catch (err) {

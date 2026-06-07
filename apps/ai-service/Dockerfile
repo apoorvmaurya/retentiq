@@ -16,7 +16,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
-COPY main.py feature_engine.py config.py ./
+COPY main.py feature_engine.py config.py classifier.py compat_db.py churn_model.pkl ./
 
 # Adjust ownership
 RUN chown -R appuser:appuser /app

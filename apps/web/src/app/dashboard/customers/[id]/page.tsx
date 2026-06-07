@@ -290,7 +290,10 @@ export default function CustomerDetailPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <div className="px-3.5 py-1.5 bg-white/[0.03] border border-white/[0.08] rounded-lg text-xs font-bold text-slate-300">
-                Plan: <span className="text-[#F8F6F0] font-black">{profile.plan_tier}</span>
+                Plan:{' '}
+                <span className="text-[#F8F6F0] font-black">
+                  {profile.planTier || profile.plan_tier}
+                </span>
               </div>
               <div className="px-3.5 py-1.5 bg-white/[0.03] border border-white/[0.08] rounded-lg text-xs font-bold text-slate-300">
                 MRR:{' '}

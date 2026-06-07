@@ -322,7 +322,7 @@ export default function CustomersPage() {
                       {/* Plan Level */}
                       <td className="p-4">
                         <span className="px-2 py-0.5 bg-white/[0.03] border border-white/[0.08] text-slate-300 rounded text-[10px] font-bold">
-                          {cust.plan_tier}
+                          {cust.planTier || cust.plan_tier}
                         </span>
                         <div className="text-xs font-semibold text-slate-400 mt-1">
                           ${Number(cust.mrr).toLocaleString()}/mo

@@ -20,7 +20,7 @@ export async function fetchFromApi(endpoint: string, options: RequestInit = {}) 
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
   const response = await fetch(`${baseUrl}${endpoint}`, {
     ...options,
     headers,

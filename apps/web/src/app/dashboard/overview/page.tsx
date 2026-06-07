@@ -110,7 +110,7 @@ export default function OverviewPage() {
     let list = rawCustomers;
     if (selectedPlanFilter !== 'all') {
       list = rawCustomers.filter(
-        (c) => (c.plan_tier || '').toLowerCase() === selectedPlanFilter.toLowerCase(),
+        (c) => (c.planTier || c.plan_tier || '').toLowerCase() === selectedPlanFilter.toLowerCase(),
       );
     }
     setAtRiskCustomers(list);
@@ -657,13 +657,14 @@ export default function OverviewPage() {
                 atRiskCustomers.slice(0, 10).map((cust) => {
                   const hs = cust.healthScore;
                   const score = hs?.score ?? 0;
+                  const riskTier = hs?.riskTier || hs?.risk_tier || '';
 
                   let badgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-                  if (hs?.risk_tier === 'medium') {
+                  if (riskTier === 'medium') {
                     badgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-                  } else if (hs?.risk_tier === 'high') {
+                  } else if (riskTier === 'high') {
                     badgeColor = 'bg-orange-500/10 text-orange-400 border-orange-500/20';
-                  } else if (hs?.risk_tier === 'critical') {
+                  } else if (riskTier === 'critical') {
                     badgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
                   }
 
@@ -705,7 +706,7 @@ export default function OverviewPage() {
 
                       <td className="p-4">
                         <span className="px-2 py-0.5 bg-white/[0.03] border border-white/[0.08] text-slate-300 rounded text-[10px] font-bold">
-                          {cust.plan_tier}
+                          {cust.planTier || cust.plan_tier}
                         </span>
                         <span className="text-xs font-semibold text-slate-400 block mt-1">
                           ${Number(cust.mrr).toLocaleString()}/mo
@@ -716,14 +717,16 @@ export default function OverviewPage() {
                           <span
                             className={`px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase ${badgeColor}`}
                           >
-                            {hs.risk_tier} ({score}/100)
+                            {riskTier} ({score}/100)
                           </span>
                         ) : (
                           <span className="text-xs text-slate-400 italic">No score</span>
                         )}
                       </td>
                       <td className="p-4 text-center font-bold text-[#F8F6F0]">
-                        {hs ? `${Math.round(Number(hs.churn_probability) * 100)}%` : 'N/A'}
+                        {hs
+                          ? `${Math.round(Number(hs.churnProbability || hs.churn_probability) * 100)}%`
+                          : 'N/A'}
                       </td>
                       <td className="p-4 text-right">
                         <button

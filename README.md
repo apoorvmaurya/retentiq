@@ -1,29 +1,94 @@
-# RetentIQ (retentiq.io) - Full-Stack Monorepo
+# 🔮 RetentIQ (retentiq.io) - Churn Intelligence Monorepo
 
-RetentIQ is an enterprise SaaS customer churn-intelligence and health-scoring platform. It integrates a Python FastAPI service communicating with the Groq AI layer, a Node.js Express API, and a Next.js 16+ responsive web frontend.
+RetentIQ is a state-of-the-art, enterprise SaaS customer churn-intelligence and health-scoring platform. It empowers Customer Success Teams by predicting churn risks using a hybrid machine learning classifier combined with LLM qualitative risk factors.
+
+The system is built as a highly performant, type-safe full-stack monorepo featuring a **Next.js 16+** standalone dashboard, a **Node.js Express** API server, a **Python FastAPI** AI microservice, and a **Supabase (PostgreSQL)** database backend.
 
 ---
 
-## Directory Structure
+## 🏗️ System Architecture
 
-```text
-/retentiq
-  /apps
-    /web          ← Next.js 16+ (standalone, App Router), TS, Tailwind 4, Framer Motion
-    /api          ← Node.js + Express.js REST API, ESM, TypeScript, Vitest
-    /ai-service   ← Python 3.12 FastAPI microservice (GROQ AI layer, Pydantic)
-  /packages
-    /db           ← Supabase schema, migrations, Drizzle ORM schemas, and seeds (ESM)
-    /shared       ← Shared TypeScript types exported across applications
+The following diagram illustrates how the frontend, API server, Python AI service, and Supabase database communicate in real-time.
+
+```mermaid
+graph TD
+    %% Frontend Layer
+    subgraph Frontend [Next.js Web Application]
+        NextApp[Next.js App Router]
+        ProxyRules[Next.js proxy.ts Router]
+        RealTimeClient[Supabase Realtime WebSocket client]
+    end
+
+    %% Backend Service Layer
+    subgraph NodeAPI [Express API Server]
+        ExpServer[Express HTTP Server]
+        AuthJWT[verifySupabaseJWT Middleware]
+        IngWorker[Background Ingestion Worker]
+        AlWorker[Background Alert Worker]
+        Drizzle[Drizzle ORM Engine]
+    end
+
+    %% Python AI Layer
+    subgraph PyAI [AI & Machine Learning Service]
+        FastAPI[FastAPI HTTP Server]
+        SkLearn[GradientBoostingClassifier sklearn]
+        GroqClient[Async Groq API Client]
+        PyDBCompat[PostgresSupabaseCompatClient]
+    end
+
+    %% Database Layer
+    subgraph DataStore [Supabase Database]
+        Postgres[(Postgres DB Instance)]
+        RealtimeBroadcast[Supabase Broadcast Engine]
+    end
+
+    %% Communication Flow
+    NextApp -->|1. Authenticated API Calls| ProxyRules
+    ProxyRules -->|Proxy to Express port 4000| ExpServer
+    NextApp -->|2. Direct AI operations| ProxyRules
+    ProxyRules -->|Proxy /ai-service to Port 8000| FastAPI
+
+    ExpServer -->|Verify JWT| AuthJWT
+    AuthJWT -->|Lookup user profile| Drizzle
+    Drizzle -->|Read/Write schema| Postgres
+
+    IngWorker -->|Poll jobs table every 10s| Postgres
+    IngWorker -->|Trigger rescore POST /score/customer| FastAPI
+    AlWorker -->|Poll scores & aggregate ROI| Postgres
+
+    FastAPI -->|Compute features via psycopg2| PyDBCompat
+    PyDBCompat -->|Direct SQL queries| Postgres
+    FastAPI -->|Train model / local inference| SkLearn
+    FastAPI -->|Enrich risk factors| GroqClient
+
+    Postgres -->|3. Row level changes| RealtimeBroadcast
+    RealtimeBroadcast -.->|WebSocket updates| RealTimeClient
+    RealTimeClient -.->|Update UI states dynamically| NextApp
 ```
 
 ---
 
-## Production-Ready Capabilities
+## 📂 Directory Structure
+
+```text
+/retentiq
+  ├── /apps
+  │     ├── /web          ← Next.js 16+ standalone (App Router, Tailwind 4, Framer Motion)
+  │     ├── /api          ← Node.js + Express.js API (ESM, TypeScript, Vitest)
+  │     └── /ai-service   ← Python 3.12 FastAPI microservice (GROQ AI, sklearn model, psycopg2)
+  ├── /packages
+  │     ├── /db           ← Supabase schema, migrations, Drizzle schemas, and seeds
+  │     └── /shared       ← Common TypeScript interfaces & schemas shared across apps
+  └── .env.local          ← Global environment configuration
+```
+
+---
+
+## ⚙️ Core Technical Capabilities
 
 ### 1. Hybrid Churn Risk Intelligence Model
 
-- **Scikit-Learn Classifier**: Fits a local `RandomForestClassifier` on customer event distributions (login frequencies, ticket volumes, feature adoption) to predict numerical churn probabilities and calculate health scores.
+- **Scikit-Learn Classifier**: Trains a local `GradientBoostingClassifier` on customer event distributions (login frequencies, ticket volumes, feature adoption, and billing failures) to predict mathematical churn probabilities and health scores.
 - **Groq LLM Enrichment**: Complements the ML predictions by generating 2-3 specific qualitative risk factors and recommended playbook actions based on computed metrics.
 
 ### 2. Asynchronous Ingestion & Job Queue
@@ -42,18 +107,31 @@ RetentIQ is an enterprise SaaS customer churn-intelligence and health-scoring pl
 - **AI Service ([config.py](file:///c:/Github/RetentIQ/apps/ai-service/config.py))**: Standardizes env verification using Pydantic on app boot.
 - **Zod Validator Middleware**: Sanitizes incoming POST/PUT request payloads. Rejects invalid formats with `422 Unprocessable Entity`.
 
-### 5. Frontend Standalone Optimization & Premium UI
+---
 
-- **Stand-alone output**: Next.js is configured with `output: 'standalone'` to support building lightweight Docker containers.
-- **Premium Glassmorphic Dashboards**: Beautiful, custom CSS layouts featuring the **CSM Task Manager**, **Retention Playbook Catalog**, and a custom **Saved Revenue (ROI) AreaChart** using Recharts. Optimized for jitter-free 60fps scrolling by centralizing layouts and avoiding double nested overflow scrollbars.
-- **Centralized Form Controls & Utilities**: Reusable styling classes (`.glass-panel`, `.glass-card-hover`, `.dashboard-input`, `.dashboard-select`, `.btn-primary`, `.btn-secondary`) defined in `globals.css` are shared across all pages. Shared utilities for fetching (`fetchFromApi`) and formatting (`timeAgo`) ensure zero code duplication.
-- **Next.js Proxy Middleware**: Migrated route middleware from `middleware.ts` to `src/proxy.ts` to conform to modern routing standards.
-- **Hydration Audits**: Heavy graphs and drawer slide-overs are imported dynamically with `{ ssr: false }` to avoid blocking SSR page hydration.
-- **OpenGraph & LHCI**: Features default OG images and page metadata. Tested against Lighthouse CI configurations.
+## 🔗 Feature Synchronization & Data Normalization
+
+Both the Node.js API and the Python AI service implement the same feature extraction algorithms to guarantee zero data drift. The following **13 key properties** are evaluated:
+
+| Feature Name              | Type     | Description                                                     |
+| :------------------------ | :------- | :-------------------------------------------------------------- |
+| `login_frequency_30d`     | `float`  | Logins in the last 30 days divided by 30                        |
+| `login_frequency_14d`     | `float`  | Logins in the last 14 days divided by 14                        |
+| `login_frequency_7d`      | `float`  | Logins in the last 7 days divided by 7                          |
+| `feature_adoption_score`  | `float`  | Distinct features utilized / 12 (features breadth)              |
+| `usage_trend`             | `float`  | Week-over-Week usage trend change percentage (WoW logins)       |
+| `days_since_last_login`   | `int`    | Days since the last login event (defaults to 999 if inactive)   |
+| `support_ticket_volume`   | `int`    | Count of tickets opened in the last 30 days                     |
+| `support_sentiment_score` | `float`  | Average customer support conversation sentiment (-1.0 to 1.0)   |
+| `billing_events`          | `int`    | Count of failed payments or plan changes to churned             |
+| `onboarding_time`         | `float`  | Days between account creation and the first recorded user event |
+| `nps_csat_score`          | `float`  | Latest Net Promoter Score from CRM integrations (0-10)          |
+| `renewal_proximity`       | `float`  | Days remaining until contract renewal date                      |
+| `plan_tier`               | `string` | Customer subscription tier (Basic, Pro, Enterprise)             |
 
 ---
 
-## Workspace Setup
+## 🛠️ Workspace Setup & Local Execution
 
 ### 1. Installation
 
@@ -73,16 +151,14 @@ pnpm build
 
 ### 2. Environment Configurations
 
-Copy the environment variables template and configure the values:
-
-```bash
-cp .env.example .env
-```
-
-Ensure the database URL matches your Postgres port (default local Supabase port `54322`):
-`DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres`
-
-Configure your Groq API Key: `GROQ_API_KEY=gsk_...`
+1. Copy the environment variables template in the root directory:
+   ```bash
+   cp .env.example .env
+   ```
+2. Configure the database URL and keys inside `.env` or `.env.local` to point to your local Supabase instance (default port `54322`).
+3. Set your Groq API Key: `GROQ_API_KEY=gsk_...`
+4. The frontend configuration in `apps/web/.env.local` uses:
+   - `NEXT_PUBLIC_API_URL=http://localhost:4000/api` (port 4000 matches local backend server API_PORT).
 
 ---
 
@@ -95,7 +171,7 @@ Push database schemas and trigger migrations:
 pnpm --filter @retentiq/db db:push
 ```
 
-Run the idempotent database seed script to clear previous tables and populate 50 customers matching strict risk distributions (15 low, 20 medium, 10 high, 5 critical) alongside time-series activity events:
+Run the database seed script to clear previous tables and populate 50 customers matching strict risk distributions (15 low, 20 medium, 10 high, 5 critical) alongside time-series activity events:
 
 ```bash
 pnpm seed
@@ -112,12 +188,12 @@ pnpm dev
 ```
 
 - **Frontend App**: `http://localhost:3000`
-- **Express REST API**: `http://localhost:3001`
-- **Health Check**: `GET http://localhost:3001/health`
+- **Express REST API**: `http://localhost:4000` (mapped locally to `http://localhost:4000/api`)
+- **Health Check**: `GET http://localhost:4000/health`
 
 #### Start Python AI Service:
 
-Ensure the virtual environment is loaded and start the FastAPI service:
+Activate the virtual environment and start the FastAPI service:
 
 ```bash
 cd apps/ai-service
@@ -131,7 +207,7 @@ python main.py
 
 ---
 
-## Testing & Continuous Integration
+## 🧪 Testing & Verification
 
 ### 1. API Route Testing
 
@@ -150,12 +226,3 @@ docker compose up --build
 ```
 
 - Runs `web` on `3000`, `api` on `4000`, and `ai-service` on `8000`.
-
-### 3. CI/CD Pipelines
-
-GitHub Actions validates every push/PR to the `main` branch:
-
-- **`lint-and-typecheck`**: Runs eslint code audits.
-- **`test-api`**: Runs Vitest test suites.
-- **`build-and-lighthouse`**: Compiles next.js and executes Lighthouse audit assertions.
-- **`verify-docker-build`**: Validates Docker Compose builds.
