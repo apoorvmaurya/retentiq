@@ -6,6 +6,7 @@ import { FloatingInput } from '@/components/FloatingInput';
 import { createClient } from '@/lib/supabase/client';
 import { Brain, Chrome, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/components/Toast';
 
 import { Suspense } from 'react';
 
@@ -25,6 +26,7 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
+  const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
@@ -129,7 +131,7 @@ function LoginForm() {
             className="text-[#00D4FF] hover:underline font-semibold"
             onClick={(e) => {
               e.preventDefault();
-              alert('Password recovery is currently disabled. Please contact support.');
+              toast.warning('Password recovery is currently disabled. Please contact support.');
             }}
           >
             Forgot password?

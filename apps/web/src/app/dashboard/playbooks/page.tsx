@@ -16,6 +16,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { fetchFromApi } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 interface PlaybookStep {
   step: number;
@@ -40,6 +41,7 @@ interface Customer {
 }
 
 export default function PlaybooksPage() {
+  const toast = useToast();
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,11 +100,12 @@ export default function PlaybooksPage() {
         method: 'PUT',
         body: JSON.stringify({ isActive: nextActive }),
       });
+      toast.success(`Playbook is now ${nextActive ? 'active' : 'inactive'}`);
     } catch (err: any) {
       setPlaybooks((prev) =>
         prev.map((p) => (p.id === playbook.id ? { ...p, isActive: playbook.isActive } : p)),
       );
-      alert(`Failed to toggle playbook state: ${err.message}`);
+      toast.error(`Failed to toggle playbook state: ${err.message}`);
     }
   };
 
@@ -123,12 +126,12 @@ export default function PlaybooksPage() {
   const handleCreatePlaybook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) {
-      alert('Please enter a playbook name');
+      toast.warning('Please enter a playbook name');
       return;
     }
     const cleanSteps = newSteps.filter((s) => s.headline.trim());
     if (cleanSteps.length === 0) {
-      alert('Please define at least one playbook step');
+      toast.warning('Please define at least one playbook step');
       return;
     }
 
@@ -156,9 +159,10 @@ export default function PlaybooksPage() {
           detail: 'Check recent logins and ticket volume.',
         },
       ]);
+      toast.success('Playbook created successfully');
       loadData();
     } catch (err: any) {
-      alert(`Failed to save playbook: ${err.message}`);
+      toast.error(`Failed to save playbook: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -172,7 +176,7 @@ export default function PlaybooksPage() {
   const handleDispatchPlaybook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPlaybook || !dispatchCustomerId) {
-      alert('Please select a customer');
+      toast.warning('Please select a customer');
       return;
     }
     setSubmitting(true);
@@ -181,12 +185,12 @@ export default function PlaybooksPage() {
         method: 'POST',
         body: JSON.stringify({ customerId: dispatchCustomerId }),
       });
-      alert(res.message || 'Playbook executed successfully! Tasks spawned.');
+      toast.success(res.message || 'Playbook executed successfully! Tasks spawned.');
       setShowDispatchModal(false);
       setDispatchCustomerId('');
       setSelectedPlaybook(null);
     } catch (err: any) {
-      alert(`Failed to dispatch playbook: ${err.message}`);
+      toast.error(`Failed to dispatch playbook: ${err.message}`);
     } finally {
       setSubmitting(false);
     }

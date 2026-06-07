@@ -51,12 +51,6 @@ router.get('/sync/:provider', async (req: Request, res: Response, next: NextFunc
     const { provider } = req.params;
     const orgId = req.user!.org_id;
 
-    // Handle mixpanel redirect to its specialized sync endpoint
-    if (provider === 'mixpanel') {
-      res.redirect(307, '/api/integrations/sync/mixpanel');
-      return;
-    }
-
     const integration = await db
       .select()
       .from(schema.integrations)

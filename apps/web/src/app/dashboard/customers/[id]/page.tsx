@@ -16,6 +16,7 @@ const CustomerHealthChart = dynamic(() => import('@/components/CustomerHealthCha
 
 const PlaybookDrawer = dynamic(() => import('@/components/PlaybookDrawer'), { ssr: false });
 import { fetchFromApi } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 // Fetch helper for AI service (FastAPI) via Proxy (/ai-service)
 async function fetchFromAiService(endpoint: string, options: RequestInit = {}) {
@@ -33,6 +34,7 @@ async function fetchFromAiService(endpoint: string, options: RequestInit = {}) {
 }
 
 export default function CustomerDetailPage() {
+  const toast = useToast();
   const { id } = useParams() as { id: string };
   const router = useRouter();
 
@@ -447,7 +449,7 @@ export default function CustomerDetailPage() {
         playbookLoading={playbookLoading}
         playbookSteps={playbookSteps}
         onConfirm={() => {
-          alert('Playbook rules dispatched to integration tools!');
+          toast.success('Playbook rules dispatched to integration tools!');
           setPlaybookOpen(false);
         }}
       />

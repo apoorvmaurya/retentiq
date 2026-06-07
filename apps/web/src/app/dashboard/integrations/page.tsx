@@ -15,6 +15,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { fetchFromApi } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 interface ProviderInfo {
   id: string;
@@ -85,6 +86,7 @@ const PROVIDERS: ProviderInfo[] = [
 ];
 
 export default function IntegrationsPage() {
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [dbIntegrations, setDbIntegrations] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -156,11 +158,13 @@ export default function IntegrationsPage() {
     setActionLoading(`sync-${providerId}`);
     try {
       await fetchFromApi(`/integrations/sync/${providerId}`);
-      alert(`Sync triggered for ${providerId}!`);
+      toast.success(`Sync triggered for ${providerId}!`);
       await loadIntegrations();
     } catch (err) {
       console.error('Sync failed:', err);
-      alert(`Failed to trigger sync: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to trigger sync: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      );
     } finally {
       setActionLoading(null);
     }

@@ -6,8 +6,10 @@ import { FloatingInput } from '@/components/FloatingInput';
 import { createClient } from '@/lib/supabase/client';
 import { Brain, Chrome, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/components/Toast';
 
 export default function SignupPage() {
+  const toast = useToast();
   const router = useRouter();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -142,7 +144,7 @@ export default function SignupPage() {
               className="text-[#00D4FF] hover:underline font-semibold"
               onClick={(e) => {
                 e.preventDefault();
-                alert('Terms of Service is coming soon.');
+                toast.info('Terms of Service is coming soon.');
               }}
             >
               Terms of Service
@@ -153,7 +155,7 @@ export default function SignupPage() {
               className="text-[#00D4FF] hover:underline font-semibold"
               onClick={(e) => {
                 e.preventDefault();
-                alert('Privacy Policy is coming soon.');
+                toast.info('Privacy Policy is coming soon.');
               }}
             >
               Privacy Policy

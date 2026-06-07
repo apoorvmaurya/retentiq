@@ -16,6 +16,8 @@ import {
   FileText,
 } from 'lucide-react';
 import { fetchFromApi } from '@/lib/api';
+import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface Task {
   id: string;
@@ -36,6 +38,7 @@ interface Customer {
 }
 
 export default function TasksPage() {
+  const toast = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +55,10 @@ export default function TasksPage() {
   const [newCustId, setNewCustId] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Confirmation modal states
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -85,30 +92,41 @@ export default function TasksPage() {
         method: 'PUT',
         body: JSON.stringify({ status: nextStatus }),
       });
+      toast.success(`Task marked as ${nextStatus}`);
     } catch (err: any) {
       // Revert on failure
       setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: task.status } : t)));
-      alert(`Failed to update task: ${err.message}`);
+      toast.error(`Failed to update task: ${err.message}`);
     }
   };
 
-  const handleDeleteTask = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
+  const handleDeleteTask = (id: string) => {
+    setTaskToDelete(id);
+    setIsConfirmOpen(true);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return;
+    const id = taskToDelete;
     try {
       setTasks((prev) => prev.filter((t) => t.id !== id));
       await fetchFromApi(`/tasks/${id}`, {
         method: 'DELETE',
       });
+      toast.success('Task deleted successfully');
     } catch (err: any) {
-      alert(`Failed to delete task: ${err.message}`);
+      toast.error(`Failed to delete task: ${err.message}`);
       loadData();
+    } finally {
+      setIsConfirmOpen(false);
+      setTaskToDelete(null);
     }
   };
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newCustId) {
-      alert('Please provide a title and select a customer');
+      toast.warning('Please provide a title and select a customer');
       return;
     }
     setSubmitting(true);
@@ -129,9 +147,10 @@ export default function TasksPage() {
       setNewDesc('');
       setNewCustId('');
       setNewDueDate('');
+      toast.success('Task created successfully');
       loadData();
     } catch (err: any) {
-      alert(`Failed to create task: ${err.message}`);
+      toast.error(`Failed to create task: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -429,6 +448,21 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+
+      {/* Confirm Task Deletion Modal */}
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        title="Delete Outreach Task"
+        description="Are you sure you want to delete this task? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmDeleteTask}
+        onCancel={() => {
+          setIsConfirmOpen(false);
+          setTaskToDelete(null);
+        }}
+        isDanger={true}
+      />
     </div>
   );
 }

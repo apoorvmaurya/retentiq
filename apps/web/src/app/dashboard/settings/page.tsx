@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { fetchFromApi } from '@/lib/api';
+import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 
 type TabId = 'profile' | 'team' | 'weights' | 'templates';
 
@@ -56,12 +58,17 @@ interface Template {
 }
 
 export default function SettingsPage() {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabId>('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError: boolean } | null>(
     null,
   );
+
+  // Confirm remove member modal states
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
 
   // Profile state
   const [email, setEmail] = useState<string>('Loading...');
@@ -165,7 +172,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 800 * 1024) {
-      alert('Avatar image size must be less than 800KB.');
+      toast.warning('Avatar image size must be less than 800KB.');
       return;
     }
     const reader = new FileReader();
@@ -198,17 +205,26 @@ export default function SettingsPage() {
     }
   };
 
-  const handleRemoveMember = async (memberId: string) => {
-    if (!confirm('Are you sure you want to remove this team member?')) return;
+  const handleRemoveMember = (memberId: string) => {
+    setMemberToRemove(memberId);
+    setIsConfirmOpen(true);
+  };
+
+  const confirmRemoveMember = async () => {
+    if (!memberToRemove) return;
+    const id = memberToRemove;
     try {
-      await fetchFromApi(`/users/members?id=${memberId}`, {
+      await fetchFromApi(`/users/members?id=${id}`, {
         method: 'DELETE',
       });
-      setMembers(members.filter((m) => m.id !== memberId));
+      setMembers(members.filter((m) => m.id !== id));
       showStatus('Member removed successfully.');
     } catch (err) {
       console.error(err);
       showStatus('Failed to remove member.', true);
+    } finally {
+      setIsConfirmOpen(false);
+      setMemberToRemove(null);
     }
   };
 
@@ -921,6 +937,20 @@ export default function SettingsPage() {
           )}
         </div>
       )}
+      {/* Confirm Remove Member Modal */}
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        title="Remove Team Member"
+        description="Are you sure you want to remove this team member from the workspace? They will lose all access immediately."
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        onConfirm={confirmRemoveMember}
+        onCancel={() => {
+          setIsConfirmOpen(false);
+          setMemberToRemove(null);
+        }}
+        isDanger={true}
+      />
     </div>
   );
 }

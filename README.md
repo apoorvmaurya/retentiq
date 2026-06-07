@@ -105,7 +105,7 @@ graph TD
 
 ## 🔧 Environment Variables Reference
 
-A standard `.env.local.example` and `.env.example` are provided at the root workspace. Below is the configuration matrix:
+A standard `.env.local.example` is provided at the root workspace. Below is the configuration matrix:
 
 | Env Variable Name                   | Scope / App   | Description                                    | Default / Example Value       |
 | :---------------------------------- | :------------ | :--------------------------------------------- | :---------------------------- |

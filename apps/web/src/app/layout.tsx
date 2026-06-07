@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Instrument_Serif, DM_Sans } from 'next/font/google';
 import './globals.css';
 
+import { ToastProvider } from '@/components/Toast';
+
 const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
   weight: ['400'],
@@ -37,7 +39,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${instrumentSerif.variable} ${dmSans.variable} dark h-full`}>
-      <body className="font-sans antialiased text-slate-200 bg-[#020205] h-full">{children}</body>
+      <body className="font-sans antialiased text-slate-200 bg-[#020205] h-full">
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }
