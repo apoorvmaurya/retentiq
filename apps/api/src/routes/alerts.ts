@@ -119,11 +119,11 @@ router.get('/config', async (req: Request, res: Response, next: NextFunction) =>
 
     if (configs.length === 0) {
       res.json({
-        org_id: orgId,
+        orgId: orgId,
         threshold: 40,
-        notify_slack: false,
-        notify_email: false,
-        updated_at: null,
+        notifySlack: false,
+        notifyEmail: false,
+        updatedAt: null,
       });
       return;
     }

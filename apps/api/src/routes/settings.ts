@@ -107,24 +107,27 @@ router.post(
         weightsRow = inserted;
       }
 
-      // Trigger an immediate background rescore for all customers in this organization
+      // Trigger an immediate background bulk rescore for all customers in this organization
       const customers = await db
         .select({ id: schema.customers.id })
         .from(schema.customers)
         .where(eq(schema.customers.orgId, orgId));
 
-      // Fire-and-forget rescoring
-      Promise.all(
-        customers.map(async (c) => {
-          try {
-            await computeAndTriggerRescore(c.id, orgId);
-          } catch (err) {
-            console.error(`[SettingsRoute] Background rescore failed for customer ${c.id}:`, err);
-          }
-        }),
-      ).catch((err) => {
-        console.error('[SettingsRoute] Background rescoring error:', err);
-      });
+      if (customers.length > 0) {
+        const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000';
+        fetch(`${aiServiceUrl}/score/bulk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customers: customers.map((c) => ({
+              customer_id: c.id,
+              org_id: orgId,
+            })),
+          }),
+        }).catch((err) => {
+          console.error('[SettingsRoute] Failed to trigger background bulk rescoring:', err);
+        });
+      }
 
       res.json({ success: true, weights: weightsRow });
     } catch (err) {

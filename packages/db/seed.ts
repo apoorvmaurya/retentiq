@@ -184,6 +184,13 @@ async function main() {
 
   // Clear existing data (in order of foreign key relationships to prevent constraint issues)
   console.log('🧹 Clearing existing database tables...');
+  await db.delete(schema.invites);
+  await db.delete(schema.roiAggregates);
+  await db.delete(schema.tasks);
+  await db.delete(schema.playbooks);
+  await db.delete(schema.emailTemplates);
+  await db.delete(schema.scoreWeights);
+  await db.delete(schema.alertRules);
   await db.delete(schema.groqUsage);
   await db.delete(schema.retentionActions);
   await db.delete(schema.alertConfigs);
@@ -213,9 +220,9 @@ async function main() {
   // 2. Create Users
   const userList = [
     {
-      id: '00000000-0000-0000-0000-000000000001', // Fixed UUID for testing
+      id: '07898715-c17c-4e76-9d0a-35acb50be73e', // Bound to test_confirmed_user@retentiq.com
       orgId: org.id,
-      email: 'owner@retentiq.io',
+      email: 'test_confirmed_user@retentiq.com',
       role: 'owner' as const,
       onboardingComplete: true,
     },
@@ -308,7 +315,7 @@ async function main() {
       company: companyName,
       planTier,
       mrr,
-      createdAt: new Date(Date.now() - (50 - i) * 24 * 3600 * 1000), // Created spread over 50 days
+      createdAt: new Date(Date.now() - (360 - i * 7) * 24 * 3600 * 1000), // Created spread over 360 days
     });
   }
 
@@ -416,40 +423,83 @@ async function main() {
       scoredAt: new Date(Date.now() - 3600 * 1000 * 2), // 2 hours ago
     });
 
-    // Seed Events (3 per customer)
-    eventsToInsert.push(
-      {
+    // Seed Events spread over customer's lifetime
+    const startMs = new Date(customer.createdAt!).getTime();
+    const endMs = Date.now();
+    const daysActive = (endMs - startMs) / (24 * 3600 * 1000);
+
+    let loginInterval = 2; // Low risk logs in every 2 days
+    if (riskTier === 'medium') loginInterval = 4;
+    else if (riskTier === 'high') loginInterval = 7;
+    else if (riskTier === 'critical') loginInterval = 14;
+
+    // Logins
+    for (let day = 0; day <= daysActive; day += loginInterval) {
+      if (riskTier === 'critical' && daysActive > 14 && day > daysActive - 14) {
+        continue; // Critical risk stopped logging in
+      }
+      eventsToInsert.push({
         customerId: customer.id,
         orgId: org.id,
         eventType: 'user.login',
         source: 'web-app',
         payload: { browser: 'Chrome', os: 'Windows' },
-        occurredAt: new Date(Date.now() - 3600 * 1000 * 12),
-      },
-      {
+        occurredAt: new Date(startMs + day * 24 * 3600 * 1000 + Math.random() * 3600 * 1000 * 4),
+      });
+    }
+
+    // Dashboard views
+    for (let day = 1; day <= daysActive; day += loginInterval + 1) {
+      if (riskTier === 'critical' && daysActive > 14 && day > daysActive - 14) {
+        continue;
+      }
+      eventsToInsert.push({
         customerId: customer.id,
         orgId: org.id,
         eventType: 'dashboard.viewed',
         source: 'web-app',
         payload: { tabs_clicked: ['analytics', 'alerts'] },
-        occurredAt: new Date(Date.now() - 3600 * 1000 * 10),
-      },
-      {
+        occurredAt: new Date(startMs + day * 24 * 3600 * 1000 + Math.random() * 3600 * 1000 * 4),
+      });
+    }
+
+    // Settings update once in first 2 days
+    eventsToInsert.push({
+      customerId: customer.id,
+      orgId: org.id,
+      eventType: 'settings.updated',
+      source: 'web-app',
+      payload: { integrations_modified: ['slack'] },
+      occurredAt: new Date(startMs + Math.random() * 2 * 24 * 3600 * 1000),
+    });
+
+    // Playbook/Task events (only for some customers based on tier to make heatmap look real)
+    if (riskTier === 'low' && idx % 2 === 0) {
+      eventsToInsert.push({
         customerId: customer.id,
         orgId: org.id,
-        eventType: 'settings.updated',
-        source: 'web-app',
-        payload: { integrations_modified: ['slack'] },
-        occurredAt: new Date(Date.now() - 3600 * 1000 * 6),
-      },
-    );
+        eventType: 'playbook.executed',
+        source: 'automation',
+        payload: { playbook_name: 'Onboarding Check-in' },
+        occurredAt: new Date(startMs + Math.random() * daysActive * 24 * 3600 * 1000),
+      });
+    } else if (riskTier === 'medium' && idx % 3 === 0) {
+      eventsToInsert.push({
+        customerId: customer.id,
+        orgId: org.id,
+        eventType: 'task.completed',
+        source: 'playbook',
+        payload: { task_title: 'Schedule QBR' },
+        occurredAt: new Date(startMs + Math.random() * daysActive * 24 * 3600 * 1000),
+      });
+    }
   }
 
   await db.insert(schema.healthScores).values(healthScoresToInsert);
   console.log('✓ Seeded 50 Health Scores');
 
   await db.insert(schema.events).values(eventsToInsert);
-  console.log('✓ Seeded 150 Events');
+  console.log(`✓ Seeded ${eventsToInsert.length} Events`);
 
   if (alertsToInsert.length > 0) {
     await db.insert(schema.alerts).values(alertsToInsert);
@@ -520,6 +570,194 @@ async function main() {
   ];
   await db.insert(schema.groqUsage).values(usageStats);
   console.log('✓ Seeded Groq Usage logs');
+
+  // 8. Seed custom Score Weights
+  await db.insert(schema.scoreWeights).values({
+    orgId: org.id,
+    loginFrequency30dWeight: 15,
+    loginFrequency14dWeight: 10,
+    loginFrequency7dWeight: 10,
+    featureAdoptionWeight: 20,
+    usageTrendWeight: 15,
+    supportVolumeWeight: 10,
+    supportSentimentWeight: 5,
+    billingEventsWeight: 10,
+    onboardingTimeWeight: 5,
+  });
+  console.log('✓ Seeded Score Weights');
+
+  // 9. Seed default Email Templates
+  const defaultTemplates = [
+    {
+      orgId: org.id,
+      name: 'critical_score_drop',
+      subject: 'Is everything okay at {{account_name}}?',
+      body: 'Hello,\n\nWe noticed a drop in activity/health score for {{account_name}} (currently at {{health_score}}).\n\nLet us know if there is anything we can help with.\n\nBest,\n{{csm_name}}',
+    },
+    {
+      orgId: org.id,
+      name: 'billing_failure',
+      subject: 'Action Required: Payment Failed for {{account_name}}',
+      body: 'Hello,\n\nWe were unable to process your recent payment for your subscription. Please update your billing details to avoid service disruption.\n\nBest,\n{{csm_name}}',
+    },
+    {
+      orgId: org.id,
+      name: '30d_inactivity',
+      subject: 'We miss you at {{account_name}}!',
+      body: "Hello,\n\nWe noticed you haven't logged in for 30 days. Let us know if you need help with onboarding or have any questions.\n\nBest,\n{{csm_name}}",
+    },
+    {
+      orgId: org.id,
+      name: 'renewal_risk',
+      subject: 'Upcoming Renewal Review for {{account_name}}',
+      body: 'Hello,\n\nYour subscription renewal is coming up. We would love to connect and review your usage and goals.\n\nBest,\n{{csm_name}}',
+    },
+  ];
+  await db.insert(schema.emailTemplates).values(defaultTemplates);
+  console.log('✓ Seeded Email Templates');
+
+  // 10. Seed custom Alert Rules
+  const alertRules = [
+    {
+      orgId: org.id,
+      name: 'Critical Health Alert',
+      conditions: [
+        {
+          type: 'score_below',
+          threshold: 40,
+          priority: 'critical',
+        },
+      ],
+      isActive: true,
+    },
+    {
+      orgId: org.id,
+      name: 'Sudden Activity Drop',
+      conditions: [
+        {
+          type: 'score_drop',
+          days: 7,
+          drop: 15,
+          priority: 'warning',
+        },
+      ],
+      isActive: true,
+    },
+  ];
+  await db.insert(schema.alertRules).values(alertRules);
+  console.log('✓ Seeded Alert Rules');
+
+  // 11. Seed default Playbooks
+  const playbooks = [
+    {
+      orgId: org.id,
+      name: 'Critical Score Drop Playbook',
+      triggerType: 'health_drop' as const,
+      triggerThreshold: 40,
+      steps: [
+        {
+          step: 1,
+          headline: 'Review recent logs',
+          detail: 'Analyze the events of the customer to understand their drop in usage.',
+        },
+        {
+          step: 2,
+          headline: 'Schedule CSM call',
+          detail: 'Send a personalized email to the primary contact to set up a 15-minute call.',
+        },
+        {
+          step: 3,
+          headline: 'Align on success plan',
+          detail: 'Work with the customer to create a plan to improve their onboarding and usage.',
+        },
+      ],
+      isActive: true,
+    },
+    {
+      orgId: org.id,
+      name: 'Billing Rescue Playbook',
+      triggerType: 'manual' as const,
+      triggerThreshold: 0,
+      steps: [
+        {
+          step: 1,
+          headline: 'Verify payment details',
+          detail: 'Check Stripe to see why the invoice failed.',
+        },
+        {
+          step: 2,
+          headline: 'Reach out to billing contact',
+          detail: 'Email the finance or billing contact directly to resolve payment issue.',
+        },
+      ],
+      isActive: true,
+    },
+  ];
+  await db.insert(schema.playbooks).values(playbooks);
+  console.log('✓ Seeded Playbooks');
+
+  // 12. Seed Tasks for the CS team linked to the seeded customers
+  const tasksToInsert = [];
+  tasksToInsert.push({
+    orgId: org.id,
+    customerId: seededCustomers[45].id,
+    title: 'Critical Score Drop Playbook: Review recent logs',
+    description: 'Analyze the events of the customer to understand their drop in usage.',
+    dueDate: new Date(Date.now() + 2 * 24 * 3600 * 1000),
+    status: 'pending' as const,
+  });
+  tasksToInsert.push({
+    orgId: org.id,
+    customerId: seededCustomers[46].id,
+    title: 'Critical Score Drop Playbook: Schedule CSM call',
+    description: 'Send a personalized email to the primary contact to set up a 15-minute call.',
+    dueDate: new Date(Date.now() + 1 * 24 * 3600 * 1000),
+    status: 'pending' as const,
+  });
+  tasksToInsert.push({
+    orgId: org.id,
+    customerId: seededCustomers[5].id,
+    title: 'CSM Outreach: Offer 20% discount',
+    description: 'Offered 20% discount for renewal.',
+    dueDate: new Date(Date.now() - 6 * 24 * 3600 * 1000),
+    status: 'completed' as const,
+    outcome: 'positive' as const,
+    completedBy: 'admin@retentiq.io',
+    completedAt: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+  });
+  tasksToInsert.push({
+    orgId: org.id,
+    customerId: seededCustomers[10].id,
+    title: 'CSM Review: Feature training session',
+    description: 'Walkthrough of the integration hub completed.',
+    dueDate: new Date(Date.now() - 13 * 24 * 3600 * 1000),
+    status: 'completed' as const,
+    outcome: 'positive' as const,
+    completedBy: 'admin@retentiq.io',
+    completedAt: new Date(Date.now() - 12 * 24 * 3600 * 1000),
+  });
+  await db.insert(schema.tasks).values(tasksToInsert);
+  console.log('✓ Seeded Tasks');
+
+  // 13. Seed ROI History Cache Aggregates
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const prevMonth = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 7);
+
+  await db.insert(schema.roiAggregates).values([
+    {
+      orgId: org.id,
+      month: prevMonth,
+      accountsSaved: 1,
+      revenueSaved: '499.00',
+    },
+    {
+      orgId: org.id,
+      month: currentMonth,
+      accountsSaved: 2,
+      revenueSaved: '2998.00',
+    },
+  ]);
+  console.log('✓ Seeded ROI History Cache Aggregates');
 
   console.log('✨ Seed database completed successfully.');
   process.exit(0);

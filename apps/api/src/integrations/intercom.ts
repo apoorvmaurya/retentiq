@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 
 const router = Router();
 
-router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
+router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<void> => {
   const sig = req.headers['x-hub-signature'] as string;
   const clientSecret = process.env.INTERCOM_CLIENT_SECRET || '';
 
@@ -52,21 +52,22 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
     const item = payload.data?.item || {};
     const email = item.user?.email || item.contacts?.[0]?.email || '';
 
-    let customer = await db
+    const customer = await db
       .select()
       .from(schema.customers)
       .where(eq(schema.customers.email, email))
       .limit(1)
       .then((rows) => rows[0]);
 
-    if (!customer && process.env.NODE_ENV !== 'production') {
-      const allCustomers = await db.select().from(schema.customers).limit(1);
-      if (allCustomers.length > 0) {
-        customer = allCustomers[0];
-      }
-    }
+    const orgId = req.params.orgId || customer?.orgId;
 
-    const orgId = customer ? customer.orgId : '00000000-0000-0000-0000-000000000000';
+    if (!orgId) {
+      console.warn(
+        '[Intercom webhook] Ignored event: could not resolve tenant organization (customer not found and no orgId in path).',
+      );
+      res.status(400).json({ error: 'Tenant organization could not be resolved.' });
+      return;
+    }
 
     await db.insert(schema.jobs).values({
       orgId,

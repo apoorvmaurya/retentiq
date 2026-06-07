@@ -66,6 +66,60 @@ graph TD
     RealTimeClient -.->|Update UI states dynamically| NextApp
 ```
 
+### 🔮 System Workflow Sequence
+
+The diagram below details the complete authenticated user workflow and logic flow across the RetentIQ full-stack components:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor CSM as Customer Success Manager
+    participant App as Next.js Web Application
+    participant Proxy as Next.js proxy.ts Router
+    participant API as Express API Server
+    participant AI as FastAPI AI Microservice
+    participant DB as Supabase PostgreSQL
+
+    %% Authentication & Onboarding
+    CSM->>App: Sign Up / Login
+    App->>Proxy: Authenticated Page Request (e.g. /dashboard)
+    Proxy->>DB: Verify JWT & Onboarding Complete Status
+    alt Onboarding Incomplete
+        DB-->>Proxy: onboarding_complete = false
+        Proxy-->>App: Redirect to Onboarding Wizard (/onboarding)
+        CSM->>App: Input Org details, Plan category, & Invite Team
+        App->>Proxy: completeOnboarding(data) Server Action
+        Proxy->>DB: Insert Org, Users, & Score Weights
+        Proxy-->>App: onboarding_complete = true (Redirect to /dashboard)
+    end
+
+    %% Data Sync / Ingestions
+    CSM->>App: Connect Stripe/Mixpanel or Upload CSV
+    App->>API: POST /api/integrations/csv/upload (or API Connect)
+    API->>DB: Insert Job in Ingestion Queue (status = 'queued')
+    loop background polling
+        API->>DB: Poll Ingestion Job (Every 10 seconds)
+        DB-->>API: Process Job payload
+        API->>API: Parse events/customer record
+        API->>DB: Upsert customers & events table
+        API->>AI: POST /score/customer (Trigger rescore)
+        AI->>DB: Query customer properties (psycopg2)
+        AI->>AI: Train GradientBoostingClassifier / Inference
+        AI->>AI: Enrich risk factors with Groq API
+        AI->>DB: Save calculations in health_scores table
+        DB-->>App: Broadcast changes in real-time (Realtime WebSocket)
+        App-->>CSM: Refresh Dashboard metrics instantly
+    end
+
+    %% Analytics & Alerts
+    CSM->>App: Access Analytics Page (/dashboard/analytics)
+    App->>API: GET /api/analytics/feature-adoption & /api/analytics/cohort-retention
+    API->>DB: Fetch and aggregate events by Risk Tier & Customer Signup Dates
+    DB-->>API: Returns aggregated datasets
+    API-->>App: Dynamic JSON response
+    App-->>CSM: Render dynamic heatmap & cohort grids
+```
+
 ---
 
 ## 📂 Directory Structure

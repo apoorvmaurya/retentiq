@@ -22,7 +22,7 @@ router.get('/profile', async (req: Request, res: Response, next: NextFunction) =
   try {
     const userId = req.user!.id;
     const orgId = req.user!.org_id;
-    const email = req.user!.email || 'owner@retentiq.io';
+    const email = req.user!.email || 'test_confirmed_user@retentiq.com';
 
     let userRow = await db
       .select()
@@ -80,7 +80,7 @@ router.put(
     try {
       const userId = req.user!.id;
       const orgId = req.user!.org_id;
-      const email = req.user!.email || 'owner@retentiq.io';
+      const email = req.user!.email || 'test_confirmed_user@retentiq.com';
       const { name, avatar_url } = req.body;
 
       let userRow = await db

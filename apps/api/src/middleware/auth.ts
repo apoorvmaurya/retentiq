@@ -108,9 +108,9 @@ export async function verifySupabaseJWT(
       const orgs = await db.select().from(schema.organizations).limit(1);
       if (orgs.length > 0) {
         req.user = {
-          id: '00000000-0000-0000-0000-000000000001',
+          id: '07898715-c17c-4e76-9d0a-35acb50be73e',
           org_id: orgs[0].id,
-          email: 'owner@retentiq.io',
+          email: 'test_confirmed_user@retentiq.com',
         };
         next();
         return;

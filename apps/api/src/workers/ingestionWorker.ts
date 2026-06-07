@@ -92,14 +92,32 @@ async function handleStripeJob(event: any, orgId: string): Promise<void> {
       .then((rows) => rows[0]);
   }
 
-  if (!customer && process.env.NODE_ENV !== 'production') {
-    const allCustomers = await db
+  if (!customer && email) {
+    const orgExists = await db
       .select()
-      .from(schema.customers)
-      .where(eq(schema.customers.orgId, orgId))
-      .limit(1);
-    if (allCustomers.length > 0) {
-      customer = allCustomers[0];
+      .from(schema.organizations)
+      .where(eq(schema.organizations.id, orgId))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (orgExists) {
+      const name = email.split('@')[0];
+      const company = `${name}'s Company`;
+      const [newCustomer] = await db
+        .insert(schema.customers)
+        .values({
+          orgId,
+          name,
+          email,
+          company,
+          planTier: 'Pro',
+          mrr: '0.00',
+        })
+        .returning();
+      customer = newCustomer;
+      console.log(
+        `[ingestionWorker] Auto-created customer ${customer.id} for email ${email} under org ${orgId}`,
+      );
     }
   }
 
@@ -278,14 +296,32 @@ async function handleIntercomJob(payload: any, orgId: string): Promise<void> {
     .limit(1)
     .then((rows) => rows[0]);
 
-  if (!customer && process.env.NODE_ENV !== 'production') {
-    const allCustomers = await db
+  if (!customer && email) {
+    const orgExists = await db
       .select()
-      .from(schema.customers)
-      .where(eq(schema.customers.orgId, orgId))
-      .limit(1);
-    if (allCustomers.length > 0) {
-      customer = allCustomers[0];
+      .from(schema.organizations)
+      .where(eq(schema.organizations.id, orgId))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (orgExists) {
+      const name = item.user?.name || email.split('@')[0];
+      const company = `${name}'s Company`;
+      const [newCustomer] = await db
+        .insert(schema.customers)
+        .values({
+          orgId,
+          name,
+          email,
+          company,
+          planTier: 'Pro',
+          mrr: '0.00',
+        })
+        .returning();
+      customer = newCustomer;
+      console.log(
+        `[ingestionWorker] Auto-created customer ${customer.id} for email ${email} under org ${orgId}`,
+      );
     }
   }
 
@@ -381,10 +417,16 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
   const toDateStr = today.toISOString().split('T')[0];
 
   const eventsData: any[] = [];
-  let isMock = false;
 
   if (!username || !secret || username.includes('your-') || secret.includes('your-')) {
-    isMock = true;
+    console.warn(
+      `[Mixpanel Ingestion] Mixpanel credentials not configured for org ${orgId}. Degrading integration status.`,
+    );
+    await db
+      .update(schema.integrations)
+      .set({ status: 'degraded' })
+      .where(eq(schema.integrations.id, mixpanelIntegration.id));
+    throw new Error('Mixpanel service account credentials not configured.');
   } else {
     try {
       const authHeader = 'Basic ' + Buffer.from(`${username}:${secret}`).toString('base64');
@@ -409,39 +451,14 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
         }
       }
     } catch (err: any) {
-      console.warn(`[Mixpanel Ingestion] Real sync failed: ${err.message}. Using mock.`);
-      isMock = true;
-    }
-  }
-
-  if (isMock) {
-    const customersList = await db
-      .select()
-      .from(schema.customers)
-      .where(eq(schema.customers.orgId, orgId));
-
-    const mockEvents = [
-      '$login',
-      'feature_dashboard',
-      'feature_analytics_export',
-      'feature_alert_resolve',
-    ];
-
-    for (const customer of customersList) {
-      const numEvents = Math.floor(Math.random() * 3) + 1;
-      for (let i = 0; i < numEvents; i++) {
-        const randomDays = Math.floor(Math.random() * 30);
-        const occurredDate = new Date();
-        occurredDate.setDate(occurredDate.getDate() - randomDays);
-
-        eventsData.push({
-          event: mockEvents[Math.floor(Math.random() * mockEvents.length)],
-          properties: {
-            distinct_id: customer.id,
-            time: Math.floor(occurredDate.getTime() / 1000),
-          },
-        });
-      }
+      console.error(
+        `[Mixpanel Ingestion] Sync failed: ${err.message}. Degrading integration status.`,
+      );
+      await db
+        .update(schema.integrations)
+        .set({ status: 'degraded' })
+        .where(eq(schema.integrations.id, mixpanelIntegration.id));
+      throw err;
     }
   }
 

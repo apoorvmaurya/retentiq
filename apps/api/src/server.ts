@@ -106,7 +106,7 @@ const startTime = Date.now();
  * GET /
  * Public root endpoint for load balancer readiness probes.
  */
-app.get('/', publicLimiter, (_req, res) => {
+app.get('/', (_req, res) => {
   res.json({
     status: 'ok',
     service: 'RetentIQ Express API',
@@ -118,7 +118,7 @@ app.get('/', publicLimiter, (_req, res) => {
  * GET /health
  * Public health check endpoint. Including DB status checks.
  */
-app.get('/health', publicLimiter, async (_req, res) => {
+app.get('/health', async (_req, res) => {
   let dbStatus = 'error';
   try {
     await db.execute(sql`SELECT 1`);

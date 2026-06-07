@@ -5,7 +5,7 @@ import { computeAndTriggerRescore } from '../lib/featureEngine.js';
 
 const router = Router();
 
-router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
+router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<void> => {
   const payload = req.body;
   console.log('[Salesforce webhook] Received sync trigger');
 
@@ -22,16 +22,54 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
         .then((rows) => rows[0]);
     }
 
-    if (!customer) {
-      const allCustomers = await db.select().from(schema.customers).limit(1);
-      if (allCustomers.length > 0) {
-        customer = allCustomers[0];
-      }
+    const orgId = req.params.orgId || customer?.orgId;
+
+    if (!orgId) {
+      console.warn(
+        '[Salesforce webhook] Ignored event: could not resolve tenant organization (customer not found and no orgId in path).',
+      );
+      res.status(400).json({ error: 'Tenant organization could not be resolved.' });
+      return;
     }
 
+    // Auto-create customer if they don't exist
     if (!customer) {
-      res.status(404).json({ error: 'Customer not resolved' });
-      return;
+      if (!email) {
+        res.status(400).json({ error: 'Customer email is required for auto-creation.' });
+        return;
+      }
+
+      // Check if organization exists
+      const orgExists = await db
+        .select()
+        .from(schema.organizations)
+        .where(eq(schema.organizations.id, orgId))
+        .limit(1)
+        .then((rows) => rows[0]);
+
+      if (!orgExists) {
+        console.warn(`[Salesforce webhook] Organization ${orgId} not found in DB.`);
+        res.status(400).json({ error: 'Tenant organization not found.' });
+        return;
+      }
+
+      const name = payload.name || payload.firstName || email.split('@')[0];
+      const company = payload.company?.name || payload.company || `${name}'s Company`;
+
+      const [newCustomer] = await db
+        .insert(schema.customers)
+        .values({
+          orgId,
+          name,
+          email,
+          company,
+          planTier: 'Pro',
+          mrr: '0.00',
+        })
+        .returning();
+
+      customer = newCustomer;
+      console.log(`[Salesforce webhook] Auto-created customer ${customer.id} for email ${email}`);
     }
 
     const nps = payload.nps || payload.nps_score || 8;

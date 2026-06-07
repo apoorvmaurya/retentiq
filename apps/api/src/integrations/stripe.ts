@@ -8,7 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'mock_secret_key', {
   apiVersion: '2025-01-27.acacia' as any,
 });
 
-router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
+router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<void> => {
   const sig = req.headers['stripe-signature'] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
 
@@ -76,14 +76,15 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
         .then((rows) => rows[0]);
     }
 
-    if (!customer && process.env.NODE_ENV !== 'production') {
-      const allCustomers = await db.select().from(schema.customers).limit(1);
-      if (allCustomers.length > 0) {
-        customer = allCustomers[0];
-      }
-    }
+    const orgId = req.params.orgId || customer?.orgId;
 
-    const orgId = customer ? customer.orgId : '00000000-0000-0000-0000-000000000000';
+    if (!orgId) {
+      console.warn(
+        '[Stripe webhook] Ignored event: could not resolve tenant organization (customer not found and no orgId in path).',
+      );
+      res.status(400).json({ error: 'Tenant organization could not be resolved.' });
+      return;
+    }
 
     await db.insert(schema.jobs).values({
       orgId,

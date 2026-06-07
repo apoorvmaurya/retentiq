@@ -36,11 +36,94 @@ interface RoiHistoryItem {
   revenueSaved: string;
 }
 
+interface FeatureAdoptionItem {
+  tier: 'low' | 'medium' | 'high' | 'critical';
+  dashboard: number;
+  alerts: number;
+  integrations: number;
+  playbooks: number;
+}
+
+interface CohortRetentionItem {
+  cohortMonth: string;
+  newAccounts: number;
+  m1: number | null;
+  m3: number | null;
+  m6: number | null;
+  m12: number | null;
+}
+
+const getSegmentTitle = (tier: string) => {
+  switch (tier) {
+    case 'low':
+      return 'Low Risk';
+    case 'medium':
+      return 'Medium Risk';
+    case 'high':
+      return 'High Risk';
+    case 'critical':
+      return 'Critical';
+    default:
+      return tier.charAt(0).toUpperCase() + tier.slice(1);
+  }
+};
+
+const getSegmentColorClass = (tier: string) => {
+  switch (tier) {
+    case 'low':
+      return 'text-emerald-400';
+    case 'medium':
+      return 'text-amber-400';
+    case 'high':
+      return 'text-orange-400';
+    case 'critical':
+      return 'text-rose-500';
+    default:
+      return 'text-slate-300';
+  }
+};
+
+const getHeatmapColor = (tier: string, percentage: number) => {
+  if (percentage < 15) return 'bg-slate-950 text-slate-700';
+  if (percentage < 35) return 'bg-slate-900 text-slate-500';
+
+  switch (tier) {
+    case 'low':
+      if (percentage >= 80) return 'bg-emerald-500 text-slate-950';
+      if (percentage >= 60) return 'bg-emerald-600/80 text-emerald-100';
+      return 'bg-emerald-700/60 text-emerald-200';
+    case 'medium':
+      if (percentage >= 80) return 'bg-amber-500 text-slate-950';
+      if (percentage >= 60) return 'bg-amber-600/70 text-amber-100';
+      return 'bg-amber-600/50 text-amber-200';
+    case 'high':
+      if (percentage >= 80) return 'bg-orange-500 text-slate-950';
+      if (percentage >= 60) return 'bg-orange-600/70 text-orange-100';
+      return 'bg-orange-800/40 text-orange-200';
+    case 'critical':
+      if (percentage >= 80) return 'bg-rose-500 text-slate-950';
+      if (percentage >= 60) return 'bg-rose-600/70 text-rose-100';
+      return 'bg-rose-950/20 text-rose-400';
+    default:
+      return 'bg-slate-900 text-slate-500';
+  }
+};
+
+const getCohortCellClass = (percentage: number | null) => {
+  if (percentage === null) return 'text-slate-600';
+  if (percentage >= 90) return 'bg-emerald-500/10 text-emerald-400 font-bold';
+  if (percentage >= 80) return 'bg-cyan-600/10 text-cyan-400 font-bold';
+  if (percentage >= 60) return 'bg-cyan-700/10 text-cyan-300';
+  return 'bg-slate-900/50 text-slate-400';
+};
+
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [distribution, setDistribution] = useState<DistributionData | null>(null);
   const [roiHistory, setRoiHistory] = useState<RoiHistoryItem[]>([]);
+  const [featureAdoption, setFeatureAdoption] = useState<FeatureAdoptionItem[]>([]);
+  const [cohorts, setCohorts] = useState<CohortRetentionItem[]>([]);
 
   const loadAnalyticsData = async () => {
     try {
@@ -53,6 +136,12 @@ export default function AnalyticsPage() {
 
       const historyData = await fetchFromApi('/analytics/roi-history');
       setRoiHistory(historyData);
+
+      const adoptionData = await fetchFromApi('/analytics/feature-adoption');
+      setFeatureAdoption(adoptionData);
+
+      const cohortsData = await fetchFromApi('/analytics/cohort-retention');
+      setCohorts(cohortsData);
     } catch (err) {
       console.error('Error loading analytics data:', err);
     } finally {
@@ -223,53 +312,41 @@ export default function AnalyticsPage() {
                   <div>Playbooks</div>
                 </div>
 
-                <div className="grid grid-cols-5 gap-2 text-center items-center">
-                  <div className="text-xs font-bold text-left text-emerald-400">Low Risk</div>
-                  <div className="bg-emerald-500 text-slate-950 font-bold p-3 text-xs rounded">
-                    94%
+                {featureAdoption.length === 0 ? (
+                  <div className="col-span-5 text-center py-6 text-xs text-slate-500 font-semibold">
+                    No adoption data available.
                   </div>
-                  <div className="bg-emerald-600/80 text-emerald-100 font-bold p-3 text-xs rounded">
-                    82%
-                  </div>
-                  <div className="bg-emerald-500 text-slate-950 font-bold p-3 text-xs rounded">
-                    91%
-                  </div>
-                  <div className="bg-emerald-700/60 text-emerald-200 font-bold p-3 text-xs rounded">
-                    68%
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-5 gap-2 text-center items-center">
-                  <div className="text-xs font-bold text-left text-amber-400">Medium Risk</div>
-                  <div className="bg-amber-600/70 text-amber-100 font-bold p-3 text-xs rounded">
-                    78%
-                  </div>
-                  <div className="bg-amber-600/50 text-amber-200 font-bold p-3 text-xs rounded">
-                    54%
-                  </div>
-                  <div className="bg-amber-600/60 text-amber-100 font-bold p-3 text-xs rounded">
-                    68%
-                  </div>
-                  <div className="bg-slate-900 text-slate-500 p-3 text-xs rounded">32%</div>
-                </div>
-
-                <div className="grid grid-cols-5 gap-2 text-center items-center">
-                  <div className="text-xs font-bold text-left text-orange-400">High Risk</div>
-                  <div className="bg-orange-800/40 text-orange-200 font-bold p-3 text-xs rounded">
-                    46%
-                  </div>
-                  <div className="bg-slate-900 text-slate-500 p-3 text-xs rounded">25%</div>
-                  <div className="bg-orange-800/30 text-orange-200 p-3 text-xs rounded">38%</div>
-                  <div className="bg-slate-950 text-slate-700 p-3 text-xs rounded">14%</div>
-                </div>
-
-                <div className="grid grid-cols-5 gap-2 text-center items-center">
-                  <div className="text-xs font-bold text-left text-rose-500">Critical</div>
-                  <div className="bg-rose-950/20 text-rose-400 p-3 text-xs rounded">18%</div>
-                  <div className="bg-slate-950 text-slate-700 p-3 text-xs rounded">8%</div>
-                  <div className="bg-rose-950/10 text-rose-500 p-3 text-xs rounded">12%</div>
-                  <div className="bg-slate-950 text-slate-700 p-3 text-xs rounded">2%</div>
-                </div>
+                ) : (
+                  featureAdoption.map((row) => (
+                    <div key={row.tier} className="grid grid-cols-5 gap-2 text-center items-center">
+                      <div
+                        className={`text-xs font-bold text-left ${getSegmentColorClass(row.tier)}`}
+                      >
+                        {getSegmentTitle(row.tier)}
+                      </div>
+                      <div
+                        className={`${getHeatmapColor(row.tier, row.dashboard)} p-3 text-xs rounded font-bold`}
+                      >
+                        {row.dashboard}%
+                      </div>
+                      <div
+                        className={`${getHeatmapColor(row.tier, row.alerts)} p-3 text-xs rounded font-bold`}
+                      >
+                        {row.alerts}%
+                      </div>
+                      <div
+                        className={`${getHeatmapColor(row.tier, row.integrations)} p-3 text-xs rounded font-bold`}
+                      >
+                        {row.integrations}%
+                      </div>
+                      <div
+                        className={`${getHeatmapColor(row.tier, row.playbooks)} p-3 text-xs rounded font-bold`}
+                      >
+                        {row.playbooks}%
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -372,38 +449,36 @@ export default function AnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody className="text-xs text-slate-300 font-semibold">
-                    <tr className="border-b border-slate-900">
-                      <td className="py-3.5 text-left font-bold text-white">January 2026</td>
-                      <td className="py-3.5">24 accounts</td>
-                      <td className="py-3.5 bg-emerald-500/10 text-emerald-400 font-bold">100%</td>
-                      <td className="py-3.5 bg-emerald-600/10 text-emerald-400 font-bold">92%</td>
-                      <td className="py-3.5 bg-cyan-600/10 text-cyan-400 font-bold">87%</td>
-                      <td className="py-3.5 bg-cyan-700/10 text-cyan-300">79%</td>
-                    </tr>
-                    <tr className="border-b border-slate-900">
-                      <td className="py-3.5 text-left font-bold text-white">February 2026</td>
-                      <td className="py-3.5">32 accounts</td>
-                      <td className="py-3.5 bg-emerald-500/10 text-emerald-400 font-bold">100%</td>
-                      <td className="py-3.5 bg-emerald-600/10 text-emerald-400 font-bold">95%</td>
-                      <td className="py-3.5 bg-cyan-600/10 text-cyan-400 font-bold">89%</td>
-                      <td className="py-3.5 text-slate-600">-</td>
-                    </tr>
-                    <tr className="border-b border-slate-900">
-                      <td className="py-3.5 text-left font-bold text-white">March 2026</td>
-                      <td className="py-3.5">40 accounts</td>
-                      <td className="py-3.5 bg-emerald-500/10 text-emerald-400 font-bold">100%</td>
-                      <td className="py-3.5 bg-emerald-500/10 text-emerald-400 font-bold">91%</td>
-                      <td className="py-3.5 text-slate-600">-</td>
-                      <td className="py-3.5 text-slate-600">-</td>
-                    </tr>
-                    <tr className="border-b border-slate-900">
-                      <td className="py-3.5 text-left font-bold text-white">April 2026</td>
-                      <td className="py-3.5">18 accounts</td>
-                      <td className="py-3.5 bg-emerald-500/10 text-emerald-400 font-bold">100%</td>
-                      <td className="py-3.5 text-slate-600">-</td>
-                      <td className="py-3.5 text-slate-600">-</td>
-                      <td className="py-3.5 text-slate-600">-</td>
-                    </tr>
+                    {cohorts.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-6 text-slate-500 text-center">
+                          No cohort retention data available.
+                        </td>
+                      </tr>
+                    ) : (
+                      cohorts.map((row) => (
+                        <tr key={row.cohortMonth} className="border-b border-slate-900">
+                          <td className="py-3.5 text-left font-bold text-white">
+                            {row.cohortMonth}
+                          </td>
+                          <td className="py-3.5">
+                            {row.newAccounts} {row.newAccounts === 1 ? 'account' : 'accounts'}
+                          </td>
+                          <td className={`py-3.5 ${getCohortCellClass(row.m1)}`}>
+                            {row.m1 !== null ? `${row.m1}%` : '-'}
+                          </td>
+                          <td className={`py-3.5 ${getCohortCellClass(row.m3)}`}>
+                            {row.m3 !== null ? `${row.m3}%` : '-'}
+                          </td>
+                          <td className={`py-3.5 ${getCohortCellClass(row.m6)}`}>
+                            {row.m6 !== null ? `${row.m6}%` : '-'}
+                          </td>
+                          <td className={`py-3.5 ${getCohortCellClass(row.m12)}`}>
+                            {row.m12 !== null ? `${row.m12}%` : '-'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

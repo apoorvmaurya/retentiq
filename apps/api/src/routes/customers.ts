@@ -25,50 +25,88 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const offset = (page - 1) * limit;
 
-    // Fetch all customers for this org
-    const customersList = await db
-      .select()
-      .from(schema.customers)
-      .where(eq(schema.customers.orgId, orgId));
+    // Subquery to get latest health score with row number partition
+    const hsSub = db
+      .select({
+        id: schema.healthScores.id,
+        customerId: schema.healthScores.customerId,
+        score: schema.healthScores.score,
+        riskTier: schema.healthScores.riskTier,
+        scoredAt: schema.healthScores.scoredAt,
+        churnProbability: schema.healthScores.churnProbability,
+        topRiskFactors: schema.healthScores.topRiskFactors,
+        recommendedAction: schema.healthScores.recommendedAction,
+        confidence: schema.healthScores.confidence,
+        rowNum:
+          sql<number>`ROW_NUMBER() OVER (PARTITION BY ${schema.healthScores.customerId} ORDER BY ${schema.healthScores.scoredAt} DESC)`.as(
+            'row_num',
+          ),
+      })
+      .from(schema.healthScores)
+      .as('hs_sub');
 
-    // Enrich with latest health score
-    const enriched = [];
-    for (const customer of customersList) {
-      const latestScore = await db
-        .select()
-        .from(schema.healthScores)
-        .where(eq(schema.healthScores.customerId, customer.id))
-        .orderBy(desc(schema.healthScores.scoredAt))
-        .limit(1);
-
-      const hs = latestScore[0] || null;
-
-      // Apply risk_tier filter
-      if (riskTier && hs?.riskTier !== riskTier) continue;
-      if (riskTier && !hs) continue;
-
-      enriched.push({ ...customer, healthScore: hs });
+    let conditions = eq(schema.customers.orgId, orgId);
+    if (riskTier) {
+      conditions = and(
+        conditions,
+        eq(hsSub.riskTier, riskTier as 'low' | 'medium' | 'high' | 'critical'),
+      ) as any;
     }
 
-    // Sort
-    enriched.sort((a, b) => {
-      let cmp = 0;
-      if (sort === 'score') {
-        cmp = (a.healthScore?.score ?? 0) - (b.healthScore?.score ?? 0);
-      } else if (sort === 'name') {
-        cmp = a.name.localeCompare(b.name);
-      } else if (sort === 'last_seen') {
-        const aDate = a.healthScore?.scoredAt ? new Date(a.healthScore.scoredAt).getTime() : 0;
-        const bDate = b.healthScore?.scoredAt ? new Date(b.healthScore.scoredAt).getTime() : 0;
-        cmp = aDate - bDate;
-      }
-      return order === 'desc' ? -cmp : cmp;
+    let orderByFn;
+    if (sort === 'score') {
+      orderByFn = order === 'desc' ? desc(hsSub.score) : asc(hsSub.score);
+    } else if (sort === 'last_seen') {
+      orderByFn = order === 'desc' ? desc(hsSub.scoredAt) : asc(hsSub.scoredAt);
+    } else {
+      orderByFn = order === 'desc' ? desc(schema.customers.name) : asc(schema.customers.name);
+    }
+
+    const [customersList, totalResult] = await Promise.all([
+      db
+        .select({
+          id: schema.customers.id,
+          orgId: schema.customers.orgId,
+          name: schema.customers.name,
+          email: schema.customers.email,
+          company: schema.customers.company,
+          planTier: schema.customers.planTier,
+          mrr: schema.customers.mrr,
+          notes: schema.customers.notes,
+          createdAt: schema.customers.createdAt,
+          healthScore: {
+            id: hsSub.id,
+            score: hsSub.score,
+            riskTier: hsSub.riskTier,
+            scoredAt: hsSub.scoredAt,
+            churnProbability: hsSub.churnProbability,
+            topRiskFactors: hsSub.topRiskFactors,
+            recommendedAction: hsSub.recommendedAction,
+            confidence: hsSub.confidence,
+          },
+        })
+        .from(schema.customers)
+        .leftJoin(hsSub, and(eq(schema.customers.id, hsSub.customerId), eq(hsSub.rowNum, 1)))
+        .where(conditions)
+        .orderBy(orderByFn)
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(schema.customers)
+        .leftJoin(hsSub, and(eq(schema.customers.id, hsSub.customerId), eq(hsSub.rowNum, 1)))
+        .where(conditions),
+    ]);
+
+    const data = customersList.map((row) => {
+      const healthScore = row.healthScore?.score !== null ? row.healthScore : null;
+      return {
+        ...row,
+        healthScore,
+      };
     });
 
-    const total = enriched.length;
-    const data = enriched.slice(offset, offset + limit);
-
-    res.json({ data, total, page });
+    res.json({ data, total: totalResult[0]?.count ?? 0, page });
   } catch (err) {
     next(err);
   }

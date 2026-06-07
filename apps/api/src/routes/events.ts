@@ -32,27 +32,45 @@ router.post(
       const orgId = req.user!.org_id;
       const data = req.body;
 
-      let inserted = 0;
-      let skipped = 0;
+      const eventsToInsert = data.events.map((event: any) => ({
+        customerId: event.customer_id,
+        orgId,
+        eventType: event.event_type,
+        source: event.source,
+        payload: event.payload,
+        occurredAt: event.occurred_at ? new Date(event.occurred_at) : new Date(),
+      }));
 
-      for (const event of data.events) {
-        try {
-          await db.insert(schema.events).values({
-            customerId: event.customer_id,
-            orgId,
-            eventType: event.event_type,
-            source: event.source,
-            payload: event.payload,
-            occurredAt: event.occurred_at ? new Date(event.occurred_at) : new Date(),
-          });
-          inserted++;
-        } catch (err) {
-          console.warn(
-            `[events/ingest] Skipped event for customer ${event.customer_id}:`,
-            (err as any).message,
-          );
-          skipped++;
-        }
+      // Check which customer IDs are valid for this org to prevent foreign key errors
+      const validCustomers = await db
+        .select({ id: schema.customers.id })
+        .from(schema.customers)
+        .where(eq(schema.customers.orgId, orgId));
+      const validCustomerIds = new Set(validCustomers.map((c) => c.id));
+
+      const validEvents = eventsToInsert.filter((e: any) => validCustomerIds.has(e.customerId));
+      const skipped = data.events.length - validEvents.length;
+
+      let inserted = 0;
+      if (validEvents.length > 0) {
+        await db.insert(schema.events).values(validEvents);
+        inserted = validEvents.length;
+
+        // Trigger a background bulk rescore for the affected customers
+        const affectedCustomerIds = Array.from(new Set(validEvents.map((e: any) => e.customerId)));
+        const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000';
+        fetch(`${aiServiceUrl}/score/bulk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customers: affectedCustomerIds.map((cid) => ({
+              customer_id: cid,
+              org_id: orgId,
+            })),
+          }),
+        }).catch((err) => {
+          console.error('[EventsIngest] Failed to trigger background bulk rescoring:', err);
+        });
       }
 
       res.json({ inserted, skipped });
