@@ -43,7 +43,6 @@
     "@types/nodemailer": "^8.0.0",
     "@types/papaparse": "^5.5.2",
     "@types/supertest": "^7.2.0",
-    "@types/uuid": "^11.0.0",
     "@types/ws": "^8.18.1",
     "supertest": "^7.2.2",
     "tsx": "^4.19.2",

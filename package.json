@@ -12,13 +12,13 @@
     "seed": "pnpm --filter @retentiq/db seed",
     "lint": "eslint \"**/*.{ts,tsx}\" --quiet",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
-    "prepare": "husky"
+    "prepare": "node -e \"try { if (!process.env.CI && process.env.NODE_ENV !== 'production') { require('child_process').execSync('husky', { stdio: 'inherit' }) } } catch (e) {}\""
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.24.0",
-    "@typescript-eslint/parser": "^8.24.0",
-    "eslint": "^8.57.0",
+    "@eslint/js": "^9.20.0",
+    "eslint": "^9.20.0",
     "husky": "^9.1.7",
+    "typescript-eslint": "^8.24.0",
     "lint-staged": "^15.4.3",
     "prettier": "^3.5.1",
     "typescript": "^5.7.3"
@@ -30,6 +30,11 @@
     ],
     "*.{json,md,yml,yaml}": [
       "prettier --write"
+    ]
+  },
+  "pnpm": {
+    "allowedBuildScripts": [
+      "esbuild"
     ]
   }
 }

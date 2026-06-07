@@ -18,7 +18,7 @@ RUN pnpm --filter @retentiq/db build
 RUN pnpm --filter @retentiq/api build
 
 # Deploy the api package with production dependencies to a self-contained directory
-RUN pnpm --filter @retentiq/api --prod --legacy deploy /app/pruned
+RUN pnpm --filter @retentiq/api --prod deploy /app/pruned
 
 # Stage 2: Runtime stage
 FROM node:20-alpine AS runner
