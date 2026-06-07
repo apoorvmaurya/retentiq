@@ -8,6 +8,7 @@ import {
   useInView,
   AnimatePresence,
   animate,
+  useMotionValueEvent,
 } from 'framer-motion';
 import {
   ArrowRight,
@@ -21,6 +22,7 @@ import {
   ArrowUpRight,
   Play,
   TrendingDown,
+  Sparkles,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
@@ -96,6 +98,34 @@ function SpotlightCard({
   );
 }
 
+// --- TIMELINE PROGRESS NODE COMPONENT ---
+function TimelineNode({ index, progress }: { index: number; progress: any }) {
+  const threshold = index === 0 ? 0.05 : index === 1 ? 0.33 : index === 2 ? 0.66 : 0.9;
+  const [active, setActive] = useState(false);
+
+  useMotionValueEvent(progress, 'change', (latest: number) => {
+    setActive(latest >= threshold);
+  });
+
+  return (
+    <div className="relative flex items-center justify-center">
+      <motion.div
+        animate={{
+          scale: active ? 1.25 : 1,
+          backgroundColor: active ? 'rgba(0, 212, 255, 1)' : 'rgba(10, 15, 30, 1)',
+          borderColor: active ? 'rgba(0, 212, 255, 1)' : 'rgba(255, 255, 255, 0.12)',
+          boxShadow: active ? '0 0 12px rgba(0, 212, 255, 0.6)' : 'none',
+        }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="w-3.5 h-3.5 rounded-full border-2 bg-[#0A0F1E] z-10 cursor-pointer"
+      />
+      {active && (
+        <span className="absolute w-6 h-6 rounded-full bg-[#00D4FF]/20 animate-ping pointer-events-none z-0" />
+      )}
+    </div>
+  );
+}
+
 export default function MarketingPage() {
   const [tickerIndex, setTickerIndex] = useState(0);
   const tickerItems = [
@@ -126,7 +156,6 @@ export default function MarketingPage() {
     target: stepsRef,
     offset: ['start end', 'end center'],
   });
-  const pathLength = useTransform(stepsScrollProgress, [0.1, 0.8], [0, 1]);
 
   // Pricing settings
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
@@ -142,8 +171,9 @@ export default function MarketingPage() {
 
       {/* 1. HERO SECTION */}
       <section
+        id="about"
         ref={heroRef}
-        className="relative pt-32 pb-20 md:pt-40 md:pb-32 px-4 md:px-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center"
+        className="relative pt-32 pb-20 md:pt-40 md:pb-32 px-4 md:px-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center scroll-mt-24"
       >
         <div className="lg:col-span-7 space-y-8 text-left z-10">
           {/* Tag */}
@@ -305,7 +335,7 @@ export default function MarketingPage() {
       <section
         id="how-it-works"
         ref={stepsRef}
-        className="py-20 md:py-32 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04]"
+        className="py-20 md:py-32 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] scroll-mt-24"
       >
         <div className="text-center max-w-xl mx-auto mb-16 md:mb-24 space-y-4">
           <span className="text-[10px] text-[#00D4FF] font-bold uppercase tracking-widest block">
@@ -317,23 +347,30 @@ export default function MarketingPage() {
         </div>
 
         {/* Step cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-6 relative">
-          {/* Scroll Animated SVG Connecting Line */}
-          <div className="absolute top-[28%] left-[12%] right-[12%] h-0.5 hidden md:block pointer-events-none z-0">
-            <svg className="w-full h-2 overflow-visible" fill="none">
-              <motion.path
-                d="M 0 1 H 1000"
-                stroke="rgba(0, 212, 255, 0.2)"
-                strokeWidth="2"
-                strokeDasharray="6 6"
-              />
-              <motion.path
-                d="M 0 1 H 1000"
-                stroke="#00D4FF"
-                strokeWidth="2"
-                style={{ pathLength }}
-              />
-            </svg>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-6 relative pl-10 md:pl-0">
+          {/* Desktop Horizontal Timeline Track */}
+          <div className="absolute top-[39px] left-[12.5%] right-[12.5%] h-[2px] bg-white/[0.04] hidden md:block z-0">
+            <motion.div
+              style={{ scaleX: stepsScrollProgress, originX: 0 }}
+              className="w-full h-full bg-gradient-to-r from-[#00D4FF] via-cyan-400 to-indigo-500 shadow-[0_0_8px_rgba(0,212,255,0.6)]"
+            />
+          </div>
+
+          {/* Desktop Timeline Nodes */}
+          <div className="absolute top-[39px] left-[12.5%] right-[12.5%] hidden md:flex justify-between items-center -translate-y-1/2 pointer-events-none z-10">
+            {[0, 1, 2, 3].map((idx) => (
+              <div key={idx} className="relative flex items-center justify-center -translate-x-1/2">
+                <TimelineNode index={idx} progress={stepsScrollProgress} />
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile Vertical Timeline Track */}
+          <div className="absolute left-[18px] top-[40px] bottom-[40px] w-[2px] bg-white/[0.04] md:hidden z-0">
+            <motion.div
+              style={{ scaleY: stepsScrollProgress, originY: 0 }}
+              className="w-full h-full bg-gradient-to-b from-[#00D4FF] via-cyan-400 to-indigo-500 shadow-[0_0_8px_rgba(0,212,255,0.6)]"
+            />
           </div>
 
           {/* Cards */}
@@ -367,6 +404,11 @@ export default function MarketingPage() {
               transition={{ duration: 0.6, delay: idx * 0.15 }}
               className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 flex flex-col gap-4 relative z-10 backdrop-blur-sm shadow-xl"
             >
+              {/* Mobile Timeline Node */}
+              <div className="absolute left-[-22px] top-[39px] -translate-x-1/2 -translate-y-1/2 md:hidden z-20">
+                <TimelineNode index={idx} progress={stepsScrollProgress} />
+              </div>
+
               <span className="font-serif text-3xl italic text-[#00D4FF]/40">{item.step}</span>
               <h3 className="text-base font-bold text-[#F8F6F0]">{item.title}</h3>
               <p className="text-xs text-[#8B95AB] leading-relaxed">{item.desc}</p>
@@ -378,7 +420,7 @@ export default function MarketingPage() {
       {/* 3. FEATURES SECTION (Alternating side entries) */}
       <section
         id="features"
-        className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] space-y-24 md:space-y-36"
+        className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] space-y-24 md:space-y-36 scroll-mt-24"
       >
         {/* Title */}
         <div className="text-center max-w-xl mx-auto space-y-4">
@@ -631,7 +673,7 @@ export default function MarketingPage() {
       </section>
 
       {/* 5. PRICING SECTION */}
-      <section id="pricing" className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8">
+      <section id="pricing" className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 scroll-mt-24">
         {/* Header */}
         <div className="text-center max-w-xl mx-auto mb-16 md:mb-20 space-y-6">
           <span className="text-[10px] text-[#00D4FF] font-bold uppercase tracking-widest block">
@@ -673,6 +715,29 @@ export default function MarketingPage() {
               </span>
             </button>
           </div>
+
+          {/* Beta Access Callout */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="mt-6 p-4 rounded-2xl border border-cyan-500/30 bg-[#00D4FF]/5 shadow-[0_0_24px_rgba(0,212,255,0.06)] backdrop-blur-md max-w-lg mx-auto flex items-start gap-3 text-left"
+          >
+            <div className="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center text-[#00D4FF] shrink-0 border border-cyan-500/25 mt-0.5 animate-pulse">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white uppercase tracking-wider">
+                Beta Release Promo
+              </p>
+              <p className="text-[11px] text-slate-400 leading-relaxed mt-1">
+                RetentIQ is currently in public beta. During this release phase, everyone gets{' '}
+                <span className="text-[#00D4FF] font-black">100% free access</span> to the most
+                premium features of RetentIQ (Growth tier). Start predicting churn risk immediately!
+              </p>
+            </div>
+          </motion.div>
         </div>
 
         {/* Tiers list */}
@@ -811,13 +876,18 @@ export default function MarketingPage() {
               </h4>
               <ul className="space-y-2 text-xs text-[#8B95AB]">
                 <li>
-                  <a href="#features" className="hover:text-white transition-colors">
-                    Features
+                  <a href="#about" className="hover:text-white transition-colors">
+                    About
                   </a>
                 </li>
                 <li>
                   <a href="#how-it-works" className="hover:text-white transition-colors">
-                    How It Works
+                    Workflow
+                  </a>
+                </li>
+                <li>
+                  <a href="#features" className="hover:text-white transition-colors">
+                    Capabilities
                   </a>
                 </li>
                 <li>

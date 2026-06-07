@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain } from 'lucide-react';
+import { Brain, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 const quotes = [
   {
@@ -44,12 +45,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="absolute bottom-[-20%] right-[-20%] w-[80%] h-[80%] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
 
         {/* Top Header Logo */}
-        <div className="flex items-center gap-2.5 z-10">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00D4FF] to-indigo-500 flex items-center justify-center shadow-lg shadow-[#00D4FF]/10">
+        <Link href="/" className="flex items-center gap-2.5 z-10 group cursor-pointer w-fit">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00D4FF] to-indigo-500 flex items-center justify-center shadow-lg shadow-[#00D4FF]/10 group-hover:scale-105 transition-transform duration-250">
             <Brain className="w-4.5 h-4.5 text-[#0A0F1E]" />
           </div>
-          <span className="font-bold text-sm tracking-widest text-white uppercase">RetentIQ</span>
-        </div>
+          <span className="font-bold text-sm tracking-widest text-white uppercase group-hover:text-[#00D4FF] transition-colors">
+            RetentIQ
+          </span>
+        </Link>
 
         {/* Quote Block Centered */}
         <div className="flex-1 flex items-center justify-center z-10">
@@ -103,6 +106,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       {/* Right Panel: Form Area */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 md:p-16 relative">
+        {/* Go Back Home Button */}
+        <div className="absolute top-6 right-6 z-20">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-slate-400 hover:text-white transition-all bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.08] px-3.5 py-2 rounded-full backdrop-blur-md"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to website
+          </Link>
+        </div>
         {/* Glow behind forms */}
         <div className="absolute inset-0 bg-radial-gradient from-indigo-950/20 via-transparent to-transparent opacity-60 pointer-events-none" />
         <div className="w-full max-w-sm z-10">{children}</div>

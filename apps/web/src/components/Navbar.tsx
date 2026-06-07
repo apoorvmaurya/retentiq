@@ -1,65 +1,192 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Brain, Menu, X, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Navbar() {
-  const [visible, setVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string>('about');
 
+  // Track scroll position for gradual scroll transformations
+  const { scrollY } = useScroll();
+  const smoothScrollY = useSpring(scrollY, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.01,
+  });
+
+  // Map scroll position (0px -> 150px) to layout styles for a gradual, organic transition
+  const wrapperPaddingX = useTransform(smoothScrollY, [0, 150], ['0px', '24px']);
+  const navMt = useTransform(smoothScrollY, [0, 150], ['0px', '16px']);
+  const navRadius = useTransform(smoothScrollY, [0, 150], ['0px', '32px']);
+
+  const bgStyle = useTransform(
+    smoothScrollY,
+    [0, 150],
+    ['rgba(10, 15, 30, 0.80)', 'rgba(7, 12, 30, 0.75)'],
+  );
+
+  const borderStyle = useTransform(
+    smoothScrollY,
+    [0, 150],
+    ['rgba(255, 255, 255, 0.04)', 'rgba(255, 255, 255, 0.08)'],
+  );
+
+  const shadowStyle = useTransform(
+    smoothScrollY,
+    [0, 150],
+    ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.6)'],
+  );
+
+  const scrollProgress = useTransform(smoothScrollY, [0, 150], [0, 1]);
+  const navMaxWidth = useTransform(scrollProgress, (val) => `calc(100% - (100% - 896px) * ${val})`);
+
+  // Track active section on scroll deterministically using viewport boundary tracking
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+      const sections = ['about', 'how-it-works', 'features', 'pricing'];
+      const threshold = 160; // Offset for navbar height + spacing
+      let currentActive = 'about';
 
-      if (currentScrollY < 50) {
-        setVisible(true);
-      } else if (currentScrollY > lastScrollY) {
-        // Scrolling down -> hide navbar & close mobile menu
-        setVisible(false);
-        setMobileMenuOpen(false);
-      } else {
-        // Scrolling up -> show navbar
-        setVisible(true);
+      const passedSections = sections
+        .map((id) => {
+          const el = document.getElementById(id);
+          return {
+            id,
+            rect: el ? el.getBoundingClientRect() : null,
+          };
+        })
+        .filter((s): s is { id: string; rect: DOMRect } => s.rect !== null);
+
+      // Find the last section whose top has crossed the threshold
+      for (let i = passedSections.length - 1; i >= 0; i--) {
+        const s = passedSections[i];
+        if (s.rect.top <= threshold) {
+          currentActive = s.id;
+          break;
+        }
       }
 
-      setLastScrollY(currentScrollY);
+      // Fallback: If at the very bottom of the page, force highlight the last section
+      const isAtBottom =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 20;
+      if (isAtBottom) {
+        currentActive = 'pricing';
+      }
+
+      setActiveSection(currentActive);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial check
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, []);
 
   const scrollToSection = (id: string) => {
     setMobileMenuOpen(false);
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+
+    // Delay the scroll slightly to allow the mobile menu's collapse transition to begin.
+    // This prevents React state re-renders and Framer Motion height changes from interrupting
+    // the browser's smooth scrolling execution.
+    setTimeout(() => {
+      const element = document.getElementById(id);
+      if (element) {
+        const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+        const offsetPosition = elementPosition - 96; // 96px offset for fixed navbar spacing
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth',
+        });
+      }
+    }, 100);
   };
 
   const navLinks = [
-    { id: 'features', label: 'Features' },
-    { id: 'how-it-works', label: 'How It Works' },
+    { id: 'about', label: 'About' },
+    { id: 'how-it-works', label: 'Workflow' },
+    { id: 'features', label: 'Capabilities' },
     { id: 'pricing', label: 'Pricing' },
   ];
 
+  const menuContainerVariants = {
+    hidden: { opacity: 0, height: 0 },
+    show: {
+      opacity: 1,
+      height: 'auto',
+      transition: {
+        height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+        staggerChildren: 0.08,
+        delayChildren: 0.05,
+      },
+    },
+    exit: {
+      opacity: 0,
+      height: 0,
+      transition: {
+        height: { duration: 0.25, ease: 'easeInOut' },
+        staggerChildren: 0.04,
+        staggerDirection: -1,
+      },
+    },
+  } as const;
+
+  const menuItemVariants = {
+    hidden: { opacity: 0, x: -12 },
+    show: {
+      opacity: 1,
+      x: 0,
+      transition: { type: 'spring', stiffness: 300, damping: 24 },
+    },
+    exit: {
+      opacity: 0,
+      x: -8,
+      transition: { duration: 0.15 },
+    },
+  } as const;
+
   return (
-    <AnimatePresence>
+    <>
+      {/* Mobile Backdrop Dim Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 bg-[#0A0F1E]/75 backdrop-blur-md z-40 sm:hidden"
+            transition={{ duration: 0.3 }}
+          />
+        )}
+      </AnimatePresence>
+
       <motion.div
+        layout
         initial={{ y: -100, opacity: 0 }}
-        animate={{ y: visible ? 0 : -100, opacity: visible ? 1 : 0 }}
-        exit={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6"
+        style={{
+          paddingLeft: wrapperPaddingX,
+          paddingRight: wrapperPaddingX,
+        }}
+        className="fixed top-0 left-0 right-0 z-50"
       >
         {/* Navbar Container */}
         <motion.nav
-          animate={{ height: mobileMenuOpen ? 'auto' : 'auto' }}
-          className="max-w-4xl mx-auto mt-4 sm:mt-5 px-6 py-3 rounded-2xl sm:rounded-full backdrop-blur-xl bg-[#070C1E]/75 border border-white/[0.08] shadow-[0_16px_40px_rgba(0,0,0,0.6)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 overflow-hidden relative"
+          layout
+          style={{
+            marginTop: navMt,
+            borderRadius: navRadius,
+            borderColor: borderStyle,
+            backgroundColor: bgStyle,
+            boxShadow: shadowStyle,
+            maxWidth: navMaxWidth,
+          }}
+          className="mx-auto backdrop-blur-xl flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 border gap-4 overflow-hidden relative w-full"
         >
           {/* Custom border glow effect */}
           <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4FF]/30 to-transparent pointer-events-none" />
@@ -67,7 +194,8 @@ export default function Navbar() {
           {/* Top Row (Mobile Navigation Header) */}
           <div className="flex items-center justify-between w-full sm:w-auto relative z-10">
             {/* Logo */}
-            <div
+            <motion.div
+              whileTap={{ scale: 0.96 }}
               onClick={() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 setMobileMenuOpen(false);
@@ -80,18 +208,12 @@ export default function Navbar() {
               <span className="font-bold text-xs tracking-widest text-[#F8F6F0] uppercase group-hover:text-white transition-colors">
                 RetentIQ
               </span>
-            </div>
+            </motion.div>
 
             {/* Mobile Actions Right */}
             <div className="flex items-center gap-3 sm:hidden">
-              <Link
-                href="/dashboard"
-                className="px-3 py-1.5 rounded-xl border border-[#00D4FF]/30 text-[#00D4FF] hover:bg-[#00D4FF]/10 font-bold text-[10px] tracking-wide transition-all"
-              >
-                Dashboard
-              </Link>
-
-              <button
+              <motion.button
+                whileTap={{ scale: 0.9 }}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.04] transition-all flex items-center justify-center relative focus:outline-none"
               >
@@ -102,7 +224,7 @@ export default function Navbar() {
                 >
                   {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                 </motion.div>
-              </button>
+              </motion.button>
             </div>
           </div>
 
@@ -123,7 +245,24 @@ export default function Navbar() {
                     transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   />
                 )}
-                <span className="relative z-10">{link.label}</span>
+                <span
+                  className={`relative z-10 transition-colors ${
+                    activeSection === link.id
+                      ? 'text-[#00D4FF]'
+                      : hoveredLink === link.id
+                        ? 'text-white'
+                        : 'text-[#8B95AB]'
+                  }`}
+                >
+                  {link.label}
+                </span>
+                {activeSection === link.id && (
+                  <motion.span
+                    layoutId="navActiveDot"
+                    className="absolute bottom-[-1px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.8)]"
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -137,57 +276,77 @@ export default function Navbar() {
               Login
             </Link>
 
-            <Link
-              href="/dashboard"
-              className="px-5 py-2 rounded-full bg-gradient-to-r from-[#00D4FF] to-cyan-500 hover:opacity-95 text-[#0A0F1E] font-bold text-[11px] tracking-wider uppercase transition-all shadow-[0_4px_15px_rgba(0,212,255,0.25)] flex items-center gap-1 group relative overflow-hidden"
-            >
-              Start Free{' '}
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Link
+                href="/dashboard"
+                className="px-5 py-2 rounded-full bg-gradient-to-r from-[#00D4FF] to-cyan-500 hover:opacity-95 text-[#0A0F1E] font-bold text-[11px] tracking-wider uppercase transition-all shadow-[0_4px_15px_rgba(0,212,255,0.25)] flex items-center gap-1 group relative overflow-hidden"
+              >
+                Start Free{' '}
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </motion.div>
           </div>
 
           {/* Mobile Accordion Panel */}
           <AnimatePresence>
             {mobileMenuOpen && (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
-                className="sm:hidden w-full flex flex-col gap-3 pt-3 pb-2 border-t border-white/[0.06] z-10"
+                variants={menuContainerVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="sm:hidden w-full flex flex-col gap-2 pt-3 pb-2 border-t border-white/[0.06] z-10"
               >
                 {navLinks.map((link) => (
-                  <button
-                    key={link.id}
-                    onClick={() => scrollToSection(link.id)}
-                    className="w-full py-2.5 px-3 text-left text-sm font-semibold text-slate-300 hover:text-[#00D4FF] hover:bg-white/[0.02] rounded-xl transition-all flex items-center justify-between group"
-                  >
-                    <span>{link.label}</span>
-                    <ArrowRight className="w-4 h-4 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[#00D4FF]" />
-                  </button>
+                  <motion.div key={link.id} variants={menuItemVariants} whileTap={{ scale: 0.98 }}>
+                    <button
+                      onClick={() => scrollToSection(link.id)}
+                      className={`w-full py-2.5 px-3 text-left text-sm font-semibold rounded-xl transition-all flex items-center justify-between group ${
+                        activeSection === link.id
+                          ? 'text-[#00D4FF] bg-[#00D4FF]/5 border-l-2 border-[#00D4FF]'
+                          : 'text-slate-300 hover:text-[#00D4FF] hover:bg-white/[0.02]'
+                      }`}
+                    >
+                      <span>{link.label}</span>
+                      <ArrowRight
+                        className={`w-4 h-4 transition-all ${
+                          activeSection === link.id
+                            ? 'opacity-100 translate-x-0 text-[#00D4FF]'
+                            : 'opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 text-[#00D4FF]'
+                        }`}
+                      />
+                    </button>
+                  </motion.div>
                 ))}
 
-                <div className="flex flex-col gap-2 pt-2 border-t border-white/[0.04]">
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full py-2.5 text-center text-xs font-bold bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15] rounded-xl hover:bg-white/[0.04] transition-all text-slate-200 hover:text-white"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full py-2.5 text-center text-xs font-bold bg-gradient-to-r from-[#00D4FF] to-cyan-500 text-[#0A0F1E] rounded-xl shadow-[0_4px_15px_rgba(0,212,255,0.2)] flex items-center justify-center gap-1 hover:opacity-95 transition-all"
-                  >
-                    Start Free <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
+                <motion.div
+                  variants={menuItemVariants}
+                  className="flex flex-col gap-2 pt-2 border-t border-white/[0.04]"
+                >
+                  <motion.div whileTap={{ scale: 0.98 }} className="w-full">
+                    <Link
+                      href="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full py-2.5 text-center text-xs font-bold bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15] rounded-xl hover:bg-white/[0.04] transition-all text-slate-200 hover:text-white block"
+                    >
+                      Login
+                    </Link>
+                  </motion.div>
+                  <motion.div whileTap={{ scale: 0.98 }} className="w-full">
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full py-2.5 text-center text-xs font-bold bg-gradient-to-r from-[#00D4FF] to-cyan-500 text-[#0A0F1E] rounded-xl shadow-[0_4px_15px_rgba(0,212,255,0.2)] flex items-center justify-center gap-1 hover:opacity-95 transition-all block"
+                    >
+                      Start Free <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </motion.div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
         </motion.nav>
       </motion.div>
-    </AnimatePresence>
+    </>
   );
 }
