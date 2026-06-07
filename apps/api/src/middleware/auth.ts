@@ -1,7 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
 import { createClient } from '@supabase/supabase-js';
+import ws from 'ws';
 import { db, schema } from '../lib/db.js';
 import { eq } from 'drizzle-orm';
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+const supabase =
+  supabaseUrl && supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          persistSession: false,
+        },
+        realtime: {
+          transport: ws as any,
+        },
+      })
+    : null;
 
 export interface AuthenticatedUser {
   id: string;
@@ -35,15 +51,12 @@ export async function verifySupabaseJWT(
   }
 
   const authHeader = req.headers.authorization;
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
 
-    if (supabaseUrl && supabaseServiceKey) {
+    if (supabase) {
       try {
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
         const {
           data: { user },
           error,
