@@ -103,6 +103,18 @@ import { sql } from 'drizzle-orm';
 const startTime = Date.now();
 
 /**
+ * GET /
+ * Public root endpoint for load balancer readiness probes.
+ */
+app.get('/', publicLimiter, (_req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'RetentIQ Express API',
+    version: '1.0.0',
+  });
+});
+
+/**
  * GET /health
  * Public health check endpoint. Including DB status checks.
  */
