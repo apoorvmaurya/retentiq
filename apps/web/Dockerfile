@@ -7,8 +7,10 @@ RUN npm install -g pnpm
 # Stage 1: Install dependencies
 FROM base AS deps
 WORKDIR /app
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages ./packages
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY packages/db/package.json ./packages/db/
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
 RUN pnpm install --frozen-lockfile
 

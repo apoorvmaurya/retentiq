@@ -9,11 +9,19 @@ RUN npm install -g pnpm
 
 # Copy root workspace configurations
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY packages ./packages
-COPY apps/api ./apps/api
+
+# Copy package.json of all workspace packages to leverage Docker caching and prevent settings.injectWorkspacePackages mismatch
+COPY packages/db/package.json ./packages/db/
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
 
 # Install dependencies (including devDependencies)
 RUN pnpm install --frozen-lockfile
+
+# Copy source files
+COPY packages ./packages
+COPY apps/api ./apps/api
 
 # Build shared, db, and api packages
 RUN pnpm --filter @retentiq/shared build
