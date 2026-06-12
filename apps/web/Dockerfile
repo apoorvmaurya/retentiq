@@ -3,7 +3,7 @@ RUN apk add --no-cache libc6-compat
 ENV PNPM_UPDATE_NOTIFIER=false
 ENV CI=true
 ENV pnpm_config_inject_workspace_packages=true
-RUN npm install -g pnpm && pnpm config set inject-workspace-packages true
+RUN npm install -g pnpm
 
 # Stage 1: Install dependencies
 FROM base AS deps
