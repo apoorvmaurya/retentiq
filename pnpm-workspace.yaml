@@ -7,3 +7,4 @@ minimumReleaseAge: 0
 allowBuilds:
   esbuild: true
   sharp: true
+  unrs-resolver: true
