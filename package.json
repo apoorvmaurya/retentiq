@@ -18,7 +18,7 @@
     "prepare": "node -e \"try { if (!process.env.CI && process.env.NODE_ENV !== 'production' && require('fs').existsSync('.git')) { require('child_process').execSync('husky', { stdio: 'inherit' }) } } catch (e) {}\""
   },
   "devDependencies": {
-    "@eslint/js": "^9.20.0",
+    "@eslint/js": "^10.0.1",
     "eslint": "^10.4.1",
     "husky": "^9.1.7",
     "typescript-eslint": "^8.61.0",
