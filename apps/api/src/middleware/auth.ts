@@ -107,6 +107,9 @@ export async function verifySupabaseJWT(
     try {
       const orgs = await db.select().from(schema.organizations).limit(1);
       if (orgs.length > 0) {
+        console.warn(
+          `[Auth] Bypassing authentication using dev fallback user for organization: ${orgs[0].id}`,
+        );
         req.user = {
           id: '07898715-c17c-4e76-9d0a-35acb50be73e',
           org_id: orgs[0].id,

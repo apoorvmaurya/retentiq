@@ -160,8 +160,8 @@ app.use('/api/settings', settingsRouter);
 // ─── Global Error Handler ────────────────────────────────────────
 app.use(errorHandler);
 
-import { startAlertWorker } from './workers/alertWorker.js';
-import { startIngestionWorker } from './workers/ingestionWorker.js';
+import { startAlertWorker, stopAlertWorker } from './workers/alertWorker.js';
+import { startIngestionWorker, stopIngestionWorker } from './workers/ingestionWorker.js';
 
 // ─── Start Server ────────────────────────────────────────────────
 let server: any;
@@ -180,6 +180,14 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   // Graceful Shutdown Handler
   const gracefulShutdown = (signal: string) => {
     console.log(`\n[Server] Received ${signal}. Starting graceful shutdown...`);
+
+    // Stop workers first to prevent queries on closed connections
+    try {
+      stopAlertWorker();
+      stopIngestionWorker();
+    } catch (workerErr) {
+      console.error('[Server] Error stopping background workers:', workerErr);
+    }
 
     // Stop accepting new connections
     server.close(async () => {

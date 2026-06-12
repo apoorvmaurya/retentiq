@@ -65,3 +65,13 @@ skills-lock.json
 
 .vercel
 .turbo/
+
+# Local root test & scratch files
+/test_connect.js
+/test_intercom.py
+/test_remote_db.py
+/test_stripe.py
+/scratch_db.py
+/read_transcript.py
+/check_auth_users.py
+/test_events*.csv

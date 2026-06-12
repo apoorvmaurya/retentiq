@@ -1,0 +1,24 @@
+# CODEOWNERS file
+# Automatically assigns reviewers based on file changes.
+# Replace '@username' or '@org/team-name' with real GitHub handles.
+
+# Global owners for all files (fallback)
+*                                         @apoorvmaurya
+
+# Database components
+/packages/db/                             @apoorvmaurya
+/supabase/                                @apoorvmaurya
+
+# AI components
+/apps/ai-service/                         @apoorvmaurya
+
+# API backend
+/apps/api/                                @apoorvmaurya
+
+# Frontend web app
+/apps/web/                                @apoorvmaurya
+
+# CI/CD and deployment configurations
+/.github/workflows/                       @apoorvmaurya
+/docker-compose.yml                       @apoorvmaurya
+**/Dockerfile                             @apoorvmaurya

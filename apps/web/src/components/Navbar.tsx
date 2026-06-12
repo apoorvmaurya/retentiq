@@ -2,13 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion';
-import { Brain, Menu, X, ArrowRight } from 'lucide-react';
+import { Brain, Menu, X, ArrowRight, Search } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string>('about');
+  const pathname = usePathname();
+  const router = useRouter();
 
   // Track scroll position for gradual scroll transformations
   const { scrollY } = useScroll();
@@ -88,6 +91,11 @@ export default function Navbar() {
   const scrollToSection = (id: string) => {
     setMobileMenuOpen(false);
 
+    if (pathname !== '/') {
+      router.push(`/#${id}`);
+      return;
+    }
+
     // Delay the scroll slightly to allow the mobile menu's collapse transition to begin.
     // This prevents React state re-renders and Framer Motion height changes from interrupting
     // the browser's smooth scrolling execution.
@@ -106,11 +114,28 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { id: 'about', label: 'About' },
-    { id: 'how-it-works', label: 'Workflow' },
-    { id: 'features', label: 'Capabilities' },
-    { id: 'pricing', label: 'Pricing' },
+    { id: 'about', label: 'About', isSection: true },
+    { id: 'how-it-works', label: 'Workflow', isSection: true },
+    { id: 'features', label: 'Capabilities', isSection: true },
+    { id: 'pricing', label: 'Pricing', isSection: true },
+    { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
   ];
+
+  const handleLinkClick = (link: (typeof navLinks)[0]) => {
+    if (!link.isSection && link.href) {
+      setMobileMenuOpen(false);
+      router.push(link.href);
+      return;
+    }
+    scrollToSection(link.id);
+  };
+
+  const isLinkActive = (link: (typeof navLinks)[0]) => {
+    if (link.id === 'blog') {
+      return pathname.startsWith('/blog');
+    }
+    return pathname === '/' && activeSection === link.id;
+  };
 
   const menuContainerVariants = {
     hidden: { opacity: 0, height: 0 },
@@ -212,7 +237,19 @@ export default function Navbar() {
             </motion.div>
 
             {/* Mobile Actions Right */}
-            <div className="flex items-center gap-3 sm:hidden">
+            <div className="flex items-center gap-2 sm:hidden">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  const trigger = document.getElementById('global-search-trigger');
+                  if (trigger) trigger.click();
+                }}
+                className="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/[0.08] text-slate-300 hover:text-white flex items-center justify-center cursor-pointer"
+                aria-label="Search site pages"
+              >
+                <Search className="w-4 h-4" />
+              </motion.button>
+
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -231,45 +268,60 @@ export default function Navbar() {
 
           {/* Desktop Nav Links */}
           <div className="hidden sm:flex items-center gap-1.5 text-[12px] font-bold tracking-wider uppercase text-[#8B95AB]">
-            {navLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
-                onMouseEnter={() => setHoveredLink(link.id)}
-                onMouseLeave={() => setHoveredLink(null)}
-                className="relative px-4 py-2 rounded-full hover:text-white transition-colors duration-250 cursor-pointer"
-              >
-                {hoveredLink === link.id && (
-                  <motion.span
-                    layoutId="navHover"
-                    className="absolute inset-0 bg-white/[0.04] border border-[#00D4FF]/10 rounded-full z-0"
-                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                  />
-                )}
-                <span
-                  className={`relative z-10 transition-colors ${
-                    activeSection === link.id
-                      ? 'text-[#00D4FF]'
-                      : hoveredLink === link.id
-                        ? 'text-white'
-                        : 'text-[#8B95AB]'
-                  }`}
+            {navLinks.map((link) => {
+              const isActive = isLinkActive(link);
+              return (
+                <button
+                  key={link.id}
+                  onClick={() => handleLinkClick(link)}
+                  onMouseEnter={() => setHoveredLink(link.id)}
+                  onMouseLeave={() => setHoveredLink(null)}
+                  className="relative px-4 py-2 rounded-full hover:text-white transition-colors duration-250 cursor-pointer"
                 >
-                  {link.label}
-                </span>
-                {activeSection === link.id && (
-                  <motion.span
-                    layoutId="navActiveDot"
-                    className="absolute bottom-[-1px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.8)]"
-                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  />
-                )}
-              </button>
-            ))}
+                  {hoveredLink === link.id && (
+                    <motion.span
+                      layoutId="navHover"
+                      className="absolute inset-0 bg-white/[0.04] border border-[#00D4FF]/10 rounded-full z-0"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span
+                    className={`relative z-10 transition-colors ${
+                      isActive
+                        ? 'text-[#00D4FF]'
+                        : hoveredLink === link.id
+                          ? 'text-white'
+                          : 'text-[#8B95AB]'
+                    }`}
+                  >
+                    {link.label}
+                  </span>
+                  {isActive && (
+                    <motion.span
+                      layoutId="navActiveDot"
+                      className="absolute bottom-[-1px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#00D4FF] shadow-[0_0_8px_rgba(0,212,255,0.8)]"
+                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Desktop Actions */}
           <div className="hidden sm:flex items-center gap-3">
+            <button
+              onClick={() => {
+                const trigger = document.getElementById('global-search-trigger');
+                if (trigger) trigger.click();
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.08] text-slate-400 hover:text-white transition-all text-[11px] font-bold tracking-wider uppercase cursor-pointer"
+              aria-label="Open command menu"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span className="text-[9px] text-slate-500 font-bold">⌘K</span>
+            </button>
+
             <Link
               href="/login"
               className="text-[12px] font-bold tracking-wider uppercase text-[#8B95AB] hover:text-white transition-colors px-3 py-1.5"
@@ -298,27 +350,34 @@ export default function Navbar() {
                 exit="exit"
                 className="sm:hidden w-full flex flex-col gap-2 pt-3 pb-2 border-t border-white/[0.06] z-10"
               >
-                {navLinks.map((link) => (
-                  <motion.div key={link.id} variants={menuItemVariants} whileTap={{ scale: 0.98 }}>
-                    <button
-                      onClick={() => scrollToSection(link.id)}
-                      className={`w-full py-2.5 px-3 text-left text-sm font-semibold rounded-xl transition-all flex items-center justify-between group ${
-                        activeSection === link.id
-                          ? 'text-[#00D4FF] bg-[#00D4FF]/5 border-l-2 border-[#00D4FF]'
-                          : 'text-slate-300 hover:text-[#00D4FF] hover:bg-white/[0.02]'
-                      }`}
+                {navLinks.map((link) => {
+                  const isActive = isLinkActive(link);
+                  return (
+                    <motion.div
+                      key={link.id}
+                      variants={menuItemVariants}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <span>{link.label}</span>
-                      <ArrowRight
-                        className={`w-4 h-4 transition-all ${
-                          activeSection === link.id
-                            ? 'opacity-100 translate-x-0 text-[#00D4FF]'
-                            : 'opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 text-[#00D4FF]'
+                      <button
+                        onClick={() => handleLinkClick(link)}
+                        className={`w-full py-2.5 px-3 text-left text-sm font-semibold rounded-xl transition-all flex items-center justify-between group ${
+                          isActive
+                            ? 'text-[#00D4FF] bg-[#00D4FF]/5 border-l-2 border-[#00D4FF]'
+                            : 'text-slate-300 hover:text-[#00D4FF] hover:bg-white/[0.02]'
                         }`}
-                      />
-                    </button>
-                  </motion.div>
-                ))}
+                      >
+                        <span>{link.label}</span>
+                        <ArrowRight
+                          className={`w-4 h-4 transition-all ${
+                            isActive
+                              ? 'opacity-100 translate-x-0 text-[#00D4FF]'
+                              : 'opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 text-[#00D4FF]'
+                          }`}
+                        />
+                      </button>
+                    </motion.div>
+                  );
+                })}
 
                 <motion.div
                   variants={menuItemVariants}

@@ -2,6 +2,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+ENV CI=true
+ENV PNPM_UPDATE_NOTIFIER=false
+
 RUN npm install -g pnpm
 
 # Copy root workspace configurations

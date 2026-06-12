@@ -790,9 +790,25 @@ export async function triggerModelRetrain(): Promise<void> {
   }
 }
 
+let scheduledTasks: any[] = [];
+
+export function stopAlertWorker() {
+  console.log('[AlertWorker] Stopping background cron jobs...');
+  for (const task of scheduledTasks) {
+    try {
+      task.stop();
+    } catch (e: any) {
+      console.error('[AlertWorker] Failed to stop cron task:', e.message);
+    }
+  }
+  scheduledTasks = [];
+}
+
 export function startAlertWorker() {
+  stopAlertWorker(); // Ensure clean state before scheduling
+
   console.log('[AlertWorker] Initializing alert delivery cron job (running every 5 minutes)...');
-  cron.schedule('*/5 * * * *', async () => {
+  const task1 = cron.schedule('*/5 * * * *', async () => {
     console.log('[AlertWorker] Cron triggered. Running health check...');
     try {
       await checkAndDeliverAlerts();
@@ -800,9 +816,10 @@ export function startAlertWorker() {
       console.error('[AlertWorker] Cron job execution failed:', err.message);
     }
   });
+  scheduledTasks.push(task1);
 
   console.log('[AlertWorker] Initializing ROI aggregation cron job (running every 5 minutes)...');
-  cron.schedule('*/5 * * * *', async () => {
+  const task2 = cron.schedule('*/5 * * * *', async () => {
     console.log('[AlertWorker] ROI Cron triggered. Running aggregation...');
     try {
       await runRoiAggregation();
@@ -810,11 +827,12 @@ export function startAlertWorker() {
       console.error('[AlertWorker] ROI aggregation cron failed:', err.message);
     }
   });
+  scheduledTasks.push(task2);
 
   console.log(
     '[AlertWorker] Initializing integrations health check cron job (running every hour)...',
   );
-  cron.schedule('0 * * * *', async () => {
+  const task3 = cron.schedule('0 * * * *', async () => {
     console.log('[AlertWorker] Health Cron triggered. Checking integrations...');
     try {
       await checkIntegrationsHealth();
@@ -822,11 +840,12 @@ export function startAlertWorker() {
       console.error('[AlertWorker] Integrations health check cron failed:', err.message);
     }
   });
+  scheduledTasks.push(task3);
 
   console.log(
     '[AlertWorker] Initializing weekly model retraining cron (running every Sunday at midnight)...',
   );
-  cron.schedule('0 0 * * 0', async () => {
+  const task4 = cron.schedule('0 0 * * 0', async () => {
     console.log('[AlertWorker] Retraining Cron triggered.');
     try {
       await triggerModelRetrain();
@@ -834,11 +853,12 @@ export function startAlertWorker() {
       console.error('[AlertWorker] Weekly retraining cron failed:', err.message);
     }
   });
+  scheduledTasks.push(task4);
 
   console.log(
     '[AlertWorker] Initializing weekly Monday morning email digest (running every Monday at 8 AM)...',
   );
-  cron.schedule('0 8 * * 1', async () => {
+  const task5 = cron.schedule('0 8 * * 1', async () => {
     console.log('[AlertWorker] Weekly digest Cron triggered.');
     try {
       await sendWeeklyEmailDigest();
@@ -846,4 +866,5 @@ export function startAlertWorker() {
       console.error('[AlertWorker] Weekly digest cron failed:', err.message);
     }
   });
+  scheduledTasks.push(task5);
 }

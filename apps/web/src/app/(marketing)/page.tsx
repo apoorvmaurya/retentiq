@@ -27,6 +27,7 @@ import {
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
+import RoiCalculator from '@/components/RoiCalculator';
 
 // --- CUSTOM COUNTER COMPONENT ---
 function Counter({
@@ -796,6 +797,19 @@ export default function MarketingPage() {
             </motion.div>
           </div>
         </div>
+      </section>
+
+      {/* ROI CALCULATOR SECTION */}
+      <section className="py-20 md:py-28 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04]">
+        <div className="text-center max-w-xl mx-auto mb-12 md:mb-16 space-y-4">
+          <span className="text-[10px] text-[#00D4FF] font-bold uppercase tracking-widest block">
+            Impact Analysis
+          </span>
+          <h2 className="font-serif text-4xl md:text-5xl font-normal leading-none tracking-[-1px] text-[#F8F6F0]">
+            See the value you save.
+          </h2>
+        </div>
+        <RoiCalculator />
       </section>
 
       {/* 5. PRICING SECTION */}

@@ -1,5 +1,7 @@
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat
+ENV PNPM_UPDATE_NOTIFIER=false
+ENV CI=true
 RUN npm install -g pnpm
 
 # Stage 1: Install dependencies

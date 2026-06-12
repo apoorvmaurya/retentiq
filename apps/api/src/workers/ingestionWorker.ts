@@ -531,11 +531,23 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
     .where(eq(schema.integrations.id, mixpanelIntegration.id));
 }
 
+let pollerInterval: any = null;
+
+export function stopIngestionWorker() {
+  console.log('[IngestionWorker] Stopping background ingestion queue poller...');
+  if (pollerInterval) {
+    clearInterval(pollerInterval);
+    pollerInterval = null;
+  }
+}
+
 export function startIngestionWorker() {
+  stopIngestionWorker(); // Ensure clean state before starting
+
   console.log(
     '[IngestionWorker] Starting background ingestion queue poller (polling every 10 seconds)...',
   );
-  setInterval(async () => {
+  pollerInterval = setInterval(async () => {
     try {
       await processIngestionJobs();
     } catch (err: any) {

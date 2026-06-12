@@ -1,0 +1,28 @@
+# Labeler configuration
+
+web:
+  - changed-files:
+      - any-glob-to-any-file: 'apps/web/**/*'
+
+api:
+  - changed-files:
+      - any-glob-to-any-file: 'apps/api/**/*'
+
+ai-service:
+  - changed-files:
+      - any-glob-to-any-file: 'apps/ai-service/**/*'
+
+db:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/db/**/*'
+      - any-glob-to-any-file: 'supabase/**/*'
+
+shared:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/shared/**/*'
+
+ci-cd:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**/*'
+      - any-glob-to-any-file: 'docker-compose.yml'
+      - any-glob-to-any-file: '**/Dockerfile'

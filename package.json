@@ -15,7 +15,7 @@
     "seed": "pnpm --filter @retentiq/db seed",
     "lint": "eslint \"**/*.{ts,tsx}\" --quiet",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
-    "prepare": "node -e \"try { if (!process.env.CI && process.env.NODE_ENV !== 'production') { require('child_process').execSync('husky', { stdio: 'inherit' }) } } catch (e) {}\""
+    "prepare": "node -e \"try { if (!process.env.CI && process.env.NODE_ENV !== 'production' && require('fs').existsSync('.git')) { require('child_process').execSync('husky', { stdio: 'inherit' }) } } catch (e) {}\""
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
@@ -36,7 +36,7 @@
     ]
   },
   "pnpm": {
-    "allowedBuildScripts": [
+    "onlyBuiltDependencies": [
       "esbuild"
     ]
   }
