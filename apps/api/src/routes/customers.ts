@@ -118,7 +118,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
  */
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const orgId = req.user!.org_id;
 
     const customer = await db
@@ -182,7 +182,7 @@ router.put(
   validateBody(notesSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const orgId = req.user!.org_id;
       const data = req.body;
 
@@ -198,6 +198,87 @@ router.put(
       }
 
       res.json(customer[0]);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+const dispatchAiPlaybookSchema = z.object({
+  steps: z
+    .array(
+      z.object({
+        step: z.number().int().positive(),
+        headline: z.string().min(1).max(255),
+        detail: z.string().max(2000),
+      }),
+    )
+    .min(1, 'Playbook must contain at least one step'),
+});
+
+/**
+ * POST /api/customers/:id/dispatch-ai-playbook
+ * Dispatch an AI churn playbook: creates a retention action and tasks for each playbook step.
+ */
+router.post(
+  '/:id/dispatch-ai-playbook',
+  validateBody(dispatchAiPlaybookSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = req.params.id as string;
+      const orgId = req.user!.org_id;
+      const { steps } = req.body;
+
+      // 1. Fetch customer
+      const customer = await db
+        .select()
+        .from(schema.customers)
+        .where(and(eq(schema.customers.id, id), eq(schema.customers.orgId, orgId)))
+        .limit(1)
+        .then((rows) => rows[0]);
+
+      if (!customer) {
+        res.status(404).json({ error: 'Customer not found', code: 'NOT_FOUND' });
+        return;
+      }
+
+      // 2. Create retention action record
+      const [action] = await db
+        .insert(schema.retentionActions)
+        .values({
+          orgId,
+          customerId: id,
+          actionType: 'AI Playbook: Churn Mitigation',
+          outcome: 'in_progress',
+          revenueSaved: customer.mrr,
+        })
+        .returning();
+
+      // 3. Create tasks for each step
+      const createdTasks = [];
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 7); // Default due date to 7 days from now
+
+      for (const step of steps) {
+        const [task] = await db
+          .insert(schema.tasks)
+          .values({
+            orgId,
+            customerId: id,
+            title: `[AI Playbook] ${step.headline}`,
+            description: step.detail,
+            dueDate,
+            status: 'pending',
+          })
+          .returning();
+        createdTasks.push(task);
+      }
+
+      res.json({
+        success: true,
+        retentionAction: action,
+        tasks: createdTasks,
+      });
     } catch (err) {
       next(err);
     }

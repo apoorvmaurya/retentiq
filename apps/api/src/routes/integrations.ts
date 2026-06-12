@@ -48,7 +48,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
  */
 router.get('/sync/:provider', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { provider } = req.params;
+    const provider = req.params.provider as string;
     const orgId = req.user!.org_id;
 
     const integration = await db

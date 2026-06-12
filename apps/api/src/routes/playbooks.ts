@@ -91,7 +91,7 @@ router.put(
   validateBody(updatePlaybookSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const orgId = req.user!.org_id;
       const { name, triggerType, triggerThreshold, steps, isActive } = req.body;
 
@@ -129,7 +129,7 @@ router.post(
   validateBody(dispatchPlaybookSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const orgId = req.user!.org_id;
       const { customerId } = req.body;
 

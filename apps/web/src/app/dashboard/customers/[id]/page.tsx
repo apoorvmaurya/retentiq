@@ -431,9 +431,22 @@ export default function CustomerDetailPage() {
         setPlaybookOpen={setPlaybookOpen}
         playbookLoading={playbookLoading}
         playbookSteps={playbookSteps}
-        onConfirm={() => {
-          toast.success('Playbook rules dispatched to integration tools!');
-          setPlaybookOpen(false);
+        onConfirm={async () => {
+          try {
+            await fetchFromApi(`/customers/${id}/dispatch-ai-playbook`, {
+              method: 'POST',
+              body: JSON.stringify({ steps: playbookSteps }),
+            });
+            toast.success(
+              'AI Playbook dispatched! Action is in progress and tasks have been added.',
+            );
+            setPlaybookOpen(false);
+          } catch (err: any) {
+            console.error('Failed to dispatch playbook:', err);
+            toast.error(
+              `Failed to dispatch playbook: ${err instanceof Error ? err.message : 'Unknown error'}`,
+            );
+          }
         }}
       />
     </div>

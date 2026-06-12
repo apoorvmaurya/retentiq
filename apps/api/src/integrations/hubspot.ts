@@ -5,7 +5,7 @@ import { computeAndTriggerRescore } from '../lib/featureEngine.js';
 
 const router = Router();
 
-router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<void> => {
+const handleWebhook = async (req: Request, res: Response): Promise<void> => {
   const payload = req.body;
   console.log('[HubSpot webhook] Received sync trigger');
 
@@ -22,7 +22,7 @@ router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<voi
         .then((rows) => rows[0]);
     }
 
-    const orgId = req.params.orgId || customer?.orgId;
+    const orgId = (req.params.orgId as string | undefined) || customer?.orgId;
 
     if (!orgId) {
       console.warn(
@@ -96,6 +96,9 @@ router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<voi
     console.error('[HubSpot sync error]', err.message);
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+router.post('/webhook', handleWebhook);
+router.post('/webhook/:orgId', handleWebhook);
 
 export default router;

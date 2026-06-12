@@ -99,7 +99,7 @@ router.post(
  */
 router.get('/:customer_id/history', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { customer_id } = req.params;
+    const customer_id = req.params.customer_id as string;
     const orgId = req.user!.org_id;
 
     const ninetyDaysAgo = new Date();

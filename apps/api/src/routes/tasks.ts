@@ -133,7 +133,7 @@ router.put(
       const updated = await db
         .update(schema.tasks)
         .set(updateFields)
-        .where(and(eq(schema.tasks.id, id), eq(schema.tasks.orgId, orgId)))
+        .where(and(eq(schema.tasks.id, id as string), eq(schema.tasks.orgId, orgId)))
         .returning();
 
       if (updated.length === 0) {
@@ -159,7 +159,7 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
 
     const deleted = await db
       .delete(schema.tasks)
-      .where(and(eq(schema.tasks.id, id), eq(schema.tasks.orgId, orgId)))
+      .where(and(eq(schema.tasks.id, id as string), eq(schema.tasks.orgId, orgId)))
       .returning();
 
     if (deleted.length === 0) {
