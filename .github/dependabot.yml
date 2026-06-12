@@ -30,3 +30,9 @@ updates:
     directory: '/apps/api'
     schedule:
       interval: 'monthly'
+
+# Maintain Python dependencies in the AI service
+  - package-ecosystem: 'pip'
+    directory: '/apps/ai-service'
+    schedule:
+      interval: 'weekly'
