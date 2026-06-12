@@ -64,3 +64,4 @@ Thumbs.db
 skills-lock.json
 
 .vercel
+.turbo/

@@ -184,9 +184,10 @@ export default function Navbar() {
             borderColor: borderStyle,
             backgroundColor: bgStyle,
             boxShadow: shadowStyle,
-            maxWidth: navMaxWidth,
+            // Pass motion value as CSS custom property to prevent hydration mismatches
+            ...({ '--navbar-max-width': navMaxWidth } as any),
           }}
-          className="mx-auto backdrop-blur-xl flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 border gap-4 overflow-hidden relative w-full"
+          className="mx-auto backdrop-blur-xl flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 border gap-4 overflow-hidden relative w-full max-w-full sm:max-w-[var(--navbar-max-width)]"
         >
           {/* Custom border glow effect */}
           <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4FF]/30 to-transparent pointer-events-none" />

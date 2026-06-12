@@ -94,12 +94,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="z-10 flex items-center justify-between text-[11px] text-[#8B95AB] font-medium">
           <p>© {new Date().getFullYear()} RetentIQ Inc.</p>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-white transition-colors">
+            <Link href="/security" className="hover:text-white transition-colors">
               Security
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
+            </Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">
               Privacy
-            </a>
+            </Link>
           </div>
         </div>
       </div>

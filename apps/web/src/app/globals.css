@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@source "../components/**/*.{ts,tsx}";
+
 :root {
   --background: #0A0F1E; /* Deep rich space background */
   --foreground: #F8F6F0; /* Off-white warm foreground */

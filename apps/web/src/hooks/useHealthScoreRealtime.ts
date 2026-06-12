@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 export function useHealthScoreRealtime(
@@ -13,6 +13,12 @@ export function useHealthScoreRealtime(
   }) => void,
 ) {
   const [updatedRowId, setUpdatedRowId] = useState<string | null>(null);
+
+  // Keep reference to latest callback to avoid sub/unsub cycles
+  const callbackRef = useRef(onScoreUpdate);
+  useEffect(() => {
+    callbackRef.current = onScoreUpdate;
+  }, [onScoreUpdate]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -32,7 +38,7 @@ export function useHealthScoreRealtime(
         (payload: any) => {
           if (payload.new) {
             const newRecord = payload.new;
-            onScoreUpdate({
+            callbackRef.current({
               customer_id: newRecord.customer_id,
               score: Number(newRecord.score),
               risk_tier: newRecord.risk_tier,
@@ -56,7 +62,7 @@ export function useHealthScoreRealtime(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [orgId, onScoreUpdate]);
+  }, [orgId]);
 
   return { updatedRowId };
 }

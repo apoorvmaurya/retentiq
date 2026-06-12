@@ -214,7 +214,7 @@ export default function SettingsPage() {
     if (!memberToRemove) return;
     const id = memberToRemove;
     try {
-      await fetchFromApi(`/users/members?id=${id}`, {
+      await fetchFromApi(`/users/members/${id}`, {
         method: 'DELETE',
       });
       setMembers(members.filter((m) => m.id !== id));

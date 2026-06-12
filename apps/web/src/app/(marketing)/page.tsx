@@ -25,6 +25,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import Image from 'next/image';
 
 // --- CUSTOM COUNTER COMPONENT ---
@@ -173,8 +174,8 @@ export default function MarketingPage() {
   return (
     <div className="bg-[#0A0F1E] text-[#F8F6F0] min-h-screen overflow-x-hidden font-sans selection:bg-[#00D4FF]/20 selection:text-[#00D4FF]">
       {/* Decorative gradient meshes */}
-      <div className="absolute top-[-10%] left-[10%] w-[600px] h-[600px] rounded-full bg-indigo-950/20 blur-[120px] pointer-events-none" />
-      <div className="absolute top-[20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#00D4FF]/5 blur-[150px] pointer-events-none" />
+      <div className="hidden md:block absolute top-[-10%] left-[10%] w-[600px] h-[600px] rounded-full bg-indigo-950/20 blur-[120px] pointer-events-none" />
+      <div className="hidden md:block absolute top-[20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#00D4FF]/5 blur-[150px] pointer-events-none" />
 
       {/* Shared Navbar */}
       <Navbar />
@@ -684,7 +685,7 @@ export default function MarketingPage() {
             transition={{ duration: 0.7 }}
             className="md:col-span-6 md:order-1"
           >
-            <SpotlightCard className="p-8 flex justify-center items-center gap-10 bg-white/[0.01]">
+            <SpotlightCard className="p-8 flex justify-center items-center gap-6 sm:gap-10 bg-white/[0.01]">
               <div className="flex flex-col items-center gap-2">
                 <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center">
                   <Slack className="w-8 h-8 text-emerald-400" />
@@ -748,7 +749,7 @@ export default function MarketingPage() {
       {/* 4. STATS BAR SECTION */}
       <section className="py-20 md:py-28 relative max-w-7xl mx-auto px-4 md:px-8">
         {/* Glow effect behind stats */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[150px] bg-[#00D4FF]/5 blur-[80px] rounded-full pointer-events-none -z-10" />
+        <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[150px] bg-[#00D4FF]/5 blur-[80px] rounded-full pointer-events-none -z-10" />
 
         <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] rounded-3xl p-8 md:p-12 shadow-[0_24px_60px_rgba(0,0,0,0.5)] relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-0 items-center">
@@ -980,113 +981,7 @@ export default function MarketingPage() {
       </section>
 
       {/* 6. FOOTER SECTION */}
-      <footer className="py-12 md:py-20 border-t border-white/[0.04] bg-[#070b16]">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8 mb-12">
-          <div className="md:col-span-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-400 to-indigo-500 flex items-center justify-center">
-                <Brain className="w-4 h-4 text-[#0A0F1E]" />
-              </div>
-              <span className="font-bold text-xs tracking-wider text-[#F8F6F0] uppercase">
-                RetentIQ
-              </span>
-            </div>
-            <p className="text-xs text-[#8B95AB] leading-relaxed max-w-sm">
-              AI-powered customer churn-intelligence platform built on Supabase, FastAPI, and Llama
-              3.3.
-            </p>
-          </div>
-
-          <div className="md:col-span-7 grid grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Product
-              </h4>
-              <ul className="space-y-2 text-xs text-[#8B95AB]">
-                <li>
-                  <a href="#about" className="hover:text-white transition-colors">
-                    About
-                  </a>
-                </li>
-                <li>
-                  <a href="#how-it-works" className="hover:text-white transition-colors">
-                    Workflow
-                  </a>
-                </li>
-                <li>
-                  <a href="#features" className="hover:text-white transition-colors">
-                    Capabilities
-                  </a>
-                </li>
-                <li>
-                  <a href="#pricing" className="hover:text-white transition-colors">
-                    Pricing
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Company
-              </h4>
-              <ul className="space-y-2 text-xs text-[#8B95AB]">
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    About Us
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Careers
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Contact
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Legal
-              </h4>
-              <ul className="space-y-2 text-xs text-[#8B95AB]">
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Terms of Service
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Security
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#8B95AB]">
-          <p>© {new Date().getFullYear()} RetentIQ Inc. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-white transition-colors">
-              Documentation
-            </a>
-            <span>•</span>
-            <a href="#" className="hover:text-white transition-colors">
-              Status Logs
-            </a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
