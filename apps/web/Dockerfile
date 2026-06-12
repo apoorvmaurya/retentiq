@@ -2,7 +2,8 @@ FROM node:26-alpine AS base
 RUN apk add --no-cache libc6-compat
 ENV PNPM_UPDATE_NOTIFIER=false
 ENV CI=true
-RUN npm install -g pnpm
+ENV pnpm_config_inject_workspace_packages=true
+RUN npm install -g pnpm && pnpm config set inject-workspace-packages true
 
 # Stage 1: Install dependencies
 FROM base AS deps
