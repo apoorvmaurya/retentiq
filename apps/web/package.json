@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "@retentiq/shared": "workspace:*",
-    "@supabase/ssr": "^0.10.3",
+    "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
     "framer-motion": "^12.0.6",
-    "lucide-react": "^1.18.0",
+    "lucide-react": "^0.475.0",
     "next": "16.2.9",
     "nodemailer": "^8.0.11",
     "react": "19.2.7",
@@ -28,7 +28,7 @@
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^10",
+    "eslint": "^9.20.0",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
     "typescript": "^6"

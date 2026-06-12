@@ -284,7 +284,7 @@ router.post('/invites/accept/:token', async (req: Request, res: Response, next: 
     const invite = await db
       .select()
       .from(schema.invites)
-      .where(and(eq(schema.invites.token, token), eq(schema.invites.status, 'pending')))
+      .where(and(eq(schema.invites.token, token as string), eq(schema.invites.status, 'pending')))
       .limit(1)
       .then((rows) => rows[0]);
 
@@ -372,7 +372,7 @@ router.delete('/members/:id', async (req: Request, res: Response, next: NextFunc
 
     const deleted = await db
       .delete(schema.users)
-      .where(and(eq(schema.users.id, id), eq(schema.users.orgId, orgId)))
+      .where(and(eq(schema.users.id, id as string), eq(schema.users.orgId, orgId)))
       .returning();
 
     if (deleted.length === 0) {

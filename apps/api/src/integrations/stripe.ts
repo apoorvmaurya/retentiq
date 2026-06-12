@@ -8,7 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'mock_secret_key', {
   apiVersion: '2025-01-27.acacia' as any,
 });
 
-router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<void> => {
+const handleWebhook = async (req: Request, res: Response): Promise<void> => {
   const sig = req.headers['stripe-signature'] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
 
@@ -76,7 +76,7 @@ router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<voi
         .then((rows) => rows[0]);
     }
 
-    const orgId = req.params.orgId || customer?.orgId;
+    const orgId = (req.params.orgId as string | undefined) || customer?.orgId;
 
     if (!orgId) {
       console.warn(
@@ -98,6 +98,9 @@ router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<voi
     console.error('[Stripe webhook error]', err);
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+router.post('/webhook', handleWebhook);
+router.post('/webhook/:orgId', handleWebhook);
 
 export default router;

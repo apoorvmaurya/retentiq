@@ -88,7 +88,7 @@ router.post(
  */
 router.get('/:customer_id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { customer_id } = req.params;
+    const customer_id = req.params.customer_id as string;
     const orgId = req.user!.org_id;
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit as string) || 50));
     const beforeCursor = req.query.before_cursor as string | undefined;

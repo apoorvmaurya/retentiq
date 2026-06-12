@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 
 const router = Router();
 
-router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<void> => {
+const handleWebhook = async (req: Request, res: Response): Promise<void> => {
   const sig = req.headers['x-hub-signature'] as string;
   const clientSecret = process.env.INTERCOM_CLIENT_SECRET || '';
 
@@ -59,7 +59,7 @@ router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<voi
       .limit(1)
       .then((rows) => rows[0]);
 
-    const orgId = req.params.orgId || customer?.orgId;
+    const orgId = (req.params.orgId as string | undefined) || customer?.orgId;
 
     if (!orgId) {
       console.warn(
@@ -81,6 +81,9 @@ router.post('/webhook/:orgId?', async (req: Request, res: Response): Promise<voi
     console.error(`[Intercom webhook error] ${err.message}`);
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+router.post('/webhook', handleWebhook);
+router.post('/webhook/:orgId', handleWebhook);
 
 export default router;
