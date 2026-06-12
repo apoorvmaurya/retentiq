@@ -231,13 +231,19 @@ async def select_best_model():
     except Exception as e:
         logger.error(f"Startup model fetching failed: {e}. Using default {settings.MODEL_ID}")
 
+async def background_startup_training():
+    logger.info("Starting background scikit-learn classifier training...")
+    try:
+        await asyncio.to_thread(classifier.train_model, supabase_client)
+        logger.info("✓ Background scikit-learn classifier training completed successfully.")
+    except Exception as e:
+        logger.error(f"Failed background scikit-learn classifier training: {e}")
+
 @app.on_event("startup")
 async def startup():
     await select_best_model()
-    try:
-        classifier.train_model(supabase_client=supabase_client)
-    except Exception as e:
-        logger.error(f"Failed to train scikit-learn classifier on startup: {e}")
+    # Run retraining in a background thread to avoid blocking startup
+    asyncio.create_task(background_startup_training())
 
 # Helper: parse JSON safely from LLM output, stripping markdown fences
 def clean_and_parse_json(content: str) -> dict:
@@ -477,6 +483,7 @@ def calculate_fallback_score_from_features(features: FeatureDict) -> HealthScore
 # ENDPOINTS
 
 @app.get("/health")
+@app.head("/health")
 def health():
     return {
         "status": "ok",
@@ -485,6 +492,7 @@ def health():
 
 # Endpoint for backward compatibility
 @app.get("/")
+@app.head("/")
 def read_root():
     return {
         "status": "healthy",

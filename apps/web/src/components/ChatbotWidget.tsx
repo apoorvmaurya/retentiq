@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, MessageSquare, Send, Bot, User } from 'lucide-react';
+import { Sparkles, X, MessageSquare, Send, Bot, User, Maximize2, Minimize2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Markdown from './Markdown';
 
 interface Message {
   sender: 'ai' | 'user';
@@ -14,6 +15,7 @@ interface Message {
 
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -197,30 +199,51 @@ export default function ChatbotWidget() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.85, y: 30 }}
               transition={{ type: 'spring', stiffness: 280, damping: 25 }}
-              className="absolute bottom-18 right-0 w-[350px] sm:w-[380px] h-[500px] rounded-2xl glass-panel border border-white/[0.08] shadow-[0_24px_50px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden"
+              className={`absolute bottom-18 right-0 rounded-2xl glass-panel border border-white/[0.08] shadow-[0_24px_50px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden transition-all duration-300 ease-in-out origin-bottom-right z-50 ${
+                isExpanded
+                  ? 'w-[90vw] md:w-[650px] h-[600px] md:h-[650px]'
+                  : 'w-[350px] sm:w-[380px] h-[500px]'
+              }`}
             >
               {/* Header */}
               <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.01] flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-[#00D4FF]">
-                    <Bot className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 flex items-center justify-center text-[#00D4FF] relative">
+                    <Bot className="w-4 h-4 animate-pulse" />
+                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#F8F6F0]">RetentIQ Assistant</h4>
+                    <h4 className="text-xs font-bold text-[#F8F6F0]">RetentIQ Agent</h4>
                     <div className="flex items-center gap-1 mt-0.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       <span className="text-[8px] text-[#8B95AB] uppercase tracking-wider font-semibold">
-                        Active Support
+                        Llama 3.3 Active
                       </span>
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    title={isExpanded ? 'Minimize Window' : 'Expand Window'}
+                    className="p-1 rounded-md text-slate-400 hover:text-[#00D4FF] hover:bg-white/[0.04] transition-all cursor-pointer"
+                  >
+                    {isExpanded ? (
+                      <Minimize2 className="w-3.5 h-3.5" />
+                    ) : (
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      setIsExpanded(false);
+                    }}
+                    className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Messages Area */}
@@ -231,18 +254,18 @@ export default function ChatbotWidget() {
                     <div key={idx} className="flex flex-col gap-1.5">
                       <div className={`flex gap-2.5 ${isAI ? 'justify-start' : 'justify-end'}`}>
                         {isAI && (
-                          <div className="w-6 h-6 rounded-md bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-[#00D4FF] shrink-0">
+                          <div className="w-6.5 h-6.5 rounded-md bg-gradient-to-br from-[#101726] to-[#0A0F1E] border border-white/[0.08] flex items-center justify-center text-[#00D4FF] shrink-0 shadow-sm mt-0.5">
                             <Bot className="w-3.5 h-3.5" />
                           </div>
                         )}
                         <div
-                          className={`max-w-[75%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${
+                          className={`rounded-2xl px-3.5 py-2.5 leading-relaxed shadow-sm transition-all ${
                             isAI
-                              ? 'bg-white/[0.03] border border-white/[0.06] text-slate-200'
-                              : 'bg-[#00D4FF] text-[#0A0F1E] font-medium'
+                              ? 'bg-[#0c1224]/85 border border-white/[0.07] text-slate-200 max-w-[85%]'
+                              : 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-medium max-w-[78%] shadow-[0_4px_12px_rgba(6,182,212,0.15)]'
                           }`}
                         >
-                          {msg.text}
+                          <Markdown content={msg.text} />
                         </div>
                       </div>
 

@@ -13,7 +13,8 @@ RUN groupadd -g 10001 appuser && \
 
 # Install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade --root-user-action=ignore pip && \
+    pip install --no-cache-dir --root-user-action=ignore -r requirements.txt
 
 # Copy source code
 COPY main.py feature_engine.py config.py classifier.py compat_db.py churn_model.pkl ./

@@ -807,6 +807,13 @@ export function stopAlertWorker() {
 export function startAlertWorker() {
   stopAlertWorker(); // Ensure clean state before scheduling
 
+  if (process.env.DISABLE_BACKGROUND_WORKERS === 'true') {
+    console.log(
+      '[AlertWorker] Background cron workers disabled via DISABLE_BACKGROUND_WORKERS env var.',
+    );
+    return;
+  }
+
   console.log('[AlertWorker] Initializing alert delivery cron job (running every 5 minutes)...');
   const task1 = cron.schedule('*/5 * * * *', async () => {
     console.log('[AlertWorker] Cron triggered. Running health check...');

@@ -41,17 +41,24 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env.local') });
 const app = express();
 app.set('trust proxy', 1);
 const port = parseInt(process.env.API_PORT || process.env.PORT || '4000', 10);
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const appUrlStr = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const customOrigins = appUrlStr
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+const allowedOrigins = Array.from(
+  new Set([...customOrigins, 'http://localhost:3000', 'http://localhost:4000']),
+);
 
 // ─── Global Middleware ───────────────────────────────────────────
 
 // Security headers
 app.use((helmet as any)());
 
-// CORS — whitelist the web app origin
+// CORS — whitelist the web app origins
 app.use(
   cors({
-    origin: [appUrl, 'http://localhost:3000', 'http://localhost:4000'],
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
@@ -170,7 +177,7 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
     console.log(`🚀 RetentIQ API server listening at http://localhost:${port}`);
     console.log(`   Health check:  GET http://localhost:${port}/health`);
     console.log(`   API base:      http://localhost:${port}/api`);
-    console.log(`   CORS origin:   ${appUrl}`);
+    console.log(`   CORS origins:  ${allowedOrigins.join(', ')}`);
 
     // Start background cron worker
     startAlertWorker();

@@ -300,7 +300,10 @@ async function main() {
     // Plan tier selection
     let planTier = 'Basic';
     let mrr = '99.00';
-    if (i % 3 === 1) {
+    if (i >= 45) {
+      planTier = 'churned';
+      mrr = '0.00';
+    } else if (i % 3 === 1) {
       planTier = 'Pro';
       mrr = '499.00';
     } else if (i % 3 === 2) {
@@ -471,6 +474,123 @@ async function main() {
       source: 'web-app',
       payload: { integrations_modified: ['slack'] },
       occurredAt: new Date(startMs + Math.random() * 2 * 24 * 3600 * 1000),
+    });
+
+    // Feature usage events (to generate non-zero feature_adoption_score)
+    const ALL_FEATURES = [
+      'analytics_dashboard',
+      'slack_integration',
+      'csv_exporter',
+      'playbook_editor',
+      'alert_builder',
+      'user_management',
+      'api_keys',
+      'audit_logs',
+      'email_templates',
+      'custom_rules',
+      'billing_portal',
+      'stripe_sync',
+    ];
+    let numFeaturesToUse = 10;
+    if (riskTier === 'medium') numFeaturesToUse = 6;
+    else if (riskTier === 'high') numFeaturesToUse = 2;
+    else if (riskTier === 'critical') numFeaturesToUse = 1;
+
+    const featuresToUse = ALL_FEATURES.slice(0, numFeaturesToUse);
+    for (const feat of featuresToUse) {
+      const daysToEvent = [3, 10, 18, 25];
+      for (const d of daysToEvent) {
+        if (d > daysActive) continue;
+        if (riskTier === 'critical' && d < 14) continue;
+        eventsToInsert.push({
+          customerId: customer.id,
+          orgId: org.id,
+          eventType: 'feature_use',
+          source: 'web-app',
+          payload: { feature: feat },
+          occurredAt: new Date(endMs - d * 24 * 3600 * 1000 + Math.random() * 3600 * 1000),
+        });
+      }
+    }
+
+    // Support ticket events (to generate non-zero support_ticket_volume)
+    let ticketCount = 0;
+    if (riskTier === 'medium') ticketCount = 2;
+    else if (riskTier === 'high') ticketCount = 6;
+    else if (riskTier === 'critical') ticketCount = 10;
+
+    for (let t = 0; t < ticketCount; t++) {
+      const d = Math.floor(Math.random() * 28) + 1;
+      if (d > daysActive) continue;
+      eventsToInsert.push({
+        customerId: customer.id,
+        orgId: org.id,
+        eventType: 'support_ticket',
+        source: 'intercom',
+        payload: { title: `Ticket #${t} - Problem`, priority: t % 2 === 0 ? 'high' : 'standard' },
+        occurredAt: new Date(endMs - d * 24 * 3600 * 1000),
+      });
+    }
+
+    // Billing events (payment failed or billing change)
+    if (riskTier === 'high' && idx % 2 === 0) {
+      eventsToInsert.push({
+        customerId: customer.id,
+        orgId: org.id,
+        eventType: 'payment_failed',
+        source: 'stripe',
+        payload: { amountDue: 499.0, invoiceId: `inv-${idx}` },
+        occurredAt: new Date(endMs - 5 * 24 * 3600 * 1000),
+      });
+    } else if (riskTier === 'critical') {
+      eventsToInsert.push({
+        customerId: customer.id,
+        orgId: org.id,
+        eventType: 'payment_failed',
+        source: 'stripe',
+        payload: { amountDue: 2499.0, invoiceId: `inv-${idx}-1` },
+        occurredAt: new Date(endMs - 12 * 24 * 3600 * 1000),
+      });
+      eventsToInsert.push({
+        customerId: customer.id,
+        orgId: org.id,
+        eventType: 'payment_failed',
+        source: 'stripe',
+        payload: { amountDue: 2499.0, invoiceId: `inv-${idx}-2` },
+        occurredAt: new Date(endMs - 4 * 24 * 3600 * 1000),
+      });
+      eventsToInsert.push({
+        customerId: customer.id,
+        orgId: org.id,
+        eventType: 'billing_change',
+        source: 'stripe',
+        payload: { from: 'Enterprise', to: 'churned', mrr: '0.00' },
+        occurredAt: new Date(endMs - 2 * 24 * 3600 * 1000),
+      });
+    }
+
+    // CRM sync events (for NPS and renewal proximity)
+    let npsScore = 10;
+    let renewalDays = 300;
+    if (riskTier === 'medium') {
+      npsScore = 8;
+      renewalDays = 120;
+    } else if (riskTier === 'high') {
+      npsScore = 6;
+      renewalDays = 45;
+    } else if (riskTier === 'critical') {
+      npsScore = 3;
+      renewalDays = 10;
+    }
+
+    const renewalDate = new Date(Date.now() + renewalDays * 24 * 3600 * 1000).toISOString();
+    eventsToInsert.push({
+      customerId: customer.id,
+      orgId: org.id,
+      eventType: 'crm_sync',
+      source: 'hubspot',
+      payload: { nps_score: npsScore, renewal_date: renewalDate },
+      occurredAt: new Date(endMs - 1 * 24 * 3600 * 1000),
     });
 
     // Playbook/Task events (only for some customers based on tier to make heatmap look real)

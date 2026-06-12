@@ -35,6 +35,11 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
+  DISABLE_BACKGROUND_WORKERS: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true')
+    .default(false),
 });
 
 const parsed = envSchema.safeParse(process.env);

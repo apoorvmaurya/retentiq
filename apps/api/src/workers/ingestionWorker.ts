@@ -544,6 +544,13 @@ export function stopIngestionWorker() {
 export function startIngestionWorker() {
   stopIngestionWorker(); // Ensure clean state before starting
 
+  if (process.env.DISABLE_BACKGROUND_WORKERS === 'true') {
+    console.log(
+      '[IngestionWorker] Ingestion queue poller disabled via DISABLE_BACKGROUND_WORKERS env var.',
+    );
+    return;
+  }
+
   console.log(
     '[IngestionWorker] Starting background ingestion queue poller (polling every 10 seconds)...',
   );

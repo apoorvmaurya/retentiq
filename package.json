@@ -2,6 +2,7 @@
   "name": "retentiq-monorepo",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.20.0",
   "scripts": {
     "dev:web": "pnpm --filter @retentiq/web dev",
     "dev:api": "pnpm --filter @retentiq/api dev",
