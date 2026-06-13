@@ -11,9 +11,11 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 if (process.env.NODE_ENV === 'test') {
-  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:54322/postgres';
-  process.env.SUPABASE_URL = 'http://localhost:54321';
-  process.env.SUPABASE_SERVICE_ROLE_KEY = 'mock-test-service-role-key-for-testing-only';
+  process.env.DATABASE_URL =
+    process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:54322/postgres';
+  process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
+  process.env.SUPABASE_SERVICE_ROLE_KEY =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || 'mock-test-service-role-key-for-testing-only';
 }
 
 const envSchema = z.object({

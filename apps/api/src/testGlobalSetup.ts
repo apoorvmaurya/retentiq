@@ -12,7 +12,8 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 if (process.env.NODE_ENV === 'test') {
-  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:54322/postgres';
+  process.env.DATABASE_URL =
+    process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:54322/postgres';
 }
 
 export async function setup() {
