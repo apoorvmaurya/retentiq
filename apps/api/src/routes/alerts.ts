@@ -85,11 +85,12 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 router.put('/:id/resolve', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
+    const orgId = req.user!.org_id;
 
     const updated = await db
       .update(schema.alerts)
       .set({ acknowledged: true, resolvedAt: new Date() })
-      .where(eq(schema.alerts.id, id))
+      .where(and(eq(schema.alerts.id, id), eq(schema.alerts.orgId, orgId)))
       .returning();
 
     if (updated.length === 0) {

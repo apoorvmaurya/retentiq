@@ -369,4 +369,92 @@ describe('RetentIQ API Routes & Middleware Tests', () => {
       }
     });
   });
+
+  describe('Webhook Bypass & Security & Refresh Tests', () => {
+    it('should bypass auth for segment webhook in production', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        const response = await request(app).post('/api/integrations/segment/webhook').send({});
+        expect(response.status).not.toBe(401);
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+    });
+
+    it('should return 404 when trying to resolve an alert belonging to a different organization', async () => {
+      const anotherOrgId = 'fb4efd62-dcbe-41a9-b9de-ab5c79a0b000';
+      await db
+        .insert(schema.organizations)
+        .values({
+          id: anotherOrgId,
+          name: 'Another Org',
+          slug: 'another-org-slug',
+        })
+        .onConflictDoNothing();
+
+      const anotherCustomerId = 'fb4efd62-dcbe-41a9-b9de-ab5c79a0b111';
+      await db
+        .insert(schema.customers)
+        .values({
+          id: anotherCustomerId,
+          orgId: anotherOrgId,
+          name: 'Another Customer',
+          email: 'another@customer.com',
+          company: 'Another Company',
+          planTier: 'starter',
+        })
+        .onConflictDoNothing();
+
+      const alertId = 'fb4efd62-dcbe-41a9-b9de-ab5c79a0a444';
+      await db
+        .insert(schema.alerts)
+        .values({
+          id: alertId,
+          orgId: anotherOrgId,
+          customerId: anotherCustomerId,
+          scoreAtTrigger: 35,
+        })
+        .onConflictDoNothing();
+
+      mockGetUser.mockResolvedValueOnce({
+        data: { user: { id: TEST_USER_ID, email: 'test_confirmed_user@retentiq.com' } },
+        error: null,
+      });
+
+      const response = await request(app)
+        .put(`/api/alerts/${alertId}/resolve`)
+        .set('Authorization', 'Bearer valid-token')
+        .send({});
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should trigger bulk scoring via refresh endpoint', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ job_id: 'mock-bulk-job', total: 1 }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      try {
+        mockGetUser.mockResolvedValueOnce({
+          data: { user: { id: TEST_USER_ID, email: 'test_confirmed_user@retentiq.com' } },
+          error: null,
+        });
+
+        const response = await request(app)
+          .post('/api/health-scores/refresh')
+          .set('Authorization', 'Bearer valid-token')
+          .send({});
+
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('job_id', 'mock-bulk-job');
+        expect(response.body).toHaveProperty('customer_count', 1);
+        expect(mockFetch).toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+  });
 });

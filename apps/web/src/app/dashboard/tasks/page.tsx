@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Customer } from '@retentiq/shared';
 import {
   Square,
   Calendar,
@@ -29,12 +30,6 @@ interface Task {
   createdAt: string;
   customerName: string;
   customerCompany: string;
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  company: string;
 }
 
 export default function TasksPage() {
@@ -340,7 +335,7 @@ export default function TasksPage() {
                   <div className="flex items-center justify-end sm:border-l sm:border-slate-800/80 sm:pl-4">
                     <button
                       onClick={() => handleDeleteTask(task.id)}
-                      className="p-2 text-slate-550 hover:text-rose-400 hover:bg-rose-950/20 rounded-lg transition-all"
+                      className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 rounded-lg transition-all"
                       title="Delete Task"
                     >
                       <Trash2 className="w-4 h-4" />

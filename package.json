@@ -6,7 +6,7 @@
   "scripts": {
     "dev:web": "pnpm --filter @retentiq/web dev",
     "dev:api": "pnpm --filter @retentiq/api dev",
-    "dev:ai": "cd apps/ai-service && uvicorn main:app --reload",
+    "dev:ai": "uvicorn main:app --app-dir apps/ai-service --reload",
     "dev": "pnpm --filter @retentiq/web --filter @retentiq/api dev",
     "start:web": "pnpm --filter @retentiq/web start",
     "start:api": "pnpm --filter @retentiq/api start",
@@ -21,6 +21,7 @@
     "supabase:status": "npx supabase status",
     "lint": "eslint \"**/*.{ts,tsx}\" --quiet",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
+    "test:ai": "apps\\ai-service\\.venv\\Scripts\\python apps/ai-service/test_sklearn.py",
     "prepare": "node -e \"try { if (!process.env.CI && process.env.NODE_ENV !== 'production' && require('fs').existsSync('.git')) { require('child_process').execSync('husky', { stdio: 'inherit' }) } } catch (e) {}\""
   },
   "devDependencies": {

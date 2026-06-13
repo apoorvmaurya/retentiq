@@ -470,8 +470,8 @@ export async function runRoiAggregation(): Promise<void> {
       .select({
         orgId: schema.retentionActions.orgId,
         month: sql<string>`to_char(${schema.retentionActions.actionedAt}, 'YYYY-MM')`,
-        accountsSaved: sql<number>`count(distinct ${schema.retentionActions.customerId})::int`,
-        revenueSaved: sql<string>`coalesce(sum(${schema.retentionActions.revenueSaved}), 0)::text`,
+        accountsSaved: sql<number>`count(distinct case when ${schema.retentionActions.outcome} in ('success', 'completed', 'recovered') then ${schema.retentionActions.customerId} else null end)::int`,
+        revenueSaved: sql<string>`coalesce(sum(case when ${schema.retentionActions.outcome} in ('success', 'completed', 'recovered') then ${schema.retentionActions.revenueSaved} else 0 end), 0)::text`,
       })
       .from(schema.retentionActions)
       .groupBy(

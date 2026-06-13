@@ -385,7 +385,7 @@ export default function IntegrationsPage() {
                       <button
                         onClick={() => handleSyncNow(prov.id)}
                         disabled={actionLoading === `sync-${prov.id}`}
-                        className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white border border-slate-700 bg-slate-850 hover:bg-slate-800 text-[11px] font-bold tracking-wider transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white border border-slate-700 bg-slate-800 hover:bg-slate-700 text-[11px] font-bold tracking-wider transition-colors inline-flex items-center gap-1 cursor-pointer"
                       >
                         <RefreshCw
                           className={`w-3 h-3 ${actionLoading === `sync-${prov.id}` ? 'animate-spin' : ''}`}

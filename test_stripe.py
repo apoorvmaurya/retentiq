@@ -1,5 +1,6 @@
 import urllib.request
 import json
+import os
 
 payload = {
   "type": "customer.subscription.updated",
@@ -23,13 +24,15 @@ payload = {
   }
 }
 
+api_port = os.environ.get("API_PORT", "4000")
+url = f'http://localhost:{api_port}/api/integrations/stripe/webhook'
 req = urllib.request.Request(
-    'http://localhost:3001/api/integrations/stripe/webhook',
+    url,
     data=json.dumps(payload).encode('utf-8'),
     headers={'Content-Type': 'application/json'}
 )
 
-print("Sending mock Stripe webhook to localhost:3001...")
+print(f"Sending mock Stripe webhook to localhost:{api_port}...")
 try:
     with urllib.request.urlopen(req) as response:
         html = response.read()

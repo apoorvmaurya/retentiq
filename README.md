@@ -27,7 +27,7 @@
 
 ## 🔮 Overview
 
-RetentIQ is an enterprise-grade SaaS customer churn-intelligence and health-scoring platform. It empowers Customer Success (CS) and Account Management teams by predicting customer churn risks 30–60 days before they happen. The system combines a local **Scikit-Learn Machine Learning Classifier** (telemetry-based quantitative scoring) with **Llama-3.3 LLM Qualitative Analysis** (natural language risk factors and dynamic playbooks) to deliver highly actionable account recovery strategies.
+RetentIQ is an enterprise-grade SaaS customer churn-intelligence and health-scoring platform. It empowers Customer Success (CS) and Account Management teams by predicting customer churn risks 30–60 days before they happen. The system combines a local **LightGBM Machine Learning Classifier** with **SHAP explanations** (telemetry-based quantitative scoring grounded in model computation) and **Llama-3.3 LLM Qualitative Analysis** (natural language risk factors and dynamic playbooks) to deliver highly actionable account recovery strategies.
 
 RetentIQ is architected as a type-safe, high-performance monorepo:
 
@@ -63,7 +63,7 @@ graph TD
     %% Python AI Layer
     subgraph PyAI [AI & Machine Learning Service]
         FastAPI[FastAPI HTTP Server]
-        SkLearn[GradientBoostingClassifier sklearn]
+        LightGBM[LGBMClassifier & SHAP]
         GroqClient[Async Groq API Client]
         PyDBCompat[PostgresSupabaseCompatClient]
     end
@@ -90,7 +90,7 @@ graph TD
 
     FastAPI -->|Compute features via psycopg2| PyDBCompat
     PyDBCompat -->|Direct SQL queries| Postgres
-    FastAPI -->|Train model / local inference| SkLearn
+    FastAPI -->|Train model / local inference| LightGBM
     FastAPI -->|Enrich risk factors| GroqClient
 
     Postgres -->|3. Row level changes| RealtimeBroadcast
@@ -136,7 +136,7 @@ sequenceDiagram
         API->>DB: Upsert customers & events table
         API->>AI: POST /score/customer (Trigger rescore)
         AI->>DB: Query customer properties (psycopg2)
-        AI->>AI: Train GradientBoostingClassifier / Inference
+        AI->>AI: Train LGBMClassifier / Inference
         AI->>AI: Enrich risk factors with Groq API
         AI->>DB: Save calculations in health_scores table
         DB-->>App: Broadcast changes in real-time (Realtime WebSocket)
@@ -158,7 +158,7 @@ sequenceDiagram
 
 ### 1. Hybrid Churn Risk Predictive Model
 
-- **Quantitative Inference**: Evaluates customer behavioral telemetry using a locally compiled `GradientBoostingClassifier` trained on historical login frequency, feature adoption depth, billing trends, and support ticket parameters.
+- **Quantitative Inference**: Evaluates customer behavioral telemetry using a locally compiled LightGBM Classifier (`LGBMClassifier`) trained on historical login frequency, feature adoption depth, billing trends, and support ticket parameters, with feature attributions calculated using `SHAP` values.
 - **Qualitative Risk Synthesis**: Uses Groq LLM API integrations (Llama-3.3) to translate mathematical predictions into natural language risk explanations and actionable playbooks.
 
 ### 2. Asynchronous Ingestion & Database-backed Queue
@@ -294,7 +294,15 @@ Generate a local coverage report:
 pnpm --filter @retentiq/api test -- --coverage
 ```
 
-### 2. Performance Auditing (Lighthouse CI)
+### 2. AI Service Model Testing
+
+Run local Python scikit-learn and LightGBM model prediction/classification tests:
+
+```bash
+pnpm test:ai
+```
+
+### 3. Performance Auditing (Lighthouse CI)
 
 Run local Lighthouse assertion checks on built artifacts:
 

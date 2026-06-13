@@ -35,9 +35,9 @@ export default function PrivacyPolicyPage() {
       {/* Shared Navbar */}
       <Navbar />
 
-      <main className="relative pt-32 pb-20 px-4 md:px-8 max-w-6xl mx-auto z-10">
+      <main className="relative pt-24 pb-16 sm:pt-32 sm:pb-20 px-4 md:px-8 max-w-6xl mx-auto z-10">
         {/* Header */}
-        <div className="space-y-4 mb-16 text-center md:text-left">
+        <div className="space-y-4 mb-8 sm:mb-12 md:mb-16 text-center md:text-left">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -90,7 +90,7 @@ export default function PrivacyPolicyPage() {
           </aside>
 
           {/* Right Document Text Container */}
-          <div className="lg:col-span-9 bg-white/[0.015] border border-white/[0.06] rounded-2xl p-6 md:p-10 backdrop-blur-md shadow-2xl space-y-10 text-slate-350 leading-relaxed font-sans text-xs md:text-sm">
+          <div className="lg:col-span-9 bg-white/[0.015] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-10 backdrop-blur-md shadow-2xl space-y-10 text-slate-400 leading-relaxed font-sans text-xs md:text-sm">
             {/* Section 1 */}
             <section id="introduction" className="space-y-4 scroll-mt-32">
               <h2 className="font-serif text-xl md:text-2xl text-white font-normal">
@@ -161,10 +161,10 @@ export default function PrivacyPolicyPage() {
               <ul className="list-disc pl-5 space-y-2">
                 <li>
                   <strong className="text-white">Local ML Classifier:</strong> We train a local
-                  Scikit-Learn `GradientBoostingClassifier` on the mathematical distribution of your
-                  telemetry properties (e.g. usage trends, support volumes, renewal proximity) to
-                  predict numerical churn probabilities. This training runs entirely within isolated
-                  compute boundaries.
+                  LightGBM `LGBMClassifier` and compute SHAP (Shapley Additive exPlanations) values
+                  on the mathematical distribution of your telemetry properties (e.g. usage trends,
+                  support volumes, renewal proximity) to predict numerical churn probabilities. This
+                  training runs entirely within isolated compute boundaries.
                 </li>
                 <li>
                   <strong className="text-white">Groq AI Enrichment:</strong> To enrich numerical

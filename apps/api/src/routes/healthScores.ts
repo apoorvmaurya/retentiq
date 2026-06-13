@@ -53,13 +53,6 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 import { validateBody } from '../middleware/validate.js';
 import { z } from 'zod';
 
-import { computeAndTriggerRescore } from '../lib/featureEngine.js';
-
-/**
- * POST /api/health-scores/refresh
- * Trigger a re-score for ALL customers in the org by batch-calling the AI service.
- * Returns a job_id and customer_count.
- */
 router.post(
   '/refresh',
   validateBody(z.object({}).strict().optional()),
@@ -72,21 +65,29 @@ router.post(
         .from(schema.customers)
         .where(eq(schema.customers.orgId, orgId));
 
-      const jobId = `refresh-${Date.now()}`;
+      if (customersList.length === 0) {
+        res.json({ job_id: `empty-${Date.now()}`, customer_count: 0 });
+        return;
+      }
 
-      // Fire-and-forget: batch score all customers asynchronously using the real feature engine
-      (async () => {
-        for (const customer of customersList) {
-          try {
-            await computeAndTriggerRescore(customer.id, orgId);
-          } catch (e) {
-            console.error(`[refresh] Failed to score customer ${customer.id}:`, e);
-          }
-        }
-        console.log(`[refresh] Job ${jobId} completed for ${customersList.length} customers.`);
-      })();
+      const customersPayload = customersList.map((c) => ({
+        customer_id: c.id,
+        org_id: orgId,
+      }));
 
-      res.json({ job_id: jobId, customer_count: customersList.length });
+      const response = await fetch(`${aiServiceUrl}/score/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customers: customersPayload }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI service bulk score returned status ${response.status}`);
+      }
+
+      const result = (await response.json()) as { job_id: string; total: number };
+
+      res.json({ job_id: result.job_id, customer_count: result.total });
     } catch (err) {
       next(err);
     }

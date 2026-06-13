@@ -113,15 +113,67 @@ export default function Navbar() {
     }, 100);
   };
 
-  const navLinks = [
-    { id: 'about', label: 'About', isSection: true },
-    { id: 'how-it-works', label: 'Workflow', isSection: true },
-    { id: 'features', label: 'Capabilities', isSection: true },
-    { id: 'pricing', label: 'Pricing', isSection: true },
-    { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
-  ];
+  const getNavLinks = () => {
+    if (pathname === '/privacy') {
+      return [
+        { id: 'home', label: 'Home', isSection: false, href: '/' },
+        { id: 'terms', label: 'Terms', isSection: false, href: '/terms' },
+        { id: 'security', label: 'Security', isSection: false, href: '/security' },
+        { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
+      ];
+    }
+    if (pathname === '/terms') {
+      return [
+        { id: 'home', label: 'Home', isSection: false, href: '/' },
+        { id: 'privacy', label: 'Privacy', isSection: false, href: '/privacy' },
+        { id: 'security', label: 'Security', isSection: false, href: '/security' },
+        { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
+      ];
+    }
+    if (pathname === '/security') {
+      return [
+        { id: 'home', label: 'Home', isSection: false, href: '/' },
+        { id: 'privacy', label: 'Privacy', isSection: false, href: '/privacy' },
+        { id: 'terms', label: 'Terms', isSection: false, href: '/terms' },
+        { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
+      ];
+    }
+    if (pathname.startsWith('/blog')) {
+      return [
+        { id: 'home', label: 'Home', isSection: false, href: '/' },
+        { id: 'about', label: 'About', isSection: false, href: '/#about' },
+        { id: 'how-it-works', label: 'Workflow', isSection: false, href: '/#how-it-works' },
+        { id: 'features', label: 'Capabilities', isSection: false, href: '/#features' },
+        { id: 'pricing', label: 'Pricing', isSection: false, href: '/#pricing' },
+      ];
+    }
+    if (pathname !== '/') {
+      return [
+        { id: 'home', label: 'Home', isSection: false, href: '/' },
+        { id: 'about', label: 'About', isSection: false, href: '/#about' },
+        { id: 'how-it-works', label: 'Workflow', isSection: false, href: '/#how-it-works' },
+        { id: 'features', label: 'Capabilities', isSection: false, href: '/#features' },
+        { id: 'pricing', label: 'Pricing', isSection: false, href: '/#pricing' },
+        { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
+      ];
+    }
+    return [
+      { id: 'about', label: 'About', isSection: true },
+      { id: 'how-it-works', label: 'Workflow', isSection: true },
+      { id: 'features', label: 'Capabilities', isSection: true },
+      { id: 'pricing', label: 'Pricing', isSection: true },
+      { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
+    ];
+  };
 
-  const handleLinkClick = (link: (typeof navLinks)[0]) => {
+  const navLinks = getNavLinks();
+
+  const handleLinkClick = (link: {
+    id: string;
+    label: string;
+    isSection: boolean;
+    href?: string;
+  }) => {
     if (!link.isSection && link.href) {
       setMobileMenuOpen(false);
       router.push(link.href);
@@ -130,9 +182,12 @@ export default function Navbar() {
     scrollToSection(link.id);
   };
 
-  const isLinkActive = (link: (typeof navLinks)[0]) => {
-    if (link.id === 'blog') {
-      return pathname.startsWith('/blog');
+  const isLinkActive = (link: { id: string; label: string; isSection: boolean; href?: string }) => {
+    if (link.href) {
+      if (link.href === '/') {
+        return pathname === '/';
+      }
+      return pathname.startsWith(link.href);
     }
     return pathname === '/' && activeSection === link.id;
   };
@@ -212,7 +267,9 @@ export default function Navbar() {
             // Pass motion value as CSS custom property to prevent hydration mismatches
             ...({ '--navbar-max-width': navMaxWidth } as any),
           }}
-          className="mx-auto backdrop-blur-xl flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 border gap-4 overflow-hidden relative w-full max-w-full sm:max-w-[var(--navbar-max-width)]"
+          className={`mx-auto backdrop-blur-xl flex px-4 sm:px-6 py-3 border overflow-hidden relative w-[calc(100%-2rem)] sm:w-full sm:max-w-[var(--navbar-max-width)] sm:flex-row sm:items-center sm:justify-between sm:gap-4 transition-all duration-300 ${
+            mobileMenuOpen ? 'flex-col gap-4' : 'flex-row items-center justify-between gap-0'
+          }`}
         >
           {/* Custom border glow effect */}
           <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4FF]/30 to-transparent pointer-events-none" />
@@ -223,7 +280,11 @@ export default function Navbar() {
             <motion.div
               whileTap={{ scale: 0.96 }}
               onClick={() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                if (pathname !== '/') {
+                  router.push('/');
+                } else {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
                 setMobileMenuOpen(false);
               }}
               className="flex items-center gap-2 cursor-pointer group"
@@ -254,6 +315,7 @@ export default function Navbar() {
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.04] transition-all flex items-center justify-center relative focus:outline-none"
+                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 <motion.div
                   animate={{ rotate: mobileMenuOpen ? 90 : 0 }}

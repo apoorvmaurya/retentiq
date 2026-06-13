@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Customer } from '@retentiq/shared';
 import {
   Zap,
   Plus,
@@ -32,12 +33,6 @@ interface Playbook {
   steps: PlaybookStep[];
   isActive: boolean;
   createdAt: string;
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  company: string;
 }
 
 export default function PlaybooksPage() {
@@ -421,7 +416,7 @@ export default function PlaybooksPage() {
                         <button
                           type="button"
                           onClick={() => handleRemoveStepField(idx)}
-                          className="p-1 text-slate-550 hover:text-rose-450"
+                          className="p-1 text-slate-400 hover:text-rose-500"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

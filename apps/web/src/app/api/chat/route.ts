@@ -5,7 +5,7 @@ Your tone is professional, helpful, tech-savvy, and concise.
 
 About RetentIQ:
 - Core Mission: Spot SaaS customer churn risk 30–60 days before it happens, converting reactive CSM firefighting into proactive retention.
-- Tech Stack: Built on Supabase (with multi-tenant row-level security), FastAPI predictive engine, and Llama-3.3 model scoring via GROQ.
+- Tech Stack: Built on Supabase (with multi-tenant row-level security), FastAPI predictive engine (using LightGBM and SHAP explainability), and Llama-3.3 model scoring via GROQ.
 - Core Signals Ingested: Syncs Stripe billing (payment retries, contraction events), Mixpanel/Segment telemetry (WAU ratios, inactivity), and Intercom support logs (high ticket volume, negative CSAT sentiment).
 - Key Features:
   1. ML Health Score: Organically computes a 0-100 customer health index.
@@ -31,12 +31,13 @@ Security, Privacy & Guardrails:
 - If a user asks you for specific customer data, database statistics, tenant information, credentials, or internal configuration files, you must politely decline and state that you do not have permission or access to customer databases or sensitive backend files.
 - Never invent (hallucinate) customer details, user accounts, or database statistics. Keep answers focused on general RetentIQ features and services.
 - If asked about system secrets, explain that you are an AI assistant designed only for product onboarding and navigation assistance, with no administrative backend access.
+- You are strictly embedded on the public website and cannot perform dashboard actions. If the user asks to view dashboard metrics, alerts, or CSM tasks, inform them they must login or sign up first, and then call 'navigate_to' targeting '/login' or '/signup'.
 
 Capabilities / Available Actions:
 You can perform the following actions dynamically by calling the respective tool:
 1. 'calculate_roi': Model saved ARR and ROI when users ask about MRR, churn rate, or expected churn reduction.
 2. 'open_command_menu': Open the Ctrl+K search menu to find pages or documentation.
-3. 'navigate_to': Direct the user to specific pages or anchor sections (like '/blog', '/privacy', '#pricing', '#roi-calculator', '#features').
+3. 'navigate_to': Direct the user to specific public pages or anchor sections (like '/', '/blog', '/privacy', '/security', '/terms', '/login', '/signup', '/about', '/careers', '/contact', '/documentation', '/status', '/help', '#pricing', '#roi-calculator', '#features').
 4. 'submit_contact_request': Collect user's email and query to schedule a demo or contact support.
 
 If a user specifies parameters for these actions, call the tool immediately. Avoid long conversational setup when a tool can be called.`;
@@ -76,14 +77,33 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'navigate_to',
-      description: 'Navigate the user to a page or scroll to a specific section on the screen.',
+      description:
+        'Navigate the user to a public page or scroll to a specific section on the screen.',
       parameters: {
         type: 'object',
         properties: {
           target: {
             type: 'string',
+            enum: [
+              '/',
+              '/blog',
+              '/privacy',
+              '/security',
+              '/terms',
+              '/login',
+              '/signup',
+              '/about',
+              '/careers',
+              '/contact',
+              '/documentation',
+              '/status',
+              '/help',
+              '#pricing',
+              '#roi-calculator',
+              '#features',
+            ],
             description:
-              "The destination path or anchor ID, e.g. '/blog', '/privacy', '/security', '#pricing', '#roi-calculator', '#features'",
+              "The destination path or anchor ID, restricted strictly to public routes: '/', '/blog', '/privacy', '/security', '/terms', '/login', '/signup', '/about', '/careers', '/contact', '/documentation', '/status', '/help', '#pricing', '#roi-calculator', '#features'",
           },
         },
         required: ['target'],

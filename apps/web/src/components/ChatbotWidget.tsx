@@ -160,7 +160,7 @@ export default function ChatbotWidget() {
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(!isOpen)}
           className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#00D4FF] via-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-[#0A0F1E] flex items-center justify-center shadow-[0_8px_30px_rgba(0,212,255,0.4)] cursor-pointer relative"
-          aria-label="Toggle AI support chat"
+          aria-label={isOpen ? 'Close support chat' : '1, Toggle AI support chat'}
         >
           <AnimatePresence mode="wait">
             {isOpen ? (

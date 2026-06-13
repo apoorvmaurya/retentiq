@@ -33,7 +33,9 @@ export default function Footer() {
             {/* Social Icons */}
             <div className="flex items-center justify-center lg:justify-start gap-3 w-full">
               <a
-                href="#"
+                href="https://twitter.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Twitter"
                 className="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:border-cyan-500/30 hover:bg-white/[0.05] flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200"
               >
@@ -42,7 +44,9 @@ export default function Footer() {
                 </svg>
               </a>
               <a
-                href="#"
+                href="https://github.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="GitHub"
                 className="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:border-cyan-500/30 hover:bg-white/[0.05] flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200"
               >
@@ -55,7 +59,9 @@ export default function Footer() {
                 </svg>
               </a>
               <a
-                href="#"
+                href="https://linkedin.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="LinkedIn"
                 className="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:border-cyan-500/30 hover:bg-white/[0.05] flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200"
               >
@@ -106,9 +112,9 @@ export default function Footer() {
           <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-8 md:gap-10">
             {/* Column 1: Product */}
             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Product
-              </h4>
+              </h2>
               <ul className="space-y-2.5 text-xs text-[#8B95AB] flex flex-col items-center lg:items-start">
                 <li>
                   <Link
@@ -147,75 +153,75 @@ export default function Footer() {
 
             {/* Column 2: Company */}
             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Company
-              </h4>
+              </h2>
               <ul className="space-y-2.5 text-xs text-[#8B95AB] flex flex-col items-center lg:items-start">
                 <li>
-                  <a
-                    href="#"
+                  <Link
+                    href="/about"
                     className="hover:text-white hover:translate-x-1.5 transition-all duration-300 ease-out inline-block"
                   >
                     About Us
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="#"
+                  <Link
+                    href="/careers"
                     className="hover:text-white hover:translate-x-1.5 transition-all duration-300 ease-out inline-block"
                   >
                     Careers
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="#"
+                  <Link
+                    href="/contact"
                     className="hover:text-white hover:translate-x-1.5 transition-all duration-300 ease-out inline-block"
                   >
                     Contact
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
 
             {/* Column 3: Resources */}
             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Resources
-              </h4>
+              </h2>
               <ul className="space-y-2.5 text-xs text-[#8B95AB] flex flex-col items-center lg:items-start">
                 <li>
-                  <a
-                    href="#"
+                  <Link
+                    href="/documentation"
                     className="hover:text-white hover:translate-x-1.5 transition-all duration-300 ease-out inline-block"
                   >
                     Documentation
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="#"
+                  <Link
+                    href="/status"
                     className="hover:text-white hover:translate-x-1.5 transition-all duration-300 ease-out inline-block"
                   >
                     Status Logs
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="#"
+                  <Link
+                    href="/help"
                     className="hover:text-white hover:translate-x-1.5 transition-all duration-300 ease-out inline-block"
                   >
                     Help Center
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
 
             {/* Column 4: Legal */}
             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Legal
-              </h4>
+              </h2>
               <ul className="space-y-2.5 text-xs text-[#8B95AB] flex flex-col items-center lg:items-start">
                 <li>
                   <Link

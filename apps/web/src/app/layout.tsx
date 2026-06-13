@@ -5,7 +5,6 @@ import './globals.css';
 import { ToastProvider } from '@/components/Toast';
 import CommandMenu from '@/components/CommandMenu';
 import CookieBanner from '@/components/CookieBanner';
-import ChatbotWidget from '@/components/ChatbotWidget';
 
 const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
@@ -107,7 +106,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ToastProvider>
         <CommandMenu />
         <CookieBanner />
-        <ChatbotWidget />
       </body>
     </html>
   );

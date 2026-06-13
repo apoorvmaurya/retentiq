@@ -40,12 +40,7 @@ export async function verifySupabaseJWT(
   next: NextFunction,
 ): Promise<void> {
   // Bypass JWT verification for public webhooks
-  if (
-    req.path.includes('/stripe/webhook') ||
-    req.path.includes('/intercom/webhook') ||
-    req.originalUrl.includes('/stripe/webhook') ||
-    req.originalUrl.includes('/intercom/webhook')
-  ) {
+  if (req.path.includes('/webhook') || req.originalUrl.includes('/webhook')) {
     next();
     return;
   }

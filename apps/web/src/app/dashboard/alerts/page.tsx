@@ -295,7 +295,7 @@ export default function AlertsPage() {
                               )}
                               {alert.deliveryChannels?.email || alert.delivery_channels?.email ? (
                                 <span title="Email sent">
-                                  <Mail className="w-3.5 h-3.5 text-indigo-450" />
+                                  <Mail className="w-3.5 h-3.5 text-indigo-400" />
                                 </span>
                               ) : (
                                 <Mail className="w-3.5 h-3.5 text-white/[0.08]" />

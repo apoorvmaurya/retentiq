@@ -1,6 +1,7 @@
 import urllib.request
 import json
 import time
+import os
 
 def send_intercom_event(topic, details):
     payload = {
@@ -10,8 +11,10 @@ def send_intercom_event(topic, details):
         }
     }
     
+    api_port = os.environ.get("API_PORT", "4000")
+    url = f'http://localhost:{api_port}/api/integrations/intercom/webhook'
     req = urllib.request.Request(
-        'http://localhost:3001/api/integrations/intercom/webhook',
+        url,
         data=json.dumps(payload).encode('utf-8'),
         headers={'Content-Type': 'application/json'}
     )

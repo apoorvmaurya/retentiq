@@ -1,7 +1,8 @@
 import os
 import pickle
 import numpy as np
-from sklearn.ensemble import GradientBoostingClassifier
+from typing import List
+from lightgbm import LGBMClassifier
 
 class ChurnClassifier:
     def __init__(self, model_path="churn_model.pkl"):
@@ -9,6 +10,21 @@ class ChurnClassifier:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.model_path = os.path.join(current_dir, model_path)
         self.model = None
+        self.explainer = None
+        self.feature_names = [
+            "login_frequency_30d",
+            "login_frequency_14d",
+            "login_frequency_7d",
+            "feature_adoption_score",
+            "usage_trend",
+            "days_since_last_login",
+            "support_ticket_volume",
+            "support_sentiment_score",
+            "billing_events",
+            "onboarding_time",
+            "nps_csat_score",
+            "renewal_proximity"
+        ]
 
     def train_model(self, supabase_client=None):
         """Trains a GradientBoostingClassifier on customer features."""
@@ -113,10 +129,18 @@ class ChurnClassifier:
         X = np.array(X)
         y = np.array(y)
         
-        # Fit classifier using GradientBoostingClassifier
-        self.model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
+        # Fit classifier using LightGBM
+        self.model = LGBMClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42, verbose=-1)
         self.model.fit(X, y)
         
+        # Initialize and cache SHAP explainer
+        try:
+            import shap
+            self.explainer = shap.TreeExplainer(self.model)
+            print("[SHAP] Explainer cached successfully during model training.")
+        except Exception as se:
+            print(f"[SHAP] Failed to initialize explainer during training: {se}")
+            
         # Save model to disk
         try:
             with open(self.model_path, "wb") as f:
@@ -132,6 +156,13 @@ class ChurnClassifier:
                 with open(self.model_path, "rb") as f:
                     self.model = pickle.load(f)
                 print(f"[sklearn] Pre-trained churn model loaded successfully from {self.model_path}.")
+                # Initialize and cache SHAP explainer
+                try:
+                    import shap
+                    self.explainer = shap.TreeExplainer(self.model)
+                    print("[SHAP] Explainer cached successfully during model loading.")
+                except Exception as se:
+                    print(f"[SHAP] Failed to initialize explainer during model loading: {se}")
                 return True
             except Exception as e:
                 print(f"[sklearn] Failed to load model: {e}")
@@ -169,4 +200,139 @@ class ChurnClassifier:
         except Exception as e:
             print(f"[sklearn] Prediction failed: {e}. Using default fallback.")
             return 0.50
+
+    def get_shap_values(self, features_dict: dict) -> dict:
+        """Computes SHAP values for the given customer features."""
+        if not self.model:
+            if not self.load_model():
+                self.train_model()
+                
+        # If explainer is still not initialized, try initializing it
+        if not self.explainer:
+            try:
+                import shap
+                self.explainer = shap.TreeExplainer(self.model)
+            except Exception as se:
+                print(f"[SHAP] Failed to initialize explainer in get_shap_values: {se}")
+                return {name: 0.0 for name in self.feature_names}
+                
+        try:
+            # Prepare features as numpy array in the exact correct order
+            feature_values = np.array([[
+                float(features_dict.get("login_frequency_30d", 0.0)),
+                float(features_dict.get("login_frequency_14d", 0.0)),
+                float(features_dict.get("login_frequency_7d", 0.0)),
+                float(features_dict.get("feature_adoption_score", 0.0)),
+                float(features_dict.get("usage_trend", 0.0)),
+                float(features_dict.get("days_since_last_login", 0)),
+                float(features_dict.get("support_ticket_volume", 0)),
+                float(features_dict.get("support_sentiment_score", 0.0)),
+                float(features_dict.get("billing_events", 0)),
+                float(features_dict.get("onboarding_time", 0.0)),
+                float(features_dict.get("nps_csat_score", 0.0)),
+                float(features_dict.get("renewal_proximity", 0.0))
+            ]])
+            
+            # Run explainer
+            shap_vals = self.explainer.shap_values(feature_values)
+            
+            # Handle list/array structure of shap_vals returned by TreeExplainer for LightGBM
+            if isinstance(shap_vals, list):
+                customer_shap = shap_vals[1][0]
+            elif len(shap_vals.shape) == 3:
+                customer_shap = shap_vals[0, :, 1]
+            elif len(shap_vals.shape) == 2:
+                customer_shap = shap_vals[0]
+            else:
+                customer_shap = shap_vals
+                
+            return {name: float(val) for name, val in zip(self.feature_names, customer_shap)}
+        except Exception as e:
+            print(f"[SHAP] Error computing SHAP values: {e}")
+            return {name: 0.0 for name in self.feature_names}
+
+    def predict_churn_batch(self, features_list: List[dict]) -> List[float]:
+        """Predicts churn probabilities for a list of feature dicts in a batch."""
+        if not self.model:
+            if not self.load_model():
+                self.train_model()
+        if not features_list:
+            return []
+            
+        X = np.array([[
+            float(f.get("login_frequency_30d", 0.0)),
+            float(f.get("login_frequency_14d", 0.0)),
+            float(f.get("login_frequency_7d", 0.0)),
+            float(f.get("feature_adoption_score", 0.0)),
+            float(f.get("usage_trend", 0.0)),
+            float(f.get("days_since_last_login", 0)),
+            float(f.get("support_ticket_volume", 0)),
+            float(f.get("support_sentiment_score", 0.0)),
+            float(f.get("billing_events", 0)),
+            float(f.get("onboarding_time", 0.0)),
+            float(f.get("nps_csat_score", 0.0)),
+            float(f.get("renewal_proximity", 0.0))
+        ] for f in features_list])
+        
+        try:
+            probs = self.model.predict_proba(X)[:, 1]
+            return [float(max(0.0, min(1.0, p))) for p in probs]
+        except Exception as e:
+            print(f"[sklearn] Batch prediction failed: {e}. Using default fallbacks.")
+            return [0.50] * len(features_list)
+
+    def get_shap_values_batch(self, features_list: List[dict]) -> List[dict]:
+        """Computes SHAP values for a batch of customer features using TreeExplainer batch inference."""
+        if not self.model:
+            if not self.load_model():
+                self.train_model()
+        if not features_list:
+            return []
+            
+        if not self.explainer:
+            try:
+                import shap
+                self.explainer = shap.TreeExplainer(self.model)
+            except Exception as se:
+                print(f"[SHAP] Failed to initialize explainer in get_shap_values_batch: {se}")
+                return [{name: 0.0 for name in self.feature_names} for _ in features_list]
+                
+        try:
+            X = np.array([[
+                float(f.get("login_frequency_30d", 0.0)),
+                float(f.get("login_frequency_14d", 0.0)),
+                float(f.get("login_frequency_7d", 0.0)),
+                float(f.get("feature_adoption_score", 0.0)),
+                float(f.get("usage_trend", 0.0)),
+                float(f.get("days_since_last_login", 0)),
+                float(f.get("support_ticket_volume", 0)),
+                float(f.get("support_sentiment_score", 0.0)),
+                float(f.get("billing_events", 0)),
+                float(f.get("onboarding_time", 0.0)),
+                float(f.get("nps_csat_score", 0.0)),
+                float(f.get("renewal_proximity", 0.0))
+            ] for f in features_list])
+            
+            # TreeExplainer is batch-native
+            shap_vals = self.explainer.shap_values(X)
+            
+            if isinstance(shap_vals, list):
+                customer_shaps = shap_vals[1]
+            elif len(shap_vals.shape) == 3:
+                customer_shaps = shap_vals[:, :, 1]
+            elif len(shap_vals.shape) == 2:
+                customer_shaps = shap_vals
+            else:
+                customer_shaps = shap_vals
+                
+            batch_results = []
+            for i in range(len(features_list)):
+                sample_shap = customer_shaps[i]
+                sample_dict = {name: float(val) for name, val in zip(self.feature_names, sample_shap)}
+                batch_results.append(sample_dict)
+                
+            return batch_results
+        except Exception as e:
+            print(f"[SHAP] Error computing batch SHAP values: {e}")
+            return [{name: 0.0 for name in self.feature_names} for _ in features_list]
 

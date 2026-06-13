@@ -72,7 +72,10 @@ router.get('/retention-roi', async (req: Request, res: Response, next: NextFunct
       (a) => a.outcome === 'success' || a.outcome === 'completed' || a.outcome === 'recovered',
     );
     const accountsSaved = successfulActions.length;
-    const totalRevenueSaved = actions.reduce((sum, a) => sum + parseFloat(a.revenueSaved), 0);
+    const totalRevenueSaved = successfulActions.reduce(
+      (sum, a) => sum + parseFloat(a.revenueSaved),
+      0,
+    );
     const actionsThisMonth = actions.filter((a) => {
       const d = new Date(a.actionedAt!);
       return d >= startOfMonth;

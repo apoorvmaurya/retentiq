@@ -417,7 +417,7 @@ export default function CustomerDetailPage() {
               </div>
 
               <div className="text-[10px] text-slate-400 border-t border-white/[0.06] pt-4 flex items-center gap-1.5 mt-4">
-                <Activity className="w-3.5 h-3.5 text-slate-450" />
+                <Activity className="w-3.5 h-3.5 text-slate-400" />
                 <span>Tracking events sync logs across integrations channels.</span>
               </div>
             </div>

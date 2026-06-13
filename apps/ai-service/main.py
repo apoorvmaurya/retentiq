@@ -621,6 +621,96 @@ def get_fallback_with_sklearn(features: FeatureDict, score: int, prob: float) ->
         recommended_action=ra,
         confidence=0.85
     )
+LEXICON = {
+    "login_frequency_30d": "login_frequency_30d: Average daily logins in 30d (lower frequency = higher risk)",
+    "login_frequency_14d": "login_frequency_14d: Average daily logins in 14d (lower frequency = higher risk)",
+    "login_frequency_7d": "login_frequency_7d: Average daily logins in 7d (lower frequency = higher risk)",
+    "feature_adoption_score": "feature_adoption_score: Ratio of features adopted (lower adoption = higher risk)",
+    "usage_trend": "usage_trend: Week-over-week login activity ratio change (negative trend = higher risk)",
+    "days_since_last_login": "days_since_last_login: Days inactive (more days inactive = higher risk)",
+    "support_ticket_volume": "support_ticket_volume: Support tickets opened in 30d (high volume = higher risk)",
+    "support_sentiment_score": "support_sentiment_score: Average support chat sentiment from -1.0 [negative] to +1.0 [positive] (negative sentiment = higher risk)",
+    "billing_events": "billing_events: Invoice failures, payment issues, or downgrade requests (more events = higher risk)",
+    "onboarding_time": "onboarding_time: Days to complete initial setup (slower setup = higher risk)",
+    "nps_csat_score": "nps_csat_score: Latest survey score out of 10 (score < 6 = higher risk)",
+    "renewal_proximity": "renewal_proximity: Days until contract renewal (less days to renewal = higher risk/urgency)"
+}
+
+def build_dynamic_lexicon(relevant_features: List[str]) -> str:
+    lines = []
+    for feat in relevant_features:
+        if feat in LEXICON:
+            lines.append(f"- {LEXICON[feat]}")
+    return "\n".join(lines)
+
+def get_relevant_features(shap_values: dict, top_n: int = 4) -> List[str]:
+    # Sort absolute SHAP values descending to find the top drivers (both positive and negative)
+    sorted_feats = sorted(shap_values.items(), key=lambda x: abs(x[1]), reverse=True)
+    return [feat for feat, val in sorted_feats[:top_n]]
+
+def get_system_analyst_prompt(relevant_features: List[str]) -> str:
+    lexicon_str = build_dynamic_lexicon(relevant_features)
+    return (
+        "You are an expert customer health analyst AI for a B2B SaaS platform. "
+        "Your task is to analyze customer telemetry features, their calculated health score, and the mathematically computed SHAP values "
+        "(where positive values indicate features that INCREASE churn risk, and negative values indicate features that DECREASE risk / improve health). "
+        f"\n\nTelemetry Features Lexicon (Filtered to impact drivers):\n{lexicon_str}\n\n"
+        "Instructions:\n"
+        "1. Use calculated_health_score and calculated_churn_probability as the base fields.\n"
+        "2. Provide a 'risk_tier' ('low', 'medium', 'high', 'critical') matching the score severity.\n"
+        "3. The 'top_risk_factors' array MUST contain exactly 3 plain-English strings describing the primary risk factors. "
+        "These risk factors must correspond to the features in 'top_mathematical_risk_drivers' (greatest contribution to risk) "
+        "translated into natural, professional language. Do not reference raw feature names like 'login_frequency_30d'; "
+        "instead, translate them (e.g., 'Low login frequency in the past month').\n"
+        "4. Detail a concrete, highly actionable 'recommended_action' for a Customer Success Manager targeting the highest risk factors.\n"
+        "5. Return ONLY a valid JSON object matching this schema. No markdown fences, preamble, or conversational fluff.\n"
+        "Fields: health_score (int 0-100), churn_probability (float 0.0-1.0), risk_tier (low|medium|high|critical), "
+        "top_risk_factors (array of 3 strings), recommended_action (string), confidence (float 0.0-1.0)."
+    )
+
+def get_explanation_system_prompt(relevant_features: List[str]) -> str:
+    lexicon_str = build_dynamic_lexicon(relevant_features)
+    return (
+        "You are an empathetic, highly professional Customer Success Manager (CSM) Assistant. "
+        "Your job is to translate complex machine learning model predictions and SHAP feature attributions "
+        "into clear, plain-English risk diagnoses for CSMs. Avoid statistical jargon like 'SHAP', 'LGBM', or 'coefficients'. "
+        "Refer to feature attributions as the primary drivers computed by our predictive model. "
+        f"\n\nTelemetry Features Lexicon (Filtered to impact drivers):\n{lexicon_str}"
+    )
+
+def get_playbook_system_prompt(relevant_features: List[str]) -> str:
+    lexicon_str = build_dynamic_lexicon(relevant_features)
+    return (
+        "You are a strategic Customer Success Operations Specialist. "
+        "Your job is to generate concrete, highly actionable account retention playbook steps "
+        "that directly address the highest risk factors identified by the machine learning model's SHAP values. "
+        f"\n\nTelemetry Features Lexicon (Filtered to impact drivers):\n{lexicon_str}"
+    )
+
+def prepare_score_prompt_content(features: FeatureDict, score: int, prob: float, shap_values: dict) -> tuple[dict, str, List[str]]:
+    # Sort features by SHAP value descending (highest risk contribution first)
+    shap_items = sorted(shap_values.items(), key=lambda item: item[1], reverse=True)
+    
+    # List of risk factors with positive impact
+    positive_shap_drivers = [feat for feat, val in shap_items if val > 0]
+    # Fallback if no positive values (e.g. perfect health), get the top contributors anyway
+    if not positive_shap_drivers:
+        positive_shap_drivers = [feat for feat, val in shap_items][:3]
+        
+    shap_details = [f"- {feat}: {val:+.4f}" for feat, val in shap_items]
+    shap_details_str = "\n".join(shap_details)
+    
+    # Get top 4 relevant features for dynamic lexicon
+    relevant_features = get_relevant_features(shap_values, top_n=4)
+    
+    prompt_content = {
+        "features": features.model_dump() if hasattr(features, "model_dump") else features,
+        "calculated_health_score": score,
+        "calculated_churn_probability": prob,
+        "shap_values_sorted": shap_details,
+        "top_mathematical_risk_drivers": positive_shap_drivers[:3]
+    }
+    return prompt_content, shap_details_str, relevant_features
 
 @app.post("/score/customer")
 async def score_customer(request: ScoreCustomerRequest):
@@ -682,11 +772,8 @@ async def score_customer(request: ScoreCustomerRequest):
         }
 
     try:
-        prompt_content = {
-            "features": features.model_dump(),
-            "calculated_health_score": score,
-            "calculated_churn_probability": prob
-        }
+        shap_values = classifier.get_shap_values(features.model_dump())
+        prompt_content, shap_details_str, relevant_features = prepare_score_prompt_content(features, score, prob, shap_values)
         
         response = await call_groq_with_retry(
             groq_client.chat.completions.create,
@@ -694,7 +781,7 @@ async def score_customer(request: ScoreCustomerRequest):
             messages=[
                 {
                     "role": "system", 
-                    "content": "You are a customer health analyst AI for a SaaS platform. Analyze these signals and return ONLY valid JSON matching the schema. Use the calculated_health_score and calculated_churn_probability as the base fields, providing qualitative risk factors, risk tier, and recommended actions. Fields: health_score (int 0-100), churn_probability (float 0.0-1.0), risk_tier (low|medium|high|critical), top_risk_factors (array of 3 strings), recommended_action (string), confidence (float 0.0-1.0)."
+                    "content": get_system_analyst_prompt(relevant_features)
                 },
                 {"role": "user", "content": json.dumps(prompt_content)}
             ],
@@ -766,35 +853,80 @@ async def score_customer(request: ScoreCustomerRequest):
         }
 
 # Async task for bulk scoring
-async def score_single_customer_for_bulk(customer_id: str, org_id: str) -> bool:
-    try:
-        features_dict = compute_features(customer_id, org_id, supabase_client)
-        features = FeatureDict(**features_dict)
+# Async task for batch scoring
+async def score_customer_batch_job(batch_customers: List[CustomerJobItem]) -> List[bool]:
+    """Process a batch of customers concurrently for features & Groq, but batching the ML/SHAP predictions."""
+    if not supabase_client:
+        return [False] * len(batch_customers)
         
-        score, prob = get_numerical_metrics(features)
-
+    # 1. Fetch features concurrently in a thread pool
+    async def fetch_feat(c: CustomerJobItem):
+        try:
+            # compute_features resolves UUIDs internally and queries Supabase
+            feat_dict = await asyncio.to_thread(compute_features, c.customer_id, c.org_id, supabase_client)
+            return c, feat_dict
+        except Exception as ex:
+            logger.error(f"Failed to fetch features for customer {c.customer_id}: {ex}")
+            return c, None
+            
+    feat_tasks = [fetch_feat(c) for c in batch_customers]
+    feat_results = await asyncio.gather(*feat_tasks)
+    
+    # Filter out customers where feature fetching succeeded
+    valid_samples = []
+    failed_customers = []
+    
+    for c, feat_dict in feat_results:
+        if feat_dict:
+            valid_samples.append((c, feat_dict))
+        else:
+            failed_customers.append(c)
+            
+    if not valid_samples:
+        return [False if c in failed_customers else True for c in batch_customers]
+        
+    # 2. Extract features list for batch ML and SHAP computations
+    features_list = [fd for c, fd in valid_samples]
+    
+    try:
+        # Run ML predictions and SHAP computations in batch-native mode inside a thread pool
+        # to avoid blocking the main event loop
+        probs = await asyncio.to_thread(classifier.predict_churn_batch, features_list)
+        shaps_list = await asyncio.to_thread(classifier.get_shap_values_batch, features_list)
+    except Exception as ml_err:
+        logger.error(f"Batch ML/SHAP prediction failed, falling back to sequential default: {ml_err}")
+        probs = [0.50] * len(features_list)
+        shaps_list = [{name: 0.0 for name in classifier.feature_names} for _ in features_list]
+        
+    # 3. For each valid customer, do the scoring, weights, Groq, and DB inserts concurrently
+    async def process_single_valid(idx: int, c: CustomerJobItem, feat_dict: dict):
+        prob = probs[idx]
+        score = int((1.0 - prob) * 100)
+        score = max(0, min(100, score))
+        features = FeatureDict(**feat_dict)
+        shap_values = shaps_list[idx]
+        
         # Query custom weights if available in Supabase
         weights = None
         if supabase_client:
             try:
-                db_org_id = resolve_uuid(org_id, "org")
-                weights_res = supabase_client.table("score_weights").select("*").eq("org_id", db_org_id).execute()
+                db_org_id = resolve_uuid(c.org_id, "org")
+                weights_res = await asyncio.to_thread(
+                    supabase_client.table("score_weights").select("*").eq("org_id", db_org_id).execute
+                )
                 if weights_res.data:
                     weights = weights_res.data[0]
             except Exception as w_err:
-                logger.warning(f"Failed to query score weights for org {org_id}: {w_err}")
+                logger.warning(f"Failed to query score weights for org {c.org_id}: {w_err}")
 
         score = apply_score_weights(score, features, weights)
         prob = round((100.0 - score) / 100.0, 2)
-
         
-        # Check if Groq client is offline
         if not groq_client:
-            logger.info("Using sklearn fallback for score_single_customer_for_bulk (Groq client offline).")
             validated = get_fallback_with_sklearn(features, score, prob)
             await save_health_score_and_usage(
-                customer_id=customer_id,
-                org_id=org_id,
+                customer_id=c.customer_id,
+                org_id=c.org_id,
                 validated=validated,
                 total_tokens=0,
                 cost=0.0,
@@ -803,11 +935,7 @@ async def score_single_customer_for_bulk(customer_id: str, org_id: str) -> bool:
             return True
             
         try:
-            prompt_content = {
-                "features": features.model_dump(),
-                "calculated_health_score": score,
-                "calculated_churn_probability": prob
-            }
+            prompt_content, shap_details_str, relevant_features = prepare_score_prompt_content(features, score, prob, shap_values)
             
             response = await call_groq_with_retry(
                 groq_client.chat.completions.create,
@@ -815,7 +943,7 @@ async def score_single_customer_for_bulk(customer_id: str, org_id: str) -> bool:
                 messages=[
                     {
                         "role": "system", 
-                        "content": "You are a customer health analyst AI for a SaaS platform. Analyze these signals and return ONLY valid JSON matching the schema. Use the calculated_health_score and calculated_churn_probability as the base fields, providing qualitative risk factors, risk tier, and recommended actions. Fields: health_score (int 0-100), churn_probability (float 0.0-1.0), risk_tier (low|medium|high|critical), top_risk_factors (array of 3 strings), recommended_action (string), confidence (float 0.0-1.0)."
+                        "content": get_system_analyst_prompt(relevant_features)
                     },
                     {"role": "user", "content": json.dumps(prompt_content)}
                 ],
@@ -833,10 +961,9 @@ async def score_single_customer_for_bulk(customer_id: str, org_id: str) -> bool:
             total_tokens = prompt_tokens + completion_tokens
             cost = (prompt_tokens * 0.59 / 1000000) + (completion_tokens * 0.79 / 1000000)
             
-            # Save health score and groq usage
             await save_health_score_and_usage(
-                customer_id=customer_id,
-                org_id=org_id,
+                customer_id=c.customer_id,
+                org_id=c.org_id,
                 validated=validated,
                 total_tokens=total_tokens,
                 cost=cost,
@@ -844,20 +971,36 @@ async def score_single_customer_for_bulk(customer_id: str, org_id: str) -> bool:
             )
             return True
         except Exception as groq_err:
-            logger.error(f"Groq bulk scoring failed for customer {customer_id}, falling back: {groq_err}")
+            logger.error(f"Groq bulk scoring failed for customer {c.customer_id}: {groq_err}")
             validated = get_fallback_with_sklearn(features, score, prob)
             await save_health_score_and_usage(
-                customer_id=customer_id,
-                org_id=org_id,
+                customer_id=c.customer_id,
+                org_id=c.org_id,
                 validated=validated,
                 total_tokens=0,
                 cost=0.0,
                 endpoint="/score/bulk-fallback"
             )
             return True
-    except Exception as e:
-        logger.error(f"Bulk scoring customer {customer_id} failed completely: {e}")
-        return False
+
+    process_tasks = [
+        process_single_valid(idx, c, feat_dict) 
+        for idx, (c, feat_dict) in enumerate(valid_samples)
+    ]
+    process_results = await asyncio.gather(*process_tasks, return_exceptions=True)
+    
+    # Map back results to final boolean list matching batch_customers order
+    results_map = {}
+    valid_idx = 0
+    for c, feat_dict in feat_results:
+        if feat_dict:
+            res = process_results[valid_idx]
+            results_map[c.customer_id] = True if res is True else False
+            valid_idx += 1
+        else:
+            results_map[c.customer_id] = False
+            
+    return [results_map[c.customer_id] for c in batch_customers]
 
 async def run_bulk_scoring_job(job_id: str, customers: List[CustomerJobItem]):
     total = len(customers)
@@ -867,8 +1010,7 @@ async def run_bulk_scoring_job(job_id: str, customers: List[CustomerJobItem]):
     batch_size = 8
     for i in range(0, total, batch_size):
         batch = customers[i:i+batch_size]
-        tasks = [score_single_customer_for_bulk(c.customer_id, c.org_id) for c in batch]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = await score_customer_batch_job(batch)
         
         for r in results:
             if r is True:
@@ -941,6 +1083,24 @@ async def explain_customer(customer_id: str):
         org_id = score_data[0].get("org_id")
         risk_tier = score_data[0].get("risk_tier", "medium")
         
+        # Compute fresh features and SHAP values
+        from feature_engine import compute_features
+        features_dict = {}
+        relevant_features = []
+        try:
+            features_dict = compute_features(customer_id, org_id, supabase_client)
+            shap_values = classifier.get_shap_values(features_dict)
+            relevant_features = get_relevant_features(shap_values, top_n=4)
+            shap_items = sorted(shap_values.items(), key=lambda item: item[1], reverse=True)
+            shap_details = []
+            for feat, val in shap_items:
+                direction = "increased risk" if val > 0 else "decreased risk"
+                shap_details.append(f"- {feat}: {val:+.4f} ({direction})")
+            shap_details_str = "\n".join(shap_details)
+        except Exception as fe_err:
+            logger.error(f"Failed to compute features/SHAP in explain_customer: {fe_err}")
+            shap_details_str = "SHAP values unavailable"
+
         # Check if Groq client is offline
         if not groq_client:
             logger.info("Using rule-based fallback for explain_customer (Groq client offline).")
@@ -949,13 +1109,18 @@ async def explain_customer(customer_id: str):
             return {"explanation": explanation}
             
         prompt = f"""
-        Latest Health Score: {latest_score}
-        Top Risk Factors: {json.dumps(risk_factors)}
-        Recommended Action: {recommended_action}
+        Analyze this customer health telemetry:
+        - Health Score: {latest_score}/100
+        - Raw Telemetry Features: {json.dumps(features_dict)}
+        - Mathematically Computed Risk Drivers (SHAP values, sorted from highest risk contributor):
+        {shap_details_str}
         
-        Write a 2-3 sentence plain-English explanation of why this customer is at risk. 
-        It must be written for a Customer Success Manager, in an empathetic tone, with no technical jargon.
-        Return ONLY the explanation as a single string response. Do not enclose it in JSON or markdown.
+        - Top Qualitative Factors: {json.dumps(risk_factors)}
+        - Suggested Intervention: {recommended_action}
+        
+        Write a 2-3 sentence plain-English explanation of why the predictive model flagged this customer. 
+        Focus strictly on the features with the highest positive SHAP values (risk drivers). Relate their behavior (e.g. missed payments, low feature adoption, inactivity) to the health score and renewal proximity.
+        It must be written in an empathetic, professional tone for a Customer Success Manager to read. Do not include any technical jargon, markdown, or JSON wrapper. Return ONLY the explanation string.
         """
         
         try:
@@ -963,7 +1128,10 @@ async def explain_customer(customer_id: str):
                 groq_client.chat.completions.create,
                 model=settings.MODEL_ID,
                 messages=[
-                    {"role": "system", "content": "You are an empathetic Customer Success assistant for a SaaS platform. Generate plain-English explanations of customer risk for CSMs. Avoid jargon."},
+                    {
+                        "role": "system", 
+                        "content": get_explanation_system_prompt(relevant_features)
+                    },
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.5,
@@ -1045,9 +1213,22 @@ async def generate_playbook(customer_id: str):
         recommended_action = score_data[0].get("recommended_action")
         org_id = score_data[0].get("org_id")
         
-        # Compute fresh features
+        # Compute fresh features and SHAP values
         features = compute_features(customer_id, org_id, supabase_client)
-        
+        relevant_features = []
+        try:
+            shap_values = classifier.get_shap_values(features)
+            relevant_features = get_relevant_features(shap_values, top_n=4)
+            shap_items = sorted(shap_values.items(), key=lambda item: item[1], reverse=True)
+            shap_details = []
+            for feat, val in shap_items:
+                direction = "increased risk" if val > 0 else "decreased risk"
+                shap_details.append(f"- {feat}: {val:+.4f} ({direction})")
+            shap_details_str = "\n".join(shap_details)
+        except Exception as se_err:
+            logger.error(f"Failed to compute SHAP values in playbook: {se_err}")
+            shap_details_str = "SHAP values unavailable"
+            
         # Check if Groq client is offline
         if not groq_client:
             logger.info("Using rule-based fallback for generate_playbook (Groq client offline).")
@@ -1071,17 +1252,21 @@ async def generate_playbook(customer_id: str):
             return PlaybookResponse(playbook=playbook_steps)
             
         prompt = f"""
-        Customer Health Score: {latest_score}
-        Recommended Action: {recommended_action}
-        Customer Features: {json.dumps(features)}
+        Customer Telemetry:
+        - Current Health Score: {latest_score}/100
+        - Latest Features: {json.dumps(features)}
+        - Model Risk Drivers (SHAP contributions):
+        {shap_details_str}
+        - Initial Recommendation: {recommended_action}
         
-        Produce exactly 3 specific, numbered action steps for the CSM to retain this customer.
+        Produce exactly 3 numbered, sequential action steps for the CSM to retain this account.
+        The action steps MUST target the highest risk telemetry features (features with the highest positive SHAP values).
         Each step must contain:
         1. "step": integer (1, 2, or 3)
-        2. "headline": bold action verb headline (5 words max)
-        3. "detail": 1 sentence detail.
+        2. "headline": bold action verb headline (5 words max, e.g. "Schedule Renewal Alignment")
+        3. "detail": 1 sentence detailing exactly how to execute this step based on the customer's specific usage metrics.
         
-        Output MUST be a valid JSON array of objects with keys 'step', 'headline', 'detail'. No preamble or postamble.
+        Output MUST be a valid JSON array of objects with keys 'step', 'headline', 'detail'. No preamble, postamble, or formatting fences.
         Example output format:
         [
           {{"step": 1, "headline": "Schedule CSM Check-in", "detail": "Reach out to the primary contact to set up a 15-minute call."}},
@@ -1094,7 +1279,10 @@ async def generate_playbook(customer_id: str):
                 groq_client.chat.completions.create,
                 model=settings.MODEL_ID,
                 messages=[
-                    {"role": "system", "content": "You are a customer success operations AI. Return ONLY a valid JSON array of 3 objects representing playbook steps. No conversational filler."},
+                    {
+                        "role": "system", 
+                        "content": get_playbook_system_prompt(relevant_features)
+                    },
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.2,
@@ -1208,107 +1396,26 @@ async def predict_churn(request: ChurnAnalysisRequest):
     }
     features = FeatureDict(**features_dict)
     
-    score, prob = get_numerical_metrics(features)
-
-    # Query custom weights if available in Supabase
-    weights = None
-    if supabase_client:
-        try:
-            db_org_id = resolve_uuid(org_id, "org")
-            weights_res = supabase_client.table("score_weights").select("*").eq("org_id", db_org_id).execute()
-            if weights_res.data:
-                weights = weights_res.data[0]
-        except Exception as w_err:
-            logger.warning(f"Failed to query score weights for org {org_id}: {w_err}")
-
-    score = apply_score_weights(score, features, weights)
-    prob = round((100.0 - score) / 100.0, 2)
+    score_req = ScoreCustomerRequest(
+        customer_id=request.customer_id,
+        org_id=org_id,
+        features=features
+    )
     
-    # Check if Groq client is configured. If not, use fallback
-    if not groq_client:
-        logger.info("Using sklearn fallback model for legacy predict_churn (Groq client offline).")
-        validated = get_fallback_with_sklearn(features, score, prob)
-        return ChurnAnalysisResponse(
-            customer_id=request.customer_id,
-            score=validated.health_score,
-            churn_probability=validated.churn_probability,
-            risk_tier=validated.risk_tier,
-            top_risk_factors=validated.top_risk_factors,
-            recommended_action=validated.recommended_action,
-            confidence=validated.confidence,
-            tokens_used=0,
-            model="scikit-learn-local",
-            cost_usd=0.0
-        )
+    res_dict = await score_customer(score_req)
     
-    try:
-        prompt_content = {
-            "features": features.model_dump(),
-            "calculated_health_score": score,
-            "calculated_churn_probability": prob
-        }
-        
-        response = await call_groq_with_retry(
-            groq_client.chat.completions.create,
-            model=settings.MODEL_ID,
-            messages=[
-                {
-                    "role": "system", 
-                    "content": "You are a customer health analyst AI for a SaaS platform. Analyze these signals and return ONLY valid JSON matching the schema. Use the calculated_health_score and calculated_churn_probability as the base fields, providing qualitative risk factors, risk tier, and recommended actions. Fields: health_score (int 0-100), churn_probability (float 0.0-1.0), risk_tier (low|medium|high|critical), top_risk_factors (array of 3 strings), recommended_action (string), confidence (float 0.0-1.0)."
-                },
-                {"role": "user", "content": json.dumps(prompt_content)}
-            ],
-            temperature=0.1,
-            max_tokens=400
-        )
-        raw_content = response.choices[0].message.content
-        data = clean_and_parse_json(raw_content)
-        data["health_score"] = score
-        data["churn_probability"] = prob
-        validated = clamp_health_data(data)
-        
-        prompt_tokens = getattr(response.usage, 'prompt_tokens', 0)
-        completion_tokens = getattr(response.usage, 'completion_tokens', 0)
-        total_tokens = prompt_tokens + completion_tokens
-        cost = (prompt_tokens * 0.59 / 1000000) + (completion_tokens * 0.79 / 1000000)
-        
-        # Save health score and usage metrics using standard helper
-        await save_health_score_and_usage(
-            customer_id=request.customer_id,
-            org_id=org_id,
-            validated=validated,
-            total_tokens=total_tokens,
-            cost=cost,
-            endpoint="/api/ai/predict-churn"
-        )
-        
-        return ChurnAnalysisResponse(
-            customer_id=request.customer_id,
-            score=validated.health_score,
-            churn_probability=validated.churn_probability,
-            risk_tier=validated.risk_tier,
-            top_risk_factors=validated.top_risk_factors,
-            recommended_action=validated.recommended_action,
-            confidence=validated.confidence,
-            tokens_used=total_tokens,
-            model=settings.MODEL_ID,
-            cost_usd=round(cost, 6)
-        )
-    except Exception as e:
-        logger.error(f"Error in predict_churn: {e}. Using fallback.")
-        validated = get_fallback_with_sklearn(features, score, prob)
-        return ChurnAnalysisResponse(
-            customer_id=request.customer_id,
-            score=validated.health_score,
-            churn_probability=validated.churn_probability,
-            risk_tier=validated.risk_tier,
-            top_risk_factors=validated.top_risk_factors,
-            recommended_action=validated.recommended_action,
-            confidence=validated.confidence,
-            tokens_used=0,
-            model="scikit-learn-local",
-            cost_usd=0.0
-        )
+    return ChurnAnalysisResponse(
+        customer_id=request.customer_id,
+        score=res_dict["health_score"],
+        churn_probability=res_dict["churn_probability"],
+        risk_tier=res_dict["risk_tier"],
+        top_risk_factors=res_dict["top_risk_factors"],
+        recommended_action=res_dict["recommended_action"],
+        confidence=res_dict["confidence"],
+        tokens_used=res_dict.get("tokens_used", 0),
+        model=res_dict.get("model", "unknown"),
+        cost_usd=res_dict.get("cost_usd", 0.0)
+    )
 
 @app.post("/model/retrain")
 def retrain_model():
