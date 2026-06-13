@@ -1,0 +1,41 @@
+# Dependencies (installed in Docker)
+node_modules
+**/node_modules
+
+# Build outputs
+**/dist
+**/.next
+
+# Version control
+.git
+.github
+
+# Python virtual environments
+.venv
+**/.venv
+__pycache__
+**/__pycache__
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment files (secrets passed via docker-compose)
+.env
+.env.*
+!.env.local.example
+
+# Misc
+.lighthouseci
+.vercel
+.husky
+.agents
+*.md
+*.log
+pg_logfile
+supabase
+*.py
+*.csv
+skills-lock.json

@@ -11,6 +11,10 @@ WORKDIR /app
 RUN groupadd -g 10001 appuser && \
     useradd -u 10001 -g appuser -m -s /bin/bash appuser
 
+# Install system dependencies required by LightGBM (OpenMP)
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
 COPY requirements.txt .
 RUN pip install --upgrade --root-user-action=ignore pip && \

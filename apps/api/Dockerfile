@@ -37,16 +37,16 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=4000
 
 # Copy the self-contained pruned application
 COPY --from=builder /app/pruned ./
 
 USER node
 
-EXPOSE 3001
+EXPOSE 4000
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
-  CMD node -e "fetch('http://localhost:' + (process.env.PORT || 3001) + '/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+  CMD node -e "fetch('http://localhost:' + (process.env.PORT || 4000) + '/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 CMD ["node", "dist/server.js"]

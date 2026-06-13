@@ -1,16 +1,14 @@
-version: '3.8'
-
 services:
   ai-service:
+    env_file: .env.local
     build:
       context: ./apps/ai-service
       dockerfile: Dockerfile
     ports:
       - '8000:8000'
     environment:
+      - PORT=8000
       - SUPABASE_URL=http://host.docker.internal:54321
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-your-supabase-service-role-key}
-      - GROQ_API_KEY=${GROQ_API_KEY:-your-groq-api-key}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     healthcheck:
@@ -27,16 +25,16 @@ services:
       start_period: 5s
 
   api:
+    env_file: .env.local
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     ports:
-      - '4000:3001'
+      - '4000:4000'
     environment:
+      - API_PORT=4000
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - SUPABASE_URL=http://host.docker.internal:54321
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-your-supabase-service-role-key}
-      - GROQ_API_KEY=${GROQ_API_KEY:-your-groq-api-key}
       - NEXT_PUBLIC_APP_URL=http://localhost:3000
     extra_hosts:
       - 'host.docker.internal:host-gateway'
@@ -49,7 +47,7 @@ services:
           'CMD',
           'node',
           '-e',
-          "fetch('http://localhost:3001/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))",
+          "fetch('http://localhost:4000/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))",
         ]
       interval: 10s
       timeout: 5s
@@ -57,15 +55,17 @@ services:
       start_period: 5s
 
   web:
+    env_file: .env.local
     build:
       context: .
       dockerfile: apps/web/Dockerfile
     ports:
       - '3000:3000'
     environment:
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
       - AI_SERVICE_URL=http://ai-service:8000
       - NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-your-supabase-anon-key}
     depends_on:
       api:
         condition: service_healthy

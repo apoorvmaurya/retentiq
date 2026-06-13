@@ -11,6 +11,10 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../../.env.local') });
 
+if (process.env.NODE_ENV === 'test') {
+  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:54322/postgres';
+}
+
 export async function setup() {
   console.log('[Test Setup] Initializing test database...');
   const connectionString =

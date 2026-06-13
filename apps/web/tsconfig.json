@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@retentiq/shared": ["../../packages/shared/src/index.ts"],
+      "@retentiq/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": [

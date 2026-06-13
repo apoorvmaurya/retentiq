@@ -228,15 +228,8 @@ importers:
       tsx:
         specifier: ^4.19.2
         version: 4.22.4
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
 
-  packages/shared:
-    devDependencies:
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
+  packages/shared: {}
 
 packages:
   '@alloc/quick-lru@5.2.0':
