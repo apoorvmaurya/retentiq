@@ -38,6 +38,7 @@ pg_logfile
 .supabase/
 supabase/.temp/
 .lhci/
+.lighthouseci/
 coverage/
 
 # Environment configurations (Keep examples and templates committed)
