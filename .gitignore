@@ -37,6 +37,7 @@ pip-delete-this-directory.txt
 pg_logfile
 .supabase/
 supabase/.temp/
+supabase/.branches/
 .lhci/
 .lighthouseci/
 coverage/
