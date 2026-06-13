@@ -48,7 +48,9 @@
       "postcss": "^8.5.15"
     },
     "onlyBuiltDependencies": [
-      "esbuild"
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
     ]
   }
 }
