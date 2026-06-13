@@ -3,9 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request,
   });
 
   const supabase = createServerClient(
@@ -16,24 +14,33 @@ export async function proxy(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+            request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );
+          if (headers) {
+            Object.entries(headers).forEach(([key, value]) => {
+              response.headers.set(key, value as string);
+            });
+          }
         },
       },
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    user = authUser;
+  } catch (error) {
+    console.error('Supabase auth check in proxy middleware failed:', error);
+  }
 
   const isDashboardRoute = request.nextUrl.pathname.startsWith('/dashboard');
   const isOnboardingRoute = request.nextUrl.pathname.startsWith('/onboarding');

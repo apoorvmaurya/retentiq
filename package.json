@@ -14,6 +14,11 @@
     "build": "pnpm --filter @retentiq/shared build && pnpm --filter @retentiq/db build && pnpm --filter @retentiq/api build && pnpm --filter @retentiq/web build",
     "vercel-build": "pnpm --filter @retentiq/shared build && pnpm --filter @retentiq/db build && pnpm --filter @retentiq/api build",
     "seed": "pnpm --filter @retentiq/db seed",
+    "db:generate": "pnpm --filter @retentiq/db db:generate",
+    "db:push": "pnpm --filter @retentiq/db db:push",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:status": "npx supabase status",
     "lint": "eslint \"**/*.{ts,tsx}\" --quiet",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
     "prepare": "node -e \"try { if (!process.env.CI && process.env.NODE_ENV !== 'production' && require('fs').existsSync('.git')) { require('child_process').execSync('husky', { stdio: 'inherit' }) } } catch (e) {}\""
@@ -35,5 +40,11 @@
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "^0.28.1",
+      "postcss": "^8.5.15"
+    }
   }
 }
