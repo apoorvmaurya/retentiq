@@ -35,7 +35,7 @@ export async function setup() {
     if (schemaExists) {
       console.log('[Test Setup] Schema already exists, skipping migrations.');
     } else {
-      console.log('[Test Setup] Initializing auth schema and uid mock...');
+      console.log('[Test Setup] Initializing auth schema, roles, and uid mock...');
       await sql`CREATE SCHEMA IF NOT EXISTS auth;`;
       await sql`
         CREATE OR REPLACE FUNCTION auth.uid()
@@ -43,6 +43,21 @@ export async function setup() {
         LANGUAGE sql
         AS $$
           SELECT NULL::uuid;
+        $$;
+      `;
+      await sql`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
+            CREATE ROLE authenticated;
+          END IF;
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
+            CREATE ROLE anon;
+          END IF;
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
+            CREATE ROLE service_role;
+          END IF;
+        END
         $$;
       `;
 
