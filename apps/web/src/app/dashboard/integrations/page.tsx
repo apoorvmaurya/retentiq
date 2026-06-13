@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Slack } from '@/components/icons/Slack';
 import {
-  Slack,
   CreditCard,
   Layers,
   Activity,

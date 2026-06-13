@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Slack, Mail, Settings, Clock, RefreshCw, Bell } from 'lucide-react';
+import { Slack } from '@/components/icons/Slack';
+import { Mail, Settings, Clock, RefreshCw, Bell } from 'lucide-react';
 import { fetchFromApi } from '@/lib/api';
 import { timeAgo } from '@/lib/dateUtils';
 

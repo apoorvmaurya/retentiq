@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FloatingInput } from '@/components/FloatingInput';
 import { createClient } from '@/lib/supabase/client';
-import { Brain, Chrome, AlertCircle } from 'lucide-react';
+import { Chrome } from '@/components/icons/Chrome';
+import { Brain, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
 

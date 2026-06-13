@@ -10,13 +10,13 @@ import {
   animate,
   useMotionValueEvent,
 } from 'framer-motion';
+import { Slack } from '@/components/icons/Slack';
 import {
   ArrowRight,
   Check,
   Activity,
   Brain,
   MessageSquare,
-  Slack,
   Mail,
   Layers,
   ArrowUpRight,
