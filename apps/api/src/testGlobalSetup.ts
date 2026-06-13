@@ -35,6 +35,17 @@ export async function setup() {
     if (schemaExists) {
       console.log('[Test Setup] Schema already exists, skipping migrations.');
     } else {
+      console.log('[Test Setup] Initializing auth schema and uid mock...');
+      await sql`CREATE SCHEMA IF NOT EXISTS auth;`;
+      await sql`
+        CREATE OR REPLACE FUNCTION auth.uid()
+        RETURNS uuid
+        LANGUAGE sql
+        AS $$
+          SELECT NULL::uuid;
+        $$;
+      `;
+
       const migrationsDir = path.resolve(__dirname, '../../../supabase/migrations');
       console.log(`[Test Setup] Loading migrations from: ${migrationsDir}`);
 
