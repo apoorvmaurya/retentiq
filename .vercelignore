@@ -1,20 +1,20 @@
 # API and AI Backend
-apps/api
-apps/ai-service
+/apps/api
+/apps/ai-service
 
 # Databases and Docker
-supabase
-docker-compose.yml
-pg_logfile
+/supabase
+/docker-compose.yml
+/pg_logfile
 
 # Local agents, docs, and IDE files
-.agents
-.idea
-.vscode
-.lhci
-.lighthouseci
+/.agents
+/.idea
+/.vscode
+/.lhci
+/.lighthouseci
 
 # Local scripts and test assets
-*.py
+/*.py
 /test_connect.js
-*.csv
+/*.csv
