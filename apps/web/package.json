@@ -6,7 +6,7 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "postbuild": "node copy-static.js",
-    "start": "node --env-file=.env.local .next/standalone/apps/web/server.js",
+    "start": "node -e \"const fs = require('fs'); const { spawnSync } = require('child_process'); const args = fs.existsSync('.env.local') ? ['--env-file=.env.local'] : []; process.exit(spawnSync('node', [...args, '.next/standalone/apps/web/server.js'], { stdio: 'inherit' }).status ?? 0);\"",
     "lint": "next lint"
   },
   "dependencies": {
