@@ -26,7 +26,7 @@ class ChurnClassifier:
             "renewal_proximity"
         ]
 
-    def train_model(self, supabase_client=None):
+    def train_model(self, supabase_client=None, force=False):
         """Trains a GradientBoostingClassifier on customer features."""
         X = []
         y = []
@@ -80,7 +80,7 @@ class ChurnClassifier:
 
         if not real_data_loaded:
             # Fall back to loading pre-trained baseline model if it exists
-            if self.load_model():
+            if not force and self.load_model():
                 print("[sklearn] Loading baseline model. Retraining skipped due to insufficient real customer data.")
                 return
             

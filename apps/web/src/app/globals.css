@@ -140,7 +140,7 @@ html {
   color: #0A0F1E;
   font-weight: 700;
   font-size: 12px;
-  border-radius: 8px;
+  border-radius: 9999px;
   transition: all 0.25s ease;
   box-shadow: 0 4px 14px rgba(0, 212, 255, 0.2);
   cursor: pointer;
@@ -167,7 +167,7 @@ html {
   color: #F8F6F0;
   font-weight: 700;
   font-size: 12px;
-  border-radius: 8px;
+  border-radius: 9999px;
   transition: all 0.25s ease;
   cursor: pointer;
 }

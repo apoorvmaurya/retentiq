@@ -6,6 +6,13 @@ import { Brain, Menu, X, ArrowRight, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
+interface NavLink {
+  id: string;
+  label: string;
+  isSection: boolean;
+  href?: string;
+}
+
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
@@ -24,7 +31,7 @@ export default function Navbar() {
   // Map scroll position (0px -> 150px) to layout styles for a gradual, organic transition
   const wrapperPaddingX = useTransform(smoothScrollY, [0, 150], ['0px', '24px']);
   const navMt = useTransform(smoothScrollY, [0, 150], ['0px', '16px']);
-  const navRadius = useTransform(smoothScrollY, [0, 150], ['0px', '32px']);
+  const navRadius = useTransform(smoothScrollY, [0, 150], ['0px', '9999px']);
 
   const bgStyle = useTransform(
     smoothScrollY,
@@ -35,7 +42,7 @@ export default function Navbar() {
   const borderStyle = useTransform(
     smoothScrollY,
     [0, 150],
-    ['rgba(255, 255, 255, 0.04)', 'rgba(255, 255, 255, 0.08)'],
+    ['rgba(255, 255, 255, 0.02)', 'rgba(255, 255, 255, 0.08)'],
   );
 
   const shadowStyle = useTransform(
@@ -46,6 +53,7 @@ export default function Navbar() {
 
   const scrollProgress = useTransform(smoothScrollY, [0, 150], [0, 1]);
   const navMaxWidth = useTransform(scrollProgress, (val) => `calc(100% - (100% - 896px) * ${val})`);
+  const navWidth = useTransform(smoothScrollY, [0, 150], ['100%', 'calc(100% - 2rem)']);
 
   // Track active section on scroll deterministically using viewport boundary tracking
   useEffect(() => {
@@ -113,13 +121,13 @@ export default function Navbar() {
     }, 100);
   };
 
-  const getNavLinks = () => {
+  const getNavLinks = (): NavLink[] => {
+    // 1. Legal Pages
     if (pathname === '/privacy') {
       return [
         { id: 'home', label: 'Home', isSection: false, href: '/' },
         { id: 'terms', label: 'Terms', isSection: false, href: '/terms' },
         { id: 'security', label: 'Security', isSection: false, href: '/security' },
-        { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
       ];
     }
     if (pathname === '/terms') {
@@ -127,7 +135,6 @@ export default function Navbar() {
         { id: 'home', label: 'Home', isSection: false, href: '/' },
         { id: 'privacy', label: 'Privacy', isSection: false, href: '/privacy' },
         { id: 'security', label: 'Security', isSection: false, href: '/security' },
-        { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
       ];
     }
     if (pathname === '/security') {
@@ -135,54 +142,48 @@ export default function Navbar() {
         { id: 'home', label: 'Home', isSection: false, href: '/' },
         { id: 'privacy', label: 'Privacy', isSection: false, href: '/privacy' },
         { id: 'terms', label: 'Terms', isSection: false, href: '/terms' },
-        { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
       ];
     }
-    if (pathname.startsWith('/blog')) {
+
+    // 2. Company Pages
+    const companyPages = ['/about', '/careers', '/contact'];
+    if (companyPages.includes(pathname)) {
       return [
         { id: 'home', label: 'Home', isSection: false, href: '/' },
-        { id: 'about', label: 'About', isSection: false, href: '/#about' },
-        { id: 'how-it-works', label: 'Workflow', isSection: false, href: '/#how-it-works' },
-        { id: 'features', label: 'Capabilities', isSection: false, href: '/#features' },
-        { id: 'pricing', label: 'Pricing', isSection: false, href: '/#pricing' },
+        { id: 'about-us', label: 'About Us', isSection: false, href: '/about' },
+        { id: 'careers', label: 'Careers', isSection: false, href: '/careers' },
+        { id: 'contact', label: 'Contact', isSection: false, href: '/contact' },
       ];
     }
+
+    // 3. Resource Pages (including Blog details / archives)
+    const resourcePages = ['/documentation', '/status', '/help'];
+    if (resourcePages.includes(pathname) || pathname.startsWith('/blog')) {
+      return [
+        { id: 'home', label: 'Home', isSection: false, href: '/' },
+        { id: 'documentation', label: 'Documentation', isSection: false, href: '/documentation' },
+        { id: 'help', label: 'Help Center', isSection: false, href: '/help' },
+        { id: 'status', label: 'Status Logs', isSection: false, href: '/status' },
+      ];
+    }
+
+    // 4. Fallback for sub-pages or dashboard if they render this navbar
     if (pathname !== '/') {
-      return [
-        { id: 'home', label: 'Home', isSection: false, href: '/' },
-        { id: 'about', label: 'About', isSection: false, href: '/#about' },
-        { id: 'how-it-works', label: 'Workflow', isSection: false, href: '/#how-it-works' },
-        { id: 'features', label: 'Capabilities', isSection: false, href: '/#features' },
-        { id: 'pricing', label: 'Pricing', isSection: false, href: '/#pricing' },
-        { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
-      ];
+      return [{ id: 'home', label: 'Home', isSection: false, href: '/' }];
     }
+
+    // 5. Homepage Navigation
     return [
       { id: 'about', label: 'About', isSection: true },
       { id: 'how-it-works', label: 'Workflow', isSection: true },
       { id: 'features', label: 'Capabilities', isSection: true },
       { id: 'pricing', label: 'Pricing', isSection: true },
-      { id: 'blog', label: 'Blog', isSection: false, href: '/blog' },
     ];
   };
 
   const navLinks = getNavLinks();
 
-  const handleLinkClick = (link: {
-    id: string;
-    label: string;
-    isSection: boolean;
-    href?: string;
-  }) => {
-    if (!link.isSection && link.href) {
-      setMobileMenuOpen(false);
-      router.push(link.href);
-      return;
-    }
-    scrollToSection(link.id);
-  };
-
-  const isLinkActive = (link: { id: string; label: string; isSection: boolean; href?: string }) => {
+  const isLinkActive = (link: NavLink) => {
     if (link.href) {
       if (link.href === '/') {
         return pathname === '/';
@@ -253,41 +254,44 @@ export default function Navbar() {
           paddingLeft: wrapperPaddingX,
           paddingRight: wrapperPaddingX,
         }}
-        className="fixed top-0 left-0 right-0 z-50"
+        className="fixed top-0 left-0 right-0 z-50 pointer-events-none"
       >
         {/* Navbar Container */}
         <motion.nav
           layout
           style={{
             marginTop: navMt,
-            borderRadius: navRadius,
+            borderRadius: mobileMenuOpen ? '24px' : navRadius,
             borderColor: borderStyle,
             backgroundColor: bgStyle,
             boxShadow: shadowStyle,
-            // Pass motion value as CSS custom property to prevent hydration mismatches
-            ...({ '--navbar-max-width': navMaxWidth } as any),
+            width: navWidth,
+            maxWidth: navMaxWidth,
           }}
-          className={`mx-auto backdrop-blur-xl flex px-4 sm:px-6 py-3 border overflow-hidden relative w-[calc(100%-2rem)] sm:w-full sm:max-w-[var(--navbar-max-width)] sm:flex-row sm:items-center sm:justify-between sm:gap-4 transition-all duration-300 ${
+          className={`mx-auto backdrop-blur-xl flex px-4 sm:px-6 py-3 border overflow-hidden relative sm:flex-row sm:items-center sm:justify-between sm:gap-4 pointer-events-auto ${
             mobileMenuOpen ? 'flex-col gap-4' : 'flex-row items-center justify-between gap-0'
           }`}
         >
           {/* Custom border glow effect */}
-          <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4FF]/30 to-transparent pointer-events-none" />
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4FF]/30 to-transparent pointer-events-none"
+          />
 
           {/* Top Row (Mobile Navigation Header) */}
           <div className="flex items-center justify-between w-full sm:w-auto relative z-10">
             {/* Logo */}
-            <motion.div
-              whileTap={{ scale: 0.96 }}
-              onClick={() => {
-                if (pathname !== '/') {
-                  router.push('/');
-                } else {
+            <Link
+              href="/"
+              onClick={(e) => {
+                if (pathname === '/') {
+                  e.preventDefault();
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
                 setMobileMenuOpen(false);
               }}
               className="flex items-center gap-2 cursor-pointer group"
+              aria-label="RetentIQ Home"
             >
               <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-400 via-[#00D4FF] to-indigo-500 flex items-center justify-center shadow-lg shadow-cyan-500/10 group-hover:scale-105 transition-transform duration-200">
                 <Brain className="w-4 h-4 text-[#0A0F1E]" />
@@ -295,7 +299,7 @@ export default function Navbar() {
               <span className="font-bold text-xs tracking-widest text-[#F8F6F0] uppercase group-hover:text-white transition-colors">
                 RetentIQ
               </span>
-            </motion.div>
+            </Link>
 
             {/* Mobile Actions Right */}
             <div className="flex items-center gap-2 sm:hidden">
@@ -332,10 +336,17 @@ export default function Navbar() {
           <div className="hidden sm:flex items-center gap-1.5 text-[12px] font-bold tracking-wider uppercase text-[#8B95AB]">
             {navLinks.map((link) => {
               const isActive = isLinkActive(link);
+              const href = link.isSection ? `/#${link.id}` : link.href || '#';
               return (
-                <button
+                <Link
                   key={link.id}
-                  onClick={() => handleLinkClick(link)}
+                  href={href}
+                  onClick={(e) => {
+                    if (link.isSection && pathname === '/') {
+                      e.preventDefault();
+                      scrollToSection(link.id);
+                    }
+                  }}
                   onMouseEnter={() => setHoveredLink(link.id)}
                   onMouseLeave={() => setHoveredLink(null)}
                   className="relative px-4 py-2 rounded-full hover:text-white transition-colors duration-250 cursor-pointer"
@@ -365,7 +376,7 @@ export default function Navbar() {
                       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     />
                   )}
-                </button>
+                </Link>
               );
             })}
           </div>
@@ -414,15 +425,24 @@ export default function Navbar() {
               >
                 {navLinks.map((link) => {
                   const isActive = isLinkActive(link);
+                  const href = link.isSection ? `/#${link.id}` : link.href || '#';
                   return (
                     <motion.div
                       key={link.id}
                       variants={menuItemVariants}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <button
-                        onClick={() => handleLinkClick(link)}
-                        className={`w-full py-2.5 px-3 text-left text-sm font-semibold rounded-xl transition-all flex items-center justify-between group ${
+                      <Link
+                        href={href}
+                        onClick={(e) => {
+                          if (link.isSection && pathname === '/') {
+                            e.preventDefault();
+                            scrollToSection(link.id);
+                          } else {
+                            setMobileMenuOpen(false);
+                          }
+                        }}
+                        className={`w-full py-2.5 px-3 text-left text-sm font-semibold rounded-full transition-all flex items-center justify-between group ${
                           isActive
                             ? 'text-[#00D4FF] bg-[#00D4FF]/5 border-l-2 border-[#00D4FF]'
                             : 'text-slate-300 hover:text-[#00D4FF] hover:bg-white/[0.02]'
@@ -436,7 +456,7 @@ export default function Navbar() {
                               : 'opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 text-[#00D4FF]'
                           }`}
                         />
-                      </button>
+                      </Link>
                     </motion.div>
                   );
                 })}
@@ -449,7 +469,7 @@ export default function Navbar() {
                     <Link
                       href="/login"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full py-2.5 text-center text-xs font-bold bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15] rounded-xl hover:bg-white/[0.04] transition-all text-slate-200 hover:text-white block"
+                      className="w-full py-2.5 text-center text-xs font-bold bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15] rounded-full hover:bg-white/[0.04] transition-all text-slate-200 hover:text-white block"
                     >
                       Login
                     </Link>
@@ -458,7 +478,7 @@ export default function Navbar() {
                     <Link
                       href="/dashboard"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full py-2.5 text-center text-xs font-bold bg-gradient-to-r from-[#00D4FF] to-cyan-500 text-[#0A0F1E] rounded-xl shadow-[0_4px_15px_rgba(0,212,255,0.2)] flex items-center justify-center gap-1 hover:opacity-95 transition-all block"
+                      className="w-full py-2.5 text-center text-xs font-bold bg-gradient-to-r from-[#00D4FF] to-cyan-500 text-[#0A0F1E] rounded-full shadow-[0_4px_15px_rgba(0,212,255,0.2)] flex items-center justify-center gap-1 hover:opacity-95 transition-all block"
                     >
                       Start Free <ArrowRight className="w-4 h-4" />
                     </Link>

@@ -3,7 +3,7 @@ from classifier import ChurnClassifier
 def test_churn_classifier():
     clf = ChurnClassifier()
     # Train the model with synthetic data
-    clf.train_model()
+    clf.train_model(force=True)
     
     # Predict high risk: low login, low features, high tickets, high inactivity, negative sentiment, etc.
     prob_high = clf.predict_churn(

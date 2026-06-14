@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { db, schema } from '../lib/db.js';
-import { eq, and, ne } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { validateBody } from '../middleware/validate.js';
 import nodemailer from 'nodemailer';

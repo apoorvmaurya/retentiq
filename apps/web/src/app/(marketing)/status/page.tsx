@@ -4,7 +4,7 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { motion } from 'framer-motion';
-import { Activity, ShieldAlert, CheckCircle, Database, Cpu, Globe } from 'lucide-react';
+import { Database, Cpu, Globe } from 'lucide-react';
 
 export default function StatusPage() {
   const services = [

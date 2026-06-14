@@ -8,10 +8,16 @@ export default function Footer() {
   return (
     <footer className="relative py-16 md:py-24 bg-[#070b16] overflow-hidden">
       {/* Radial Gradient Background Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-cyan-500/5 to-indigo-500/5 blur-[100px] pointer-events-none rounded-full" />
+      <div
+        aria-hidden="true"
+        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-cyan-500/5 to-indigo-500/5 blur-[100px] pointer-events-none rounded-full"
+      />
 
       {/* Modern Fading Gradient Top Border */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      <div
+        aria-hidden="true"
+        className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
+      />
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 mb-16">
@@ -83,11 +89,12 @@ export default function Footer() {
                 <input
                   type="email"
                   placeholder="Enter your email"
-                  className="w-full h-10 px-4 rounded-lg bg-white/[0.02] border border-white/[0.06] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:bg-white/[0.04] transition-all duration-200 pr-12 text-center lg:text-left"
+                  className="w-full h-10 px-4 rounded-full bg-white/[0.02] border border-white/[0.06] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:bg-white/[0.04] transition-all duration-200 pr-12 text-center lg:text-left"
                 />
                 <button
                   type="submit"
-                  className="absolute right-1 w-8 h-8 rounded-md bg-gradient-to-tr from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 flex items-center justify-center transition-all duration-200 shadow-md shadow-cyan-500/10"
+                  aria-label="Subscribe to newsletter"
+                  className="absolute right-1 w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 flex items-center justify-center transition-all duration-200 shadow-md shadow-cyan-500/10"
                 >
                   <span className="sr-only">Subscribe</span>
                   <svg
@@ -112,7 +119,7 @@ export default function Footer() {
           <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-8 md:gap-10">
             {/* Column 1: Product */}
             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4">
-              <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-[12px] font-bold uppercase tracking-[0.1em] text-slate-400">
                 Product
               </h2>
               <ul className="space-y-2.5 text-xs text-[#8B95AB] flex flex-col items-center lg:items-start">
@@ -153,7 +160,7 @@ export default function Footer() {
 
             {/* Column 2: Company */}
             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4">
-              <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-[12px] font-bold uppercase tracking-[0.1em] text-slate-400">
                 Company
               </h2>
               <ul className="space-y-2.5 text-xs text-[#8B95AB] flex flex-col items-center lg:items-start">
@@ -186,7 +193,7 @@ export default function Footer() {
 
             {/* Column 3: Resources */}
             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4">
-              <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-[12px] font-bold uppercase tracking-[0.1em] text-slate-400">
                 Resources
               </h2>
               <ul className="space-y-2.5 text-xs text-[#8B95AB] flex flex-col items-center lg:items-start">
@@ -214,12 +221,20 @@ export default function Footer() {
                     Help Center
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/blog"
+                    className="hover:text-white hover:translate-x-1.5 transition-all duration-300 ease-out inline-block"
+                  >
+                    Blog
+                  </Link>
+                </li>
               </ul>
             </div>
 
             {/* Column 4: Legal */}
             <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4">
-              <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-[12px] font-bold uppercase tracking-[0.1em] text-slate-400">
                 Legal
               </h2>
               <ul className="space-y-2.5 text-xs text-[#8B95AB] flex flex-col items-center lg:items-start">

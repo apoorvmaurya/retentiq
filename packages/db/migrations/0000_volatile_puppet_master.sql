@@ -1,0 +1,1 @@
+-- Baseline migration: Tables are already created by initial migrations.

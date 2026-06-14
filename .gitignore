@@ -36,8 +36,8 @@ pip-delete-this-directory.txt
 # Local databases and CLI logs
 pg_logfile
 .supabase/
-supabase/.temp/
-supabase/.branches/
+**/supabase/.temp/
+**/supabase/.branches/
 .lhci/
 .lighthouseci/
 coverage/

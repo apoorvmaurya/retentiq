@@ -7,6 +7,7 @@ import {
   timestamp,
   numeric,
   jsonb,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -21,110 +22,159 @@ export const organizations = pgTable('organizations', {
 });
 
 // 2. Users
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey(), // maps to auth.users.id
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  email: text('email').notNull().unique(),
-  role: text('role', { enum: ['owner', 'admin', 'member', 'viewer'] }).notNull(),
-  name: text('name'),
-  avatarUrl: text('avatar_url'),
-  onboardingComplete: boolean('onboarding_complete').default(false),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-});
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey(), // maps to auth.users.id
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    email: text('email').notNull().unique(),
+    role: text('role', { enum: ['owner', 'admin', 'member', 'viewer'] }).notNull(),
+    name: text('name'),
+    avatarUrl: text('avatar_url'),
+    onboardingComplete: boolean('onboarding_complete').default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_users_org_id').on(table.orgId),
+  }),
+);
 
 // 3. Customers
-export const customers = pgTable('customers', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  email: text('email').notNull(),
-  company: text('company').notNull(),
-  planTier: text('plan_tier').notNull(),
-  mrr: numeric('mrr', { precision: 10, scale: 2 }).notNull().default('0.00'),
-  notes: text('notes'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-});
+export const customers = pgTable(
+  'customers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
+    company: text('company').notNull(),
+    planTier: text('plan_tier').notNull(),
+    mrr: numeric('mrr', { precision: 10, scale: 2 }).notNull().default('0.00'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_customers_org_id').on(table.orgId),
+  }),
+);
 
 // 4. Health Scores
-export const healthScores = pgTable('health_scores', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  customerId: uuid('customer_id')
-    .notNull()
-    .references(() => customers.id, { onDelete: 'cascade' }),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  score: integer('score').notNull(), // CHECK 0-100
-  churnProbability: numeric('churn_probability', { precision: 3, scale: 2 }).notNull(), // CHECK 0-1.0
-  riskTier: text('risk_tier', { enum: ['low', 'medium', 'high', 'critical'] }).notNull(),
-  topRiskFactors: jsonb('top_risk_factors').notNull().default([]),
-  recommendedAction: text('recommended_action').notNull(),
-  confidence: numeric('confidence', { precision: 3, scale: 2 }).notNull(),
-  scoredAt: timestamp('scored_at', { withTimezone: true }).defaultNow(),
-});
+export const healthScores = pgTable(
+  'health_scores',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    score: integer('score').notNull(), // CHECK 0-100
+    churnProbability: numeric('churn_probability', { precision: 3, scale: 2 }).notNull(), // CHECK 0-1.0
+    riskTier: text('risk_tier', { enum: ['low', 'medium', 'high', 'critical'] }).notNull(),
+    topRiskFactors: jsonb('top_risk_factors').notNull().default([]),
+    recommendedAction: text('recommended_action').notNull(),
+    confidence: numeric('confidence', { precision: 3, scale: 2 }).notNull(),
+    scoredAt: timestamp('scored_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    customerIdIdx: index('idx_health_scores_customer_id').on(table.customerId),
+    orgIdIdx: index('idx_health_scores_org_id').on(table.orgId),
+    scoredAtIdx: index('idx_health_scores_scored_at').on(table.scoredAt),
+  }),
+);
 
 // 5. Events
-export const events = pgTable('events', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  customerId: uuid('customer_id')
-    .notNull()
-    .references(() => customers.id, { onDelete: 'cascade' }),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  eventType: text('event_type').notNull(),
-  source: text('source').notNull(),
-  payload: jsonb('payload').notNull().default({}),
-  occurredAt: timestamp('occurred_at', { withTimezone: true }).defaultNow(),
-});
+export const events = pgTable(
+  'events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    eventType: text('event_type').notNull(),
+    source: text('source').notNull(),
+    payload: jsonb('payload').notNull().default({}),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    customerIdIdx: index('idx_events_customer_id').on(table.customerId),
+    orgIdIdx: index('idx_events_org_id').on(table.orgId),
+    occurredAtIdx: index('idx_events_occurred_at').on(table.occurredAt),
+    typeCustomerIdx: index('idx_events_type_customer').on(table.customerId, table.eventType),
+  }),
+);
 
 // 6. Alerts
-export const alerts = pgTable('alerts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  customerId: uuid('customer_id')
-    .notNull()
-    .references(() => customers.id, { onDelete: 'cascade' }),
-  triggeredAt: timestamp('triggered_at', { withTimezone: true }).defaultNow(),
-  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
-  scoreAtTrigger: integer('score_at_trigger').notNull(),
-  deliveryChannels: jsonb('delivery_channels').notNull().default({ slack: false, email: false }),
-  acknowledged: boolean('acknowledged').default(false),
-});
+export const alerts = pgTable(
+  'alerts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    triggeredAt: timestamp('triggered_at', { withTimezone: true }).defaultNow(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    scoreAtTrigger: integer('score_at_trigger').notNull(),
+    deliveryChannels: jsonb('delivery_channels').notNull().default({ slack: false, email: false }),
+    acknowledged: boolean('acknowledged').default(false),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_alerts_org_id').on(table.orgId),
+    customerIdIdx: index('idx_alerts_customer_id').on(table.customerId),
+  }),
+);
 
 // 7. Integrations
-export const integrations = pgTable('integrations', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  provider: text('provider').notNull(), // slack, stripe, intercom, mixpanel
-  status: text('status').notNull(),
-  config: jsonb('config').notNull().default({}),
-  lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-});
+export const integrations = pgTable(
+  'integrations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(), // slack, stripe, intercom, mixpanel
+    status: text('status').notNull(),
+    config: jsonb('config').notNull().default({}),
+    lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_integrations_org_id').on(table.orgId),
+  }),
+);
 
 // 8. Retention Actions
-export const retentionActions = pgTable('retention_actions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  customerId: uuid('customer_id')
-    .notNull()
-    .references(() => customers.id, { onDelete: 'cascade' }),
-  actionType: text('action_type').notNull(),
-  outcome: text('outcome').notNull(),
-  revenueSaved: numeric('revenue_saved', { precision: 10, scale: 2 }).notNull().default('0.00'),
-  actionedAt: timestamp('actioned_at', { withTimezone: true }).defaultNow(),
-});
+export const retentionActions = pgTable(
+  'retention_actions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    actionType: text('action_type').notNull(),
+    outcome: text('outcome').notNull(),
+    revenueSaved: numeric('revenue_saved', { precision: 10, scale: 2 }).notNull().default('0.00'),
+    actionedAt: timestamp('actioned_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_retention_actions_org_id').on(table.orgId),
+    customerIdIdx: index('idx_retention_actions_customer_id').on(table.customerId),
+  }),
+);
 
 // 9. Alert Configs
 export const alertConfigs = pgTable('alert_configs', {
@@ -140,99 +190,137 @@ export const alertConfigs = pgTable('alert_configs', {
 });
 
 // 10. Groq Usage
-export const groqUsage = pgTable('groq_usage', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  endpoint: text('endpoint').notNull(),
-  tokensUsed: integer('tokens_used').notNull(),
-  model: text('model').notNull(),
-  costUsd: numeric('cost_usd', { precision: 10, scale: 6 }).notNull().default('0.000000'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-});
+export const groqUsage = pgTable(
+  'groq_usage',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull(),
+    tokensUsed: integer('tokens_used').notNull(),
+    model: text('model').notNull(),
+    costUsd: numeric('cost_usd', { precision: 10, scale: 6 }).notNull().default('0.000000'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_groq_usage_org_id').on(table.orgId),
+  }),
+);
 
 // 11. Tasks
-export const tasks = pgTable('tasks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  customerId: uuid('customer_id')
-    .notNull()
-    .references(() => customers.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
-  description: text('description'),
-  dueDate: timestamp('due_date', { withTimezone: true }),
-  status: text('status', { enum: ['pending', 'completed'] })
-    .notNull()
-    .default('pending'),
-  outcome: text('outcome', { enum: ['positive', 'neutral', 'negative'] }),
-  completedBy: text('completed_by'),
-  completedAt: timestamp('completed_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-});
+export const tasks = pgTable(
+  'tasks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    description: text('description'),
+    dueDate: timestamp('due_date', { withTimezone: true }),
+    status: text('status', { enum: ['pending', 'completed'] })
+      .notNull()
+      .default('pending'),
+    outcome: text('outcome', { enum: ['positive', 'neutral', 'negative'] }),
+    completedBy: text('completed_by'),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_tasks_org_id').on(table.orgId),
+    customerIdIdx: index('idx_tasks_customer_id').on(table.customerId),
+  }),
+);
 
 // 12. Playbooks
-export const playbooks = pgTable('playbooks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  triggerType: text('trigger_type', { enum: ['health_drop', 'manual'] })
-    .notNull()
-    .default('manual'),
-  triggerThreshold: integer('trigger_threshold').default(40),
-  steps: jsonb('steps').notNull().default([]), // Array of steps: { step: number, headline: string, detail: string }
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-});
+export const playbooks = pgTable(
+  'playbooks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    triggerType: text('trigger_type', { enum: ['health_drop', 'manual'] })
+      .notNull()
+      .default('manual'),
+    triggerThreshold: integer('trigger_threshold').default(40),
+    steps: jsonb('steps').notNull().default([]), // Array of steps: { step: number, headline: string, detail: string }
+    isActive: boolean('is_active').default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_playbooks_org_id').on(table.orgId),
+  }),
+);
 
 // 13. Ingestion Jobs Queue
-export const jobs = pgTable('jobs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(), // 'stripe' | 'intercom' | 'mixpanel' | 'csv'
-  payload: jsonb('payload').notNull().default({}),
-  status: text('status', { enum: ['queued', 'processing', 'completed', 'failed'] })
-    .notNull()
-    .default('queued'),
-  error: text('error'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-});
+export const jobs = pgTable(
+  'jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(), // 'stripe' | 'intercom' | 'mixpanel' | 'csv'
+    payload: jsonb('payload').notNull().default({}),
+    status: text('status', { enum: ['queued', 'processing', 'completed', 'failed'] })
+      .notNull()
+      .default('queued'),
+    error: text('error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_jobs_org_id').on(table.orgId),
+    statusIdx: index('idx_jobs_status').on(table.status),
+  }),
+);
 
 // 14. ROI Aggregates Cache
-export const roiAggregates = pgTable('roi_aggregates', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  month: text('month').notNull(), // YYYY-MM
-  accountsSaved: integer('accounts_saved').notNull().default(0),
-  revenueSaved: numeric('revenue_saved', { precision: 10, scale: 2 }).notNull().default('0.00'),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-});
+export const roiAggregates = pgTable(
+  'roi_aggregates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    month: text('month').notNull(), // YYYY-MM
+    accountsSaved: integer('accounts_saved').notNull().default(0),
+    revenueSaved: numeric('revenue_saved', { precision: 10, scale: 2 }).notNull().default('0.00'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_roi_aggregates_org_id').on(table.orgId),
+  }),
+);
 
 // 15. Invites
-export const invites = pgTable('invites', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  email: text('email').notNull(),
-  role: text('role', { enum: ['owner', 'admin', 'member', 'viewer'] })
-    .notNull()
-    .default('member'),
-  token: text('token').notNull(),
-  status: text('status', { enum: ['pending', 'accepted', 'expired'] })
-    .notNull()
-    .default('pending'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  expiresAt: timestamp('expires_at', { withTimezone: true }),
-});
+export const invites = pgTable(
+  'invites',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: text('role', { enum: ['owner', 'admin', 'member', 'viewer'] })
+      .notNull()
+      .default('member'),
+    token: text('token').notNull(),
+    status: text('status', { enum: ['pending', 'accepted', 'expired'] })
+      .notNull()
+      .default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_invites_org_id').on(table.orgId),
+  }),
+);
 
 // 16. Score Weights
 export const scoreWeights = pgTable('score_weights', {
@@ -254,28 +342,40 @@ export const scoreWeights = pgTable('score_weights', {
 });
 
 // 17. Email Templates
-export const emailTemplates = pgTable('email_templates', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(), // 'critical_score_drop' | 'billing_failure' | '30d_inactivity' | 'renewal_risk'
-  subject: text('subject').notNull(),
-  body: text('body').notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-});
+export const emailTemplates = pgTable(
+  'email_templates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(), // 'critical_score_drop' | 'billing_failure' | '30d_inactivity' | 'renewal_risk'
+    subject: text('subject').notNull(),
+    body: text('body').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_email_templates_org_id').on(table.orgId),
+  }),
+);
 
 // 18. Alert Rules
-export const alertRules = pgTable('alert_rules', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  orgId: uuid('org_id')
-    .notNull()
-    .references(() => organizations.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  conditions: jsonb('conditions').notNull().default([]), // Array of conditions
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-});
+export const alertRules = pgTable(
+  'alert_rules',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    conditions: jsonb('conditions').notNull().default([]), // Array of conditions
+    isActive: boolean('is_active').default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    orgIdIdx: index('idx_alert_rules_org_id').on(table.orgId),
+  }),
+);
 
 // --- Relations ---
 

@@ -1,17 +1,16 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { blogPosts, BlogPost } from '@/lib/blog-data';
+import React from 'react';
+import { useParams } from 'next/navigation';
+import { blogPosts } from '@/lib/blog-data';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { ArrowLeft, Calendar, Clock, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, ArrowRight, Sparkles } from 'lucide-react';
 import { motion, useScroll, useSpring } from 'framer-motion';
 
 export default function BlogDetail() {
   const params = useParams();
-  const router = useRouter();
   const slug = params?.slug as string;
 
   const post = blogPosts.find((p) => p.slug === slug);

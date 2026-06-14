@@ -1,5 +1,5 @@
 import { db, schema } from './db.js';
-import { eq, and, gte, desc, sql, asc } from 'drizzle-orm';
+import { eq, and, gte, desc, asc } from 'drizzle-orm';
 
 export interface FeatureDict {
   login_frequency_30d: number;

@@ -4,8 +4,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Shield,
   User,
-  Globe,
-  Mail,
   Camera,
   Save,
   RefreshCw,
@@ -15,7 +13,6 @@ import {
   UserPlus,
   Trash2,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { fetchFromApi } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';

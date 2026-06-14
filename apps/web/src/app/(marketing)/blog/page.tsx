@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { blogPosts, BlogPost } from '@/lib/blog-data';
+import { blogPosts } from '@/lib/blog-data';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { FileText, ArrowRight, Calendar, Clock, User, ArrowLeft } from 'lucide-react';
+import { ArrowRight, Clock, ArrowLeft } from 'lucide-react';
 
 export default function BlogIndex() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');

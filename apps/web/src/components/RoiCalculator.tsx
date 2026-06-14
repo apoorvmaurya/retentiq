@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, useSpring, useTransform, animate } from 'framer-motion';
-import { Calculator, ArrowRight, TrendingUp, Sparkles, DollarSign } from 'lucide-react';
+import { animate } from 'framer-motion';
+import { Calculator, ArrowRight, TrendingUp, DollarSign } from 'lucide-react';
 
 export default function RoiCalculator() {
   const [mrr, setMrr] = useState(120000); // Default $120,000 Monthly Recurring Revenue
@@ -162,7 +162,10 @@ export default function RoiCalculator() {
       {/* Outputs (Right Column / Glass Card) */}
       <div className="lg:col-span-5 flex flex-col justify-between bg-white/[0.015] border border-white/[0.06] rounded-2xl p-6 relative overflow-hidden">
         {/* Glow element */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF]/5 blur-[40px] pointer-events-none rounded-full" />
+        <div
+          aria-hidden="true"
+          className="absolute top-0 right-0 w-32 h-32 bg-[#00D4FF]/5 blur-[40px] pointer-events-none rounded-full"
+        />
 
         <div className="space-y-6">
           {/* Stat 1: Churn Cost */}
@@ -170,7 +173,10 @@ export default function RoiCalculator() {
             <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">
               Estimated Annual Revenue Leaking
             </span>
-            <h4 className="text-xl font-bold text-rose-400">
+            <h4
+              className="text-xl font-bold text-rose-400"
+              aria-label={`Estimated Annual Revenue Leaking: $${Math.round(annualChurnVal).toLocaleString('en-US')}`}
+            >
               <AnimatedMoneyValue value={annualChurnVal} />
             </h4>
           </div>
@@ -180,7 +186,10 @@ export default function RoiCalculator() {
             <span className="text-[9px] text-emerald-400 font-extrabold uppercase tracking-wider flex items-center gap-1">
               <TrendingUp className="w-3 h-3" /> Recoverable ARR (Savings)
             </span>
-            <h4 className="text-3xl font-black text-emerald-400">
+            <h4
+              className="text-3xl font-black text-emerald-400"
+              aria-label={`Recoverable ARR Savings: $${Math.round(savedAnnualVal).toLocaleString('en-US')}`}
+            >
               <AnimatedMoneyValue value={savedAnnualVal} />
             </h4>
             <p className="text-[10px] text-[#8B95AB] leading-tight">
@@ -215,7 +224,7 @@ export default function RoiCalculator() {
         <div className="mt-8 pt-4 border-t border-white/[0.04]">
           <a
             href="/dashboard"
-            className="w-full py-3 bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0F1E] font-bold text-xs tracking-wider uppercase text-center rounded-xl transition-all shadow-[0_4px_15px_rgba(0,212,255,0.2)] flex items-center justify-center gap-1.5 cursor-pointer"
+            className="w-full py-3 bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0F1E] font-bold text-xs tracking-wider uppercase text-center rounded-full transition-all shadow-[0_4px_15px_rgba(0,212,255,0.2)] flex items-center justify-center gap-1.5 cursor-pointer"
           >
             Claim Your Free Access <ArrowRight className="w-3.5 h-3.5" />
           </a>

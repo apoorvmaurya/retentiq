@@ -85,14 +85,14 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${instrumentSerif.variable} ${dmSans.variable} dark h-full`}>
+    <html lang="en" className={`${instrumentSerif.variable} ${dmSans.variable} dark`}>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="font-sans antialiased text-slate-200 bg-[#020205] h-full relative">
+      <body className="font-sans antialiased text-slate-200 bg-[#020205] relative">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[#00D4FF] focus:text-[#0A0F1E] focus:rounded-md focus:font-bold focus:outline-none focus:ring-2 focus:ring-[#00D4FF]"
@@ -100,7 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to main content
         </a>
         <ToastProvider>
-          <div id="main-content" tabIndex={-1} className="outline-none min-h-full">
+          <div id="main-content" tabIndex={-1} className="outline-none min-h-screen">
             {children}
           </div>
         </ToastProvider>

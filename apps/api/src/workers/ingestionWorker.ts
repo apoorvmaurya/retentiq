@@ -248,7 +248,7 @@ async function handleCsvJob(payload: { csvContent: string }, orgId: string): Pro
     if (row.payload) {
       try {
         eventPayload = JSON.parse(row.payload);
-      } catch (_) {
+      } catch {
         eventPayload = { raw: row.payload };
       }
     }
@@ -446,7 +446,7 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
         if (!line.trim()) continue;
         try {
           eventsData.push(JSON.parse(line));
-        } catch (_) {
+        } catch {
           // Ignore malformed JSON lines
         }
       }

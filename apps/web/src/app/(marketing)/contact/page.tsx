@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { motion } from 'framer-motion';
-import { Mail, MessageSquare, Send, Sparkles, CheckCircle } from 'lucide-react';
+import { Mail, MessageSquare, Send, CheckCircle } from 'lucide-react';
 
 export default function ContactPage() {
   const [email, setEmail] = useState('');

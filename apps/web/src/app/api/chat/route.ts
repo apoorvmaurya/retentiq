@@ -31,6 +31,7 @@ Security, Privacy & Guardrails:
 - If a user asks you for specific customer data, database statistics, tenant information, credentials, or internal configuration files, you must politely decline and state that you do not have permission or access to customer databases or sensitive backend files.
 - Never invent (hallucinate) customer details, user accounts, or database statistics. Keep answers focused on general RetentIQ features and services.
 - If asked about system secrets, explain that you are an AI assistant designed only for product onboarding and navigation assistance, with no administrative backend access.
+- You must strictly focus on RetentIQ platform support and onboarding. Politely decline any requests to write general code, debug arbitrary software, solve homework, write poems, or complete unrelated general tasks.
 - You are strictly embedded on the public website and cannot perform dashboard actions. If the user asks to view dashboard metrics, alerts, or CSM tasks, inform them they must login or sign up first, and then call 'navigate_to' targeting '/login' or '/signup'.
 
 Capabilities / Available Actions:
@@ -127,6 +128,72 @@ const TOOLS = [
   },
 ];
 
+const ROAST_SYSTEM_PROMPT = `You are the RetentIQ AI assistant. The user is attempting to exploit you for off-topic tasks (like general coding, debugging, math, or creative writing) to burn token credits. Sardonically roast them with heavy sarcasm, refuse the request entirely, and remind them you only support RetentIQ customer success queries. Do not be overly polite; be witty, sarcastic, and sharp. NEVER write any code, NEVER provide any solutions or helpful hints. Keep it under 2 sentences, clean, and professional.`;
+
+function isOffTopicRequest(message: string): boolean {
+  const query = message.toLowerCase().trim();
+
+  // Exclude queries that explicitly mention RetentIQ
+  if (query.includes('retentiq')) {
+    return false;
+  }
+
+  // Regex patterns targeting software development, coding, general school/creative writing, math, and jailbreaks
+  const patterns = [
+    // Verbs + Targets
+    /\b(write|create|generate|implement|refactor|make|build|code|program|develop|design|solve|explain|give|show)\b.*\b(code|function|script|algorithm|class|api|component|app|website|program|css|html|typescript|javascript|python|c#|cpp|go|rust|java|calculator|game|ui|software|snippet)\b/,
+
+    // Programming languages + Actions
+    /\b(python|javascript|typescript|c\+\+|cpp|golang|rust|html|css|c#|java)\b.*\b(code|script|write|program|build|make|how to|calculator|game|function|snippet|app|refactor)\b/,
+    /\b(code|script|write|program|build|make|how to|calculator|game|function|snippet|app|refactor)\b.*\b(python|javascript|typescript|c\+\+|cpp|golang|rust|html|css|c#|java)\b/,
+
+    // Debugging patterns
+    /\b(debug|fix|explain|optimize)\b.*\b(my code|this code|this bug|this error|this function|segmentation fault|syntax error|compilation error|sql query)\b/,
+
+    // Math / academic patterns
+    /\b(solve|calculate)\b.*\b(math|calculus|equation|algebra|homework|physics|chemistry)\b/,
+
+    // Unrelated text generation / general knowledge
+    /\b(write|generate|compose|make)\b.*\b(poem|story|essay|lyrics|article|blog post|cover letter|joke|recipe)\b/,
+
+    // Security / jailbreaks
+    /\b(ignore|bypass|override)\b.*\b(instructions|system prompt|guardrails|rules)\b/,
+    /\b(system prompt|system message|jailbreak)\b/,
+  ];
+
+  for (const pattern of patterns) {
+    if (pattern.test(query)) {
+      return true;
+    }
+  }
+
+  const genericOffTopicKeywords = [
+    'write code',
+    'write a function',
+    'write a script',
+    'write program',
+    'debug code',
+    'fix my code',
+    'fix code',
+    'solve math',
+    'write a poem',
+    'write an essay',
+    'write a story',
+    'write lyrics',
+    'unrelated to retentiq',
+    'how to code',
+    'learn coding',
+    'programming project',
+    'coding homework',
+  ];
+
+  if (genericOffTopicKeywords.some((keyword) => query.includes(keyword))) {
+    return true;
+  }
+
+  return false;
+}
+
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
@@ -148,6 +215,30 @@ export async function POST(req: Request) {
       });
     }
 
+    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
+    const isOffTopic = lastUserMessage && isOffTopicRequest(lastUserMessage.content);
+
+    let requestBody;
+    if (isOffTopic) {
+      requestBody = {
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          { role: 'system', content: ROAST_SYSTEM_PROMPT },
+          { role: 'user', content: lastUserMessage.content },
+        ],
+        temperature: 0.7, // Higher temp for creative roasts
+        max_tokens: 150,
+      };
+    } else {
+      requestBody = {
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+        tools: TOOLS,
+        tool_choice: 'auto',
+        temperature: 0.3,
+      };
+    }
+
     // Call Groq API
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -155,13 +246,7 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
-        tools: TOOLS,
-        tool_choice: 'auto',
-        temperature: 0.3,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {

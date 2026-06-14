@@ -175,8 +175,14 @@ export default function MarketingPage() {
   return (
     <div className="bg-[#0A0F1E] text-[#F8F6F0] min-h-screen overflow-x-hidden font-sans selection:bg-[#00D4FF]/20 selection:text-[#00D4FF]">
       {/* Decorative gradient meshes */}
-      <div className="hidden md:block absolute top-[-10%] left-[10%] w-[600px] h-[600px] rounded-full bg-indigo-950/20 blur-[120px] pointer-events-none" />
-      <div className="hidden md:block absolute top-[20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#00D4FF]/5 blur-[150px] pointer-events-none" />
+      <div
+        aria-hidden="true"
+        className="hidden md:block absolute top-[-10%] left-[10%] w-[600px] h-[600px] rounded-full bg-indigo-950/20 blur-[120px] pointer-events-none"
+      />
+      <div
+        aria-hidden="true"
+        className="hidden md:block absolute top-[20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#00D4FF]/5 blur-[150px] pointer-events-none"
+      />
 
       {/* Shared Navbar */}
       <Navbar />
@@ -206,7 +212,7 @@ export default function MarketingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="font-serif text-5xl md:text-7xl font-normal leading-[1.05] tracking-[-1.5px] text-[#F8F6F0]"
+            className="font-serif text-5xl md:text-7xl font-semibold leading-[1.05] tracking-[-0.02em] text-[#F8F6F0]"
           >
             Stop losing customers you <br className="hidden md:inline" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] via-cyan-400 to-[#F8F6F0] italic">
@@ -261,15 +267,17 @@ export default function MarketingPage() {
               Start Free{' '}
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </a>
-            <button
-              onClick={() => {
+            <a
+              href="#how-it-works"
+              onClick={(e) => {
+                e.preventDefault();
                 const element = document.getElementById('how-it-works');
                 if (element) element.scrollIntoView({ behavior: 'smooth' });
               }}
               className="px-6 py-3 rounded-full bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.08] text-[#F8F6F0] font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-2"
             >
               See a demo <Play className="w-3 h-3 text-[#8B95AB]" />
-            </button>
+            </a>
           </motion.div>
         </div>
 
@@ -279,10 +287,16 @@ export default function MarketingPage() {
           className="lg:col-span-5 relative z-10 hidden lg:block"
         >
           {/* Neon back-glow */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-[#00D4FF]/20 to-indigo-500/10 blur-[40px] rounded-2xl -z-10 pointer-events-none scale-[0.98]" />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-gradient-to-tr from-[#00D4FF]/20 to-indigo-500/10 blur-[40px] rounded-2xl -z-10 pointer-events-none scale-[0.98]"
+          />
           <div className="rounded-2xl border border-white/[0.08] bg-[#0c1224] p-6 shadow-[0_24px_50px_rgba(0,0,0,0.6)] flex flex-col gap-6 relative overflow-hidden">
             {/* Gloss reflection overlay */}
-            <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none" />
+            <div
+              aria-hidden="true"
+              className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none"
+            />
 
             {/* Mock Header */}
             <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
@@ -455,7 +469,10 @@ export default function MarketingPage() {
                     >
                       <div className="relative rounded-xl overflow-hidden aspect-square w-full">
                         {/* Gloss reflection overlay */}
-                        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none z-10" />
+                        <div
+                          aria-hidden="true"
+                          className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none z-10"
+                        />
                         <Image
                           src={item.image}
                           alt={item.title}
@@ -478,7 +495,10 @@ export default function MarketingPage() {
                     >
                       <div className="relative rounded-xl overflow-hidden aspect-square w-full">
                         {/* Gloss reflection overlay */}
-                        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none z-10" />
+                        <div
+                          aria-hidden="true"
+                          className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none z-10"
+                        />
                         <Image
                           src={item.image}
                           alt={item.title}
@@ -610,7 +630,10 @@ export default function MarketingPage() {
             <SpotlightCard className="p-8 flex flex-col items-center justify-center bg-white/[0.01] gap-4">
               <div className="w-24 h-24 rounded-full border-4 border-white/[0.05] flex items-center justify-center relative">
                 {/* Glow ring */}
-                <div className="absolute inset-0 rounded-full border-4 border-[#00D4FF] border-r-transparent animate-spin-slow" />
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 rounded-full border-4 border-[#00D4FF] border-r-transparent animate-spin-slow"
+                />
                 <Brain className="w-8 h-8 text-[#00D4FF]" />
               </div>
               <span className="text-xs font-bold text-[#F8F6F0] tracking-wider uppercase">
@@ -736,7 +759,10 @@ export default function MarketingPage() {
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                 Total Revenue Recovered
               </span>
-              <h4 className="font-serif text-5xl font-black text-[#00D4FF]">
+              <h4
+                className="font-serif text-5xl font-black text-[#00D4FF]"
+                aria-label="Over $438,900 recovered"
+              >
                 $<Counter value={438900} duration={2} />
               </h4>
               <span className="text-[10px] text-emerald-400 flex items-center gap-1 mt-1 font-semibold">
@@ -750,9 +776,12 @@ export default function MarketingPage() {
       {/* 4. STATS BAR SECTION */}
       <section className="py-20 md:py-28 relative max-w-7xl mx-auto px-4 md:px-8">
         {/* Glow effect behind stats */}
-        <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[150px] bg-[#00D4FF]/5 blur-[80px] rounded-full pointer-events-none -z-10" />
+        <div
+          aria-hidden="true"
+          className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[150px] bg-[#00D4FF]/5 blur-[80px] rounded-full pointer-events-none -z-10"
+        />
 
-        <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] rounded-3xl p-8 md:p-12 shadow-[0_24px_60px_rgba(0,0,0,0.5)] relative z-10">
+        <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] rounded-2xl p-8 md:p-12 shadow-[0_24px_60px_rgba(0,0,0,0.5)] relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-0 items-center">
             {/* Stat Item 1 */}
             <motion.div
@@ -760,7 +789,10 @@ export default function MarketingPage() {
               transition={{ duration: 0.2 }}
               className="space-y-3 md:px-8 text-center md:border-r border-white/[0.06]"
             >
-              <h3 className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight">
+              <h3
+                className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight"
+                aria-label="8 percent"
+              >
                 <Counter value={8} suffix="%" />
               </h3>
               <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-[200px] mx-auto">
@@ -774,7 +806,10 @@ export default function MarketingPage() {
               transition={{ duration: 0.2 }}
               className="space-y-3 md:px-8 text-center md:border-r border-white/[0.06]"
             >
-              <h3 className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight">
+              <h3
+                className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight"
+                aria-label="25 times"
+              >
                 <Counter value={25} suffix="x" />
               </h3>
               <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-[200px] mx-auto">
@@ -788,7 +823,10 @@ export default function MarketingPage() {
               transition={{ duration: 0.2 }}
               className="space-y-3 md:px-8 text-center"
             >
-              <h3 className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight">
+              <h3
+                className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight"
+                aria-label="68 percent"
+              >
                 <Counter value={68} suffix="%" />
               </h3>
               <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-[200px] mx-auto">
@@ -929,7 +967,7 @@ export default function MarketingPage() {
 
             <a
               href="/dashboard"
-              className="w-full py-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] text-white font-bold text-xs tracking-wider uppercase text-center rounded-xl transition-all cursor-pointer block"
+              className="w-full py-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] text-white font-bold text-xs tracking-wider uppercase text-center rounded-full transition-all cursor-pointer block"
             >
               Start Free Trial
             </a>
@@ -986,7 +1024,7 @@ export default function MarketingPage() {
 
             <a
               href="/dashboard"
-              className="w-full py-3 bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0F1E] font-bold text-xs tracking-wider uppercase text-center rounded-xl transition-all shadow-[0_4px_20px_rgba(0,212,255,0.2)] cursor-pointer block"
+              className="w-full py-3 bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0F1E] font-bold text-xs tracking-wider uppercase text-center rounded-full transition-all shadow-[0_4px_20px_rgba(0,212,255,0.2)] cursor-pointer block"
             >
               Get Started Now
             </a>

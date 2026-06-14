@@ -3,7 +3,6 @@ import { db, schema } from '../lib/db.js';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { validateBody } from '../middleware/validate.js';
-import { computeAndTriggerRescore } from '../lib/featureEngine.js';
 
 const router = Router();
 

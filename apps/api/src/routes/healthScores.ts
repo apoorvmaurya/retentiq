@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { db, schema } from '../lib/db.js';
-import { eq, desc, and, gte, sql, count } from 'drizzle-orm';
+import { eq, desc, and, gte, count } from 'drizzle-orm';
 
 const router = Router();
 

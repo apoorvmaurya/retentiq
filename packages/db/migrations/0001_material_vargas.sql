@@ -1,0 +1,24 @@
+CREATE INDEX "idx_alert_rules_org_id" ON "alert_rules" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_alerts_org_id" ON "alerts" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_alerts_customer_id" ON "alerts" USING btree ("customer_id");--> statement-breakpoint
+CREATE INDEX "idx_customers_org_id" ON "customers" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_email_templates_org_id" ON "email_templates" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_events_customer_id" ON "events" USING btree ("customer_id");--> statement-breakpoint
+CREATE INDEX "idx_events_org_id" ON "events" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_events_occurred_at" ON "events" USING btree ("occurred_at");--> statement-breakpoint
+CREATE INDEX "idx_events_type_customer" ON "events" USING btree ("customer_id","event_type");--> statement-breakpoint
+CREATE INDEX "idx_groq_usage_org_id" ON "groq_usage" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_health_scores_customer_id" ON "health_scores" USING btree ("customer_id");--> statement-breakpoint
+CREATE INDEX "idx_health_scores_org_id" ON "health_scores" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_health_scores_scored_at" ON "health_scores" USING btree ("scored_at");--> statement-breakpoint
+CREATE INDEX "idx_integrations_org_id" ON "integrations" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_invites_org_id" ON "invites" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_jobs_org_id" ON "jobs" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_jobs_status" ON "jobs" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "idx_playbooks_org_id" ON "playbooks" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_retention_actions_org_id" ON "retention_actions" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_retention_actions_customer_id" ON "retention_actions" USING btree ("customer_id");--> statement-breakpoint
+CREATE INDEX "idx_roi_aggregates_org_id" ON "roi_aggregates" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_tasks_org_id" ON "tasks" USING btree ("org_id");--> statement-breakpoint
+CREATE INDEX "idx_tasks_customer_id" ON "tasks" USING btree ("customer_id");--> statement-breakpoint
+CREATE INDEX "idx_users_org_id" ON "users" USING btree ("org_id");

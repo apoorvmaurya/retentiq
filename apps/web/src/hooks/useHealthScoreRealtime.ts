@@ -51,7 +51,7 @@ export function useHealthScoreRealtime(
 
             // Trigger the 600ms yellow highlight animation
             setUpdatedRowId(newRecord.customer_id);
-            const timer = setTimeout(() => {
+            setTimeout(() => {
               setUpdatedRowId(null);
             }, 600);
           }

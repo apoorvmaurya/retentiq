@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, MessageSquare, Send, Bot, User, Maximize2, Minimize2 } from 'lucide-react';
+import { Sparkles, X, MessageSquare, Send, Bot, Maximize2, Minimize2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Markdown from './Markdown';
 
@@ -11,6 +11,11 @@ interface Message {
   text: string;
   timestamp: Date;
   actionPill?: string;
+  suggestedAction?: {
+    name: string;
+    args: any;
+    executed?: boolean;
+  };
 }
 
 export default function ChatbotWidget() {
@@ -39,6 +44,131 @@ export default function ChatbotWidget() {
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  const shouldAutoExecuteAction = (promptText: string, actionName: string) => {
+    if (actionName === 'submit_contact_request') return true;
+    const query = promptText.toLowerCase();
+    const explicitKeywords = [
+      'go to',
+      'navigate to',
+      'take me to',
+      'redirect me to',
+      'login',
+      'signup',
+      'sign up',
+      'sign in',
+      'register',
+    ];
+    return explicitKeywords.some((keyword) => query.includes(keyword));
+  };
+
+  const getActionLabel = (name: string, args: any, executed?: boolean) => {
+    switch (name) {
+      case 'navigate_to': {
+        const target = args?.target || '';
+        const targetName = target.startsWith('#')
+          ? `Section ${target}`
+          : target === '/'
+            ? 'Home Page'
+            : `${target.replace('/', '').charAt(0).toUpperCase()}${target.slice(2)} Page`;
+        return executed ? `Navigated to ${targetName}` : `Go to ${targetName}`;
+      }
+      case 'calculate_roi':
+        return executed ? 'ROI Calculated' : 'Calculate ROI';
+      case 'open_command_menu':
+        return executed ? 'Search Menu Opened' : 'Open Search Menu';
+      case 'submit_contact_request':
+        return executed ? 'Demo Request Submitted' : 'Submit Demo Request';
+      default:
+        return executed ? 'Action Executed' : 'Execute Action';
+    }
+  };
+
+  const getActionPillText = (name: string, args: any) => {
+    switch (name) {
+      case 'calculate_roi':
+        return 'Updated ROI Modeler parameters';
+      case 'open_command_menu':
+        return 'Opened Search Center (⌘K)';
+      case 'navigate_to':
+        return args?.target?.startsWith('#')
+          ? `Scrolled to ${args.target}`
+          : `Navigated to ${args.target}`;
+      case 'submit_contact_request':
+        return `Submitted demo request for ${args?.email}`;
+      default:
+        return 'Action completed';
+    }
+  };
+
+  const smoothScrollToElement = (id: string) => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) {
+        const elementPosition = el.getBoundingClientRect().top + window.scrollY;
+        const offsetPosition = elementPosition - 96; // 96px offset for fixed navbar spacing
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth',
+        });
+      }
+    }, 200);
+  };
+
+  const executeAction = (name: string, args: any) => {
+    if (name === 'calculate_roi') {
+      const { mrr, churnRate, reduction } = args;
+      const event = new CustomEvent('retentiq-update-roi', {
+        detail: { mrr, churnRate, reduction },
+      });
+      window.dispatchEvent(event);
+
+      setTimeout(() => {
+        smoothScrollToElement('roi-calculator');
+      }, 300);
+    } else if (name === 'open_command_menu') {
+      const btn = document.getElementById('global-search-trigger');
+      if (btn) btn.click();
+    } else if (name === 'navigate_to') {
+      const { target } = args;
+      if (target.startsWith('#')) {
+        smoothScrollToElement(target.slice(1));
+      } else {
+        router.push(target);
+      }
+    } else if (name === 'submit_contact_request') {
+      const { email: clientEmail, message: clientMsg } = args;
+      const currentRequests = JSON.parse(localStorage.getItem('retentiq-demo-requests') || '[]');
+      currentRequests.push({
+        email: clientEmail,
+        message: clientMsg,
+        date: new Date().toISOString(),
+      });
+      localStorage.setItem('retentiq-demo-requests', JSON.stringify(currentRequests));
+    }
+  };
+
+  const handleExecuteAction = (msg: Message, index: number) => {
+    if (!msg.suggestedAction || msg.suggestedAction.executed) return;
+
+    // Execute the action
+    executeAction(msg.suggestedAction.name, msg.suggestedAction.args);
+
+    // Update state to mark it executed and update the action pill
+    setMessages((prev) =>
+      prev.map((m, idx) => {
+        if (idx === index && m.suggestedAction) {
+          const updatedAction = { ...m.suggestedAction, executed: true };
+          return {
+            ...m,
+            suggestedAction: updatedAction,
+            actionPill: `Action: ${getActionPillText(updatedAction.name, updatedAction.args)}`,
+          };
+        }
+        return m;
+      }),
+    );
+  };
 
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
@@ -71,60 +201,28 @@ export default function ChatbotWidget() {
 
       const replyText = reply?.content || "I couldn't process that query.";
       let actionPillText: string | undefined = undefined;
+      let suggestedAction: any = undefined;
 
       if (reply?.tool_calls && reply.tool_calls.length > 0) {
-        for (const tool of reply.tool_calls) {
-          const { name, arguments: argsString } = tool.function;
-          let args: any = {};
-          try {
-            args = JSON.parse(argsString || '{}');
-          } catch (_) {
-            // Ignore argument parsing errors
-          }
+        // Take the first tool call
+        const tool = reply.tool_calls[0];
+        const { name, arguments: argsString } = tool.function;
+        let args: any = {};
+        try {
+          args = JSON.parse(argsString || '{}');
+        } catch {
+          // Ignore argument parsing errors
+        }
 
-          if (name === 'calculate_roi') {
-            const { mrr, churnRate, reduction } = args;
-            const event = new CustomEvent('retentiq-update-roi', {
-              detail: { mrr, churnRate, reduction },
-            });
-            window.dispatchEvent(event);
+        suggestedAction = { name, args, executed: false };
 
-            setTimeout(() => {
-              const el = document.getElementById('roi-calculator');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }, 300);
-
-            actionPillText = `Updated ROI Modeler parameters`;
-          } else if (name === 'open_command_menu') {
-            const btn = document.getElementById('global-search-trigger');
-            if (btn) btn.click();
-            actionPillText = `Opened Search Center (⌘K)`;
-          } else if (name === 'navigate_to') {
-            const { target } = args;
-            if (target.startsWith('#')) {
-              const el = document.getElementById(target.slice(1));
-              if (el) {
-                el.scrollIntoView({ behavior: 'smooth' });
-                actionPillText = `Scrolled to ${target}`;
-              }
-            } else {
-              actionPillText = `Navigating to ${target}`;
-              router.push(target);
-            }
-          } else if (name === 'submit_contact_request') {
-            const { email: clientEmail, message: clientMsg } = args;
-            const currentRequests = JSON.parse(
-              localStorage.getItem('retentiq-demo-requests') || '[]',
-            );
-            currentRequests.push({
-              email: clientEmail,
-              message: clientMsg,
-              date: new Date().toISOString(),
-            });
-            localStorage.setItem('retentiq-demo-requests', JSON.stringify(currentRequests));
-
-            actionPillText = `Submitted demo request for ${clientEmail}`;
-          }
+        const autoExecute = shouldAutoExecuteAction(text, name);
+        if (autoExecute) {
+          executeAction(name, args);
+          suggestedAction.executed = true;
+          actionPillText = getActionPillText(name, args);
+        } else {
+          actionPillText = `Suggested action: ${getActionLabel(name, args, false)}`;
         }
       }
 
@@ -133,6 +231,7 @@ export default function ChatbotWidget() {
         text: replyText,
         timestamp: new Date(),
         actionPill: actionPillText,
+        suggestedAction,
       };
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err: any) {
@@ -195,18 +294,19 @@ export default function ChatbotWidget() {
         <AnimatePresence>
           {isOpen && (
             <motion.div
+              layout
               initial={{ opacity: 0, scale: 0.85, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.85, y: 30 }}
               transition={{ type: 'spring', stiffness: 280, damping: 25 }}
-              className={`absolute bottom-18 right-0 rounded-2xl glass-panel border border-white/[0.08] shadow-[0_24px_50px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden transition-all duration-300 ease-in-out origin-bottom-right z-50 ${
+              className={`fixed z-50 rounded-2xl glass-panel border border-white/[0.08] shadow-[0_24px_50px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden origin-bottom-right ${
                 isExpanded
-                  ? 'w-[90vw] md:w-[650px] h-[600px] md:h-[650px]'
-                  : 'w-[350px] sm:w-[380px] h-[500px]'
+                  ? 'bottom-24 right-4 left-4 sm:left-auto sm:right-6 w-auto sm:w-[650px] h-[600px] sm:h-[650px] max-h-[calc(100vh-8rem)]'
+                  : 'bottom-24 right-4 left-4 sm:left-auto sm:right-6 w-auto sm:w-[380px] h-[500px] max-h-[calc(100vh-8rem)]'
               }`}
             >
               {/* Header */}
-              <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.01] flex items-center justify-between">
+              <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.01] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 flex items-center justify-center text-[#00D4FF] relative">
                     <Bot className="w-4 h-4 animate-pulse" />
@@ -226,6 +326,7 @@ export default function ChatbotWidget() {
                   <button
                     onClick={() => setIsExpanded(!isExpanded)}
                     title={isExpanded ? 'Minimize Window' : 'Expand Window'}
+                    aria-label={isExpanded ? 'Minimize Window' : 'Expand Window'}
                     className="p-1 rounded-md text-slate-400 hover:text-[#00D4FF] hover:bg-white/[0.04] transition-all cursor-pointer"
                   >
                     {isExpanded ? (
@@ -239,6 +340,8 @@ export default function ChatbotWidget() {
                       setIsOpen(false);
                       setIsExpanded(false);
                     }}
+                    title="Close support chat"
+                    aria-label="Close support chat"
                     className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all cursor-pointer"
                   >
                     <X className="w-4 h-4" />
@@ -269,13 +372,35 @@ export default function ChatbotWidget() {
                         </div>
                       </div>
 
-                      {msg.actionPill && (
-                        <div className={`flex ${isAI ? 'justify-start pl-8.5' : 'justify-end'}`}>
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[8.5px] font-bold text-emerald-400 select-none">
-                            <Sparkles className="w-2.5 h-2.5 animate-pulse text-emerald-400" />{' '}
-                            Action: {msg.actionPill}
-                          </div>
+                      {msg.suggestedAction ? (
+                        <div className={`flex ${isAI ? 'justify-start pl-9' : 'justify-end'}`}>
+                          <button
+                            type="button"
+                            onClick={() => handleExecuteAction(msg, idx)}
+                            disabled={msg.suggestedAction.executed}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                              msg.suggestedAction.executed
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 opacity-80 cursor-default select-none'
+                                : 'bg-[#00D4FF]/10 hover:bg-[#00D4FF]/20 border-[#00D4FF]/30 text-[#00D4FF] cursor-pointer hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_12px_rgba(0,212,255,0.05)]'
+                            }`}
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-current animate-pulse" />
+                            {getActionLabel(
+                              msg.suggestedAction.name,
+                              msg.suggestedAction.args,
+                              msg.suggestedAction.executed,
+                            )}
+                          </button>
                         </div>
+                      ) : (
+                        msg.actionPill && (
+                          <div className={`flex ${isAI ? 'justify-start pl-8.5' : 'justify-end'}`}>
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[8.5px] font-bold text-emerald-400 select-none">
+                              <Sparkles className="w-2.5 h-2.5 animate-pulse text-emerald-400" />{' '}
+                              Action: {msg.actionPill}
+                            </div>
+                          </div>
+                        )
                       )}
                     </div>
                   );
@@ -308,11 +433,11 @@ export default function ChatbotWidget() {
 
               {/* Suggestions / FAQ items */}
               {messages.length === 1 && !isTyping && (
-                <div className="p-3 border-t border-white/[0.04] bg-white/[0.005]">
+                <div className="p-3 border-t border-white/[0.04] bg-white/[0.005] shrink-0">
                   <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 px-1">
                     Common Questions
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5">
                     {faqItems.map((item) => (
                       <button
                         key={item.label}
@@ -332,20 +457,21 @@ export default function ChatbotWidget() {
                   e.preventDefault();
                   handleSend(input);
                 }}
-                className="p-3 border-t border-white/[0.06] bg-[#020205]/40 flex items-center gap-2"
+                className="p-3 border-t border-white/[0.06] bg-[#020205]/40 flex items-center gap-2 shrink-0"
               >
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask a question..."
-                  className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40 focus:bg-white/[0.04] transition-all"
+                  className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-full px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40 focus:bg-white/[0.04] transition-all"
                   aria-label="Ask chatbot assistant"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim()}
-                  className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#00D4FF] to-cyan-500 text-[#0A0F1E] flex items-center justify-center transition-all disabled:opacity-40 disabled:pointer-events-none hover:scale-105 cursor-pointer shadow-md shadow-cyan-500/10"
+                  aria-label="Send message"
+                  className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00D4FF] to-cyan-500 text-[#0A0F1E] flex items-center justify-center transition-all disabled:opacity-40 disabled:pointer-events-none hover:scale-105 cursor-pointer shadow-md shadow-cyan-500/10"
                 >
                   <Send className="w-3.5 h-3.5" />
                 </button>
