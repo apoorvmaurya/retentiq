@@ -1,23 +1,57 @@
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { db, schema } from '../lib/db.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { decryptConfig } from '../lib/crypto.js';
 const router = Router();
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'mock_secret_key', {
-  apiVersion: '2025-01-27.acacia' as any,
-});
 
 const handleWebhook = async (req: Request, res: Response): Promise<void> => {
   const sig = req.headers['stripe-signature'] as string;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+  const orgId = req.params.orgId;
+
+  let stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'mock_secret_key';
+  let webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+
+  if (orgId) {
+    try {
+      const integration = await db
+        .select()
+        .from(schema.integrations)
+        .where(
+          and(
+            eq(schema.integrations.orgId, orgId as string),
+            eq(schema.integrations.provider, 'stripe'),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows[0]);
+
+      if (integration && integration.config) {
+        const decryptedConfig = decryptConfig(integration.config as Record<string, any>);
+        if (decryptedConfig.stripeSecretKey) {
+          stripeSecretKey = decryptedConfig.stripeSecretKey;
+        }
+        if (decryptedConfig.stripeWebhookSecret) {
+          webhookSecret = decryptedConfig.stripeWebhookSecret;
+        }
+      }
+    } catch (err: any) {
+      console.error('[Stripe webhook] Error resolving integration config:', err.message);
+    }
+  }
+
+  const stripe = new Stripe(stripeSecretKey, {
+    apiVersion: '2025-01-27.acacia' as any,
+  });
 
   let event: any;
 
   try {
     if (process.env.NODE_ENV === 'production') {
       if (!sig || !webhookSecret) {
-        res.status(400).send('Webhook Error: Missing stripe-signature or STRIPE_WEBHOOK_SECRET');
+        res
+          .status(400)
+          .send('Webhook Error: Missing stripe-signature or webhook secret configuration');
         return;
       }
       event = stripe.webhooks.constructEvent((req as any).rawBody, sig, webhookSecret);

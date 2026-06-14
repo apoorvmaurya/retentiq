@@ -1,13 +1,41 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import { db, schema } from '../lib/db.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { decryptConfig } from '../lib/crypto.js';
 
 const router = Router();
 
 const handleWebhook = async (req: Request, res: Response): Promise<void> => {
   const sig = req.headers['x-hub-signature'] as string;
-  const clientSecret = process.env.INTERCOM_CLIENT_SECRET || '';
+  const orgId = req.params.orgId;
+
+  let clientSecret = process.env.INTERCOM_CLIENT_SECRET || '';
+
+  if (orgId) {
+    try {
+      const integration = await db
+        .select()
+        .from(schema.integrations)
+        .where(
+          and(
+            eq(schema.integrations.orgId, orgId as string),
+            eq(schema.integrations.provider, 'intercom'),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows[0]);
+
+      if (integration && integration.config) {
+        const decryptedConfig = decryptConfig(integration.config as Record<string, any>);
+        if (decryptedConfig.intercomClientSecret) {
+          clientSecret = decryptedConfig.intercomClientSecret;
+        }
+      }
+    } catch (err: any) {
+      console.error('[Intercom webhook] Error resolving integration config:', err.message);
+    }
+  }
 
   try {
     if (process.env.NODE_ENV === 'production') {

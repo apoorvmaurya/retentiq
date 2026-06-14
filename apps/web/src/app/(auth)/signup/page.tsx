@@ -1,17 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FloatingInput } from '@/components/FloatingInput';
 import { createClient } from '@/lib/supabase/client';
 import { Chrome } from '@/components/icons/Chrome';
 import { Brain, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
+import { fetchFromApi } from '@/lib/api';
 
 export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center p-8 text-center text-xs text-[#8B95AB] uppercase tracking-wider font-semibold">
+          <div className="w-5 h-5 rounded-full border border-[#00D4FF] border-r-transparent animate-spin mb-2" />
+          Loading sign up form...
+        </div>
+      }
+    >
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function SignupForm() {
   const toast = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,10 +64,16 @@ export default function SignupPage() {
       setErrorMsg(error.message);
       setLoading(false);
     } else {
+      if (token) {
+        try {
+          await fetchFromApi('/users/invites/accept/' + token, { method: 'POST' });
+        } catch (err) {
+          console.error('Failed to accept invite on signup:', err);
+        }
+      }
       router.refresh();
-      // If auto-confirm is enabled, they are signed in immediately.
-      // Redirect them directly to onboarding step 1.
-      window.location.href = '/onboarding?step=1';
+      // If invitation token exists, redirect to dashboard, otherwise onboarding
+      window.location.href = token ? '/dashboard' : '/onboarding?step=1';
     }
   };
 
@@ -56,10 +81,14 @@ export default function SignupPage() {
     setLoading(true);
     setErrorMsg('');
     const supabase = createClient();
+    const redirectTo = token
+      ? `${window.location.origin}/auth/callback?next=/dashboard&token=${token}`
+      : `${window.location.origin}/auth/callback`;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo,
       },
     });
 
@@ -81,9 +110,13 @@ export default function SignupPage() {
           <span className="font-bold text-sm tracking-widest text-white uppercase">RetentIQ</span>
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight text-white">Create your account</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white">
+          {token ? 'Join your workspace' : 'Create your account'}
+        </h1>
         <p className="text-sm text-[#8B95AB]">
-          Sign up to build your custom customer health dashboard
+          {token
+            ? 'Sign up to accept your invitation and join the workspace'
+            : 'Sign up to build your custom customer health dashboard'}
         </p>
       </div>
 
@@ -195,7 +228,10 @@ export default function SignupPage() {
       {/* Login Link */}
       <div className="text-center text-xs text-[#8B95AB] mt-6">
         Already have an account?{' '}
-        <Link href="/login" className="text-[#00D4FF] hover:underline font-semibold">
+        <Link
+          href={token ? `/login?token=${token}` : '/login'}
+          className="text-[#00D4FF] hover:underline font-semibold"
+        >
           Sign in
         </Link>
       </div>

@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { db, schema } from '../lib/db.js';
 import { eq } from 'drizzle-orm';
+import { encryptConfig, maskConfig, decryptConfig, isMasked } from '../lib/crypto.js';
 
 import stripeRouter from '../integrations/stripe.js';
 import intercomRouter from '../integrations/intercom.js';
@@ -35,7 +36,12 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       .from(schema.integrations)
       .where(eq(schema.integrations.orgId, orgId));
 
-    res.json(integrationsList);
+    const maskedList = integrationsList.map((item) => ({
+      ...item,
+      config: maskConfig(item.config as Record<string, any>),
+    }));
+
+    res.json(maskedList);
   } catch (err) {
     next(err);
   }
@@ -105,13 +111,39 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       .where(eq(schema.integrations.orgId, orgId))
       .then((rows) => rows.find((r) => r.provider === provider));
 
+    let finalConfig: Record<string, any> = {};
+    if (existing) {
+      const decryptedExisting = decryptConfig(existing.config as Record<string, any>);
+      const mergedConfig = { ...decryptedExisting };
+
+      if (config) {
+        for (const key of Object.keys(config)) {
+          const val = config[key];
+          if (isMasked(val)) {
+            // Retain the existing decrypted value
+          } else if (
+            val === null ||
+            val === undefined ||
+            (typeof val === 'string' && val.trim() === '')
+          ) {
+            delete mergedConfig[key];
+          } else {
+            mergedConfig[key] = typeof val === 'string' ? val.trim() : val;
+          }
+        }
+      }
+      finalConfig = encryptConfig(mergedConfig);
+    } else {
+      finalConfig = encryptConfig(config || {});
+    }
+
     let result;
     if (existing) {
       const [updated] = await db
         .update(schema.integrations)
         .set({
           status,
-          config: config || existing.config,
+          config: finalConfig,
           lastSyncedAt: status === 'active' ? new Date() : null,
         })
         .where(eq(schema.integrations.id, existing.id))
@@ -124,14 +156,17 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
           orgId,
           provider,
           status,
-          config: config || {},
+          config: finalConfig,
           lastSyncedAt: status === 'active' ? new Date() : null,
         })
         .returning();
       result = inserted;
     }
 
-    res.json(result);
+    res.json({
+      ...result,
+      config: maskConfig(result.config as Record<string, any>),
+    });
   } catch (err) {
     next(err);
   }

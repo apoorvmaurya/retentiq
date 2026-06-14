@@ -123,6 +123,12 @@ sequenceDiagram
         App->>Proxy: completeOnboarding(data) Server Action
         Proxy->>DB: Insert Org, Users, & Score Weights
         Proxy-->>App: onboarding_complete = true (Redirect to /dashboard)
+    else Accept Invitation (with token)
+        App->>API: POST /api/users/invites/accept/:token
+        API->>DB: Link user to org & set onboarding_complete = true
+        App->>Proxy: Authenticated Page Request (/dashboard)
+        Proxy->>DB: Verify JWT & Onboarding Complete Status (true)
+        Proxy-->>App: Allow request (Redirect to /dashboard)
     end
 
     %% Data Sync / Ingestions
@@ -325,6 +331,7 @@ docker compose up --build
 RetentIQ is built from the ground up to support strict enterprise data governance standards:
 
 - **Row-Level Security (RLS)**: Enforces complete isolation at the database level. Customer telemetry and user details are only accessible to verified members of the corresponding tenant organization (`org_id`).
+- **Symmetric Application-Layer Encryption**: Encrypts all sensitive tenant-specific credentials (such as Stripe API keys, Mixpanel credentials, Slack Webhook URLs) at rest in PostgreSQL using AES-256-GCM. Decryption is isolated to backend routers and workers (alerting, ingestion), and keys are never returned in plaintext to the browser after being saved.
 - **Cryptographic Transit**: All API requests, Supabase database connections, and WebSocket subscription streams require SSL/TLS in transit.
 - **LLM Privacy**: Data sent to the Llama-3.3 model on Groq is anonymized. No personally identifiable customer information (PII) is transmitted.
 

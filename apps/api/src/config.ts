@@ -48,6 +48,7 @@ const envSchema = z.object({
     .optional()
     .transform((val) => val === 'true')
     .default(false),
+  ENCRYPTION_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

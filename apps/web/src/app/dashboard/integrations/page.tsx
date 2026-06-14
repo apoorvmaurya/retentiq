@@ -138,8 +138,8 @@ const PROVIDER_GUIDES: Record<string, ProviderGuide> = {
         text: "Select customer.subscription.updated, customer.subscription.deleted, and invoice.payment_failed. Click 'Add Endpoint' to save.",
       },
       {
-        title: 'Configure Server Keys (Self-Hosted)',
-        text: 'Ensure the environment variables STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are configured in your API server configuration.',
+        title: 'Enter API Credentials Below',
+        text: 'Enter your Stripe Secret Key and Webhook Signing Secret in the configuration form below to activate secure synchronization.',
       },
     ],
     testCommand: 'python test_stripe.py',
@@ -165,8 +165,8 @@ const PROVIDER_GUIDES: Record<string, ProviderGuide> = {
         text: 'Add subscriptions for conversation.created and conversation.rated, then save.',
       },
       {
-        title: 'Set Client Secret (Self-Hosted)',
-        text: 'Set INTERCOM_CLIENT_SECRET in your server environment to verify signatures of incoming payloads.',
+        title: 'Save Client Credentials Below',
+        text: 'Enter your Intercom Client Secret in the configuration form below to verify signatures of incoming payloads.',
       },
     ],
     testCommand: 'python test_intercom.py',
@@ -191,8 +191,8 @@ const PROVIDER_GUIDES: Record<string, ProviderGuide> = {
         text: 'Paste the Segment webhook URL below into the Webhook URL field in your Segment settings.',
       },
       {
-        title: 'Enable Destination',
-        text: 'Toggle the destination status to Active. Your user activity events will now flow into RetentIQ.',
+        title: 'Enable & Secure Destination',
+        text: 'Toggle the destination status to Active and input your Webhook Signing Secret below to verify requests.',
       },
     ],
     testSamplePayload:
@@ -208,12 +208,8 @@ const PROVIDER_GUIDES: Record<string, ProviderGuide> = {
         text: 'Go to Mixpanel Project Settings > Service Accounts and create an account with Analyst or Admin role.',
       },
       {
-        title: 'Add Credentials to Server',
-        text: 'Retrieve the Username and Secret of the Service Account. Add them to your RetentIQ server environment variables:',
-      },
-      {
-        title: 'Set Server Env Variables',
-        text: "Configure MIXPANEL_SERVICE_ACCOUNT_USERNAME and MIXPANEL_SERVICE_ACCOUNT_SECRET in your API server's environment configuration.",
+        title: 'Save Service Account Credentials Below',
+        text: 'Retrieve the Username and Secret of the Service Account and input them in the form below.',
       },
       {
         title: 'Activate & Run Sync',
@@ -239,8 +235,8 @@ const PROVIDER_GUIDES: Record<string, ProviderGuide> = {
         text: 'Subscribe to contact and company creation/property change events (like NPS updates).',
       },
       {
-        title: 'Add API Keys (Self-Hosted)',
-        text: 'Configure your HubSpot access token in the server configuration to allow direct API calls if needed.',
+        title: 'Save Private App Access Token Below',
+        text: 'Input your HubSpot Access Token in the configuration form below.',
       },
     ],
     testSamplePayload:
@@ -260,8 +256,8 @@ const PROVIDER_GUIDES: Record<string, ProviderGuide> = {
         text: 'Navigate to Workflow Actions > Outbound Messages. Create a new outbound message targeting the Salesforce webhook URL below.',
       },
       {
-        title: 'Map Fields & Send',
-        text: 'Select the fields to include (email, NPS/score, ARR, renewal date) and assign to active account workflow rules.',
+        title: 'Map Fields & Save Credentials Below',
+        text: 'Select the fields to include (email, NPS/score, ARR, renewal date) and input your Connected App Client ID/Secret in the form below.',
       },
     ],
     testSamplePayload:
@@ -281,15 +277,97 @@ const PROVIDER_GUIDES: Record<string, ProviderGuide> = {
         text: 'Choose the channel where customer health alerts should be posted, and copy the Webhook URL.',
       },
       {
-        title: 'Configure Server Environment',
-        text: 'Set the SLACK_WEBHOOK_URL environment variable on your RetentIQ API server.',
-      },
-      {
-        title: 'Test Notifications',
-        text: 'Activate the Slack integration here. Alerts will be dispatched automatically based on playbook rules.',
+        title: 'Save Slack Webhook URL Below',
+        text: 'Input the webhook URL in the configuration form below to enable playbook notifications.',
       },
     ],
   },
+};
+
+const PROVIDER_FIELDS: Record<
+  string,
+  { label: string; key: string; placeholder: string; type: string }[]
+> = {
+  stripe: [
+    {
+      label: 'Stripe Secret Key',
+      key: 'stripeSecretKey',
+      placeholder: 'sk_live_...',
+      type: 'password',
+    },
+    {
+      label: 'Stripe Webhook Secret',
+      key: 'stripeWebhookSecret',
+      placeholder: 'whsec_...',
+      type: 'password',
+    },
+  ],
+  mixpanel: [
+    {
+      label: 'Service Account Username',
+      key: 'mixpanelServiceAccountUsername',
+      placeholder: 'service-account-username',
+      type: 'text',
+    },
+    {
+      label: 'Service Account Secret',
+      key: 'mixpanelServiceAccountSecret',
+      placeholder: 'mixpanel-service-account-secret',
+      type: 'password',
+    },
+  ],
+  intercom: [
+    {
+      label: 'Intercom Client Secret',
+      key: 'intercomClientSecret',
+      placeholder: 'intercom-client-secret',
+      type: 'password',
+    },
+    {
+      label: 'Intercom Access Token (Optional)',
+      key: 'intercomAccessToken',
+      placeholder: 'intercom-access-token',
+      type: 'password',
+    },
+  ],
+  segment: [
+    {
+      label: 'Webhook Signing Secret',
+      key: 'segmentWebhookSecret',
+      placeholder: 'segment-signing-secret',
+      type: 'password',
+    },
+  ],
+  hubspot: [
+    {
+      label: 'Private App Access Token',
+      key: 'hubspotAccessToken',
+      placeholder: 'pat-na1-...',
+      type: 'password',
+    },
+  ],
+  salesforce: [
+    {
+      label: 'Connected App Client ID',
+      key: 'salesforceClientId',
+      placeholder: 'salesforce-client-id',
+      type: 'text',
+    },
+    {
+      label: 'Connected App Client Secret',
+      key: 'salesforceClientSecret',
+      placeholder: 'salesforce-client-secret',
+      type: 'password',
+    },
+  ],
+  slack: [
+    {
+      label: 'Slack Webhook URL',
+      key: 'slackWebhookUrl',
+      placeholder: 'https://hooks.slack.com/services/...',
+      type: 'password',
+    },
+  ],
 };
 
 export default function IntegrationsPage() {
@@ -304,6 +382,9 @@ export default function IntegrationsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
 
+  // Credentials Form State
+  const [configForm, setConfigForm] = useState<Record<string, string>>({});
+
   // CSV Manual Ingestion State
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -312,6 +393,18 @@ export default function IntegrationsPage() {
   const [uploadSuccess, setUploadSuccess] = useState<any | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+
+  // Load existing credentials when modal is opened
+  useEffect(() => {
+    if (selectedGuideProvider) {
+      const dbRecord = dbIntegrations.find(
+        (item) => item.provider.toLowerCase() === selectedGuideProvider.toLowerCase(),
+      );
+      setConfigForm(dbRecord?.config || {});
+    } else {
+      setConfigForm({});
+    }
+  }, [selectedGuideProvider, dbIntegrations]);
 
   // Fetch Org ID on mount
   useEffect(() => {
@@ -463,7 +556,7 @@ export default function IntegrationsPage() {
         body: JSON.stringify({
           provider: providerId,
           status: nextStatus,
-          config: {},
+          config: configForm,
         }),
       });
 
@@ -492,10 +585,33 @@ export default function IntegrationsPage() {
               provider: providerId,
               status: 'active',
               lastSyncedAt: new Date().toISOString(),
+              config: configForm,
             },
           ];
         }
       });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!selectedGuideProvider) return;
+    setActionLoading(selectedGuideProvider);
+    try {
+      await fetchFromApi('/integrations', {
+        method: 'POST',
+        body: JSON.stringify({
+          provider: selectedGuideProvider,
+          status: 'active',
+          config: configForm,
+        }),
+      });
+      await loadIntegrations();
+      toast.success('Configuration saved successfully!');
+    } catch (err: any) {
+      console.error('Save config failed:', err);
+      toast.error(`Failed to save configuration: ${err.message || 'Unknown error'}`);
     } finally {
       setActionLoading(null);
     }
@@ -1087,6 +1203,43 @@ export default function IntegrationsPage() {
                             ))}
                           </div>
                         </div>
+
+                        {/* Secure API Credentials Form */}
+                        {selectedGuideProvider &&
+                          PROVIDER_FIELDS[selectedGuideProvider]?.length > 0 && (
+                            <div className="border-t border-[#152347] pt-4 mt-6 space-y-4">
+                              <div>
+                                <h5 className="font-extrabold text-white text-xs uppercase tracking-wider text-slate-400">
+                                  Secure API Credentials
+                                </h5>
+                                <p className="text-[10px] text-slate-500 font-medium leading-normal mt-0.5">
+                                  Credentials are symmetrically encrypted at rest. We never expose
+                                  plaintext secrets back to the browser.
+                                </p>
+                              </div>
+                              <div className="space-y-3">
+                                {PROVIDER_FIELDS[selectedGuideProvider].map((field) => (
+                                  <div key={field.key} className="space-y-1">
+                                    <label className="text-[10px] uppercase font-bold text-slate-400">
+                                      {field.label}
+                                    </label>
+                                    <input
+                                      type={field.type}
+                                      placeholder={field.placeholder}
+                                      value={configForm[field.key] || ''}
+                                      onChange={(e) =>
+                                        setConfigForm({
+                                          ...configForm,
+                                          [field.key]: e.target.value,
+                                        })
+                                      }
+                                      className="w-full bg-[#05070f] border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-colors"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                       </div>
                     )}
 
@@ -1120,64 +1273,71 @@ export default function IntegrationsPage() {
                         </div>
 
                         {/* Developer Testing / Scripting Info */}
-                        <div className="space-y-2">
-                          <h5 className="text-white font-bold text-xs">
-                            Ingestion Verification & Developer Sandbox
-                          </h5>
-                          <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                            Want to test the webhook processing flow end-to-end? You can send mock
-                            payloads using the pre-configured scripts or payloads.
-                          </p>
+                        {typeof window !== 'undefined' &&
+                          (window.location.hostname === 'localhost' ||
+                            window.location.hostname === '127.0.0.1' ||
+                            process.env.NODE_ENV === 'development') && (
+                            <div className="space-y-2">
+                              <h5 className="text-white font-bold text-xs">
+                                Ingestion Verification & Developer Sandbox
+                              </h5>
+                              <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                                Want to test the webhook processing flow end-to-end? You can send
+                                mock payloads using the pre-configured scripts or payloads.
+                              </p>
 
-                          {guide.testCommand && (
-                            <div className="space-y-1">
-                              <span className="text-[10px] uppercase font-bold text-slate-500">
-                                Sandbox Test Script Command
-                              </span>
-                              <div className="bg-[#05070f] border border-slate-900 rounded-xl p-3 flex items-center justify-between font-mono text-xs text-cyan-400">
-                                <div className="flex items-center gap-1.5 truncate">
-                                  <Terminal className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                                  <span className="truncate select-all">{guide.testCommand}</span>
+                              {guide.testCommand && (
+                                <div className="space-y-1">
+                                  <span className="text-[10px] uppercase font-bold text-slate-500">
+                                    Sandbox Test Script Command
+                                  </span>
+                                  <div className="bg-[#05070f] border border-slate-900 rounded-xl p-3 flex items-center justify-between font-mono text-xs text-cyan-400">
+                                    <div className="flex items-center gap-1.5 truncate">
+                                      <Terminal className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                      <span className="truncate select-all">
+                                        {guide.testCommand}
+                                      </span>
+                                    </div>
+                                    <button
+                                      onClick={() => handleCopy(guide.testCommand!, 'test-cmd')}
+                                      className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0 border border-transparent hover:border-slate-700"
+                                    >
+                                      {copiedId === 'test-cmd' ? (
+                                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                      ) : (
+                                        <Copy className="w-3.5 h-3.5" />
+                                      )}
+                                    </button>
+                                  </div>
                                 </div>
-                                <button
-                                  onClick={() => handleCopy(guide.testCommand!, 'test-cmd')}
-                                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0 border border-transparent hover:border-slate-700"
-                                >
-                                  {copiedId === 'test-cmd' ? (
-                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                  ) : (
-                                    <Copy className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                              )}
 
-                          {guide.testSamplePayload && (
-                            <div className="space-y-1">
-                              <span className="text-[10px] uppercase font-bold text-slate-500">
-                                Sample Webhook Payload JSON
-                              </span>
-                              <div className="bg-[#05070f] border border-slate-900 rounded-xl p-3 relative font-mono text-[10px] text-slate-400 leading-normal max-h-32 overflow-y-auto">
-                                <pre className="whitespace-pre-wrap select-all">
-                                  {guide.testSamplePayload}
-                                </pre>
-                                <button
-                                  onClick={() =>
-                                    handleCopy(guide.testSamplePayload!, 'test-payload')
-                                  }
-                                  className="absolute top-2 right-2 p-1.5 rounded-lg bg-[#070B16] border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                                >
-                                  {copiedId === 'test-payload' ? (
-                                    <Check className="w-3 h-3 text-emerald-400" />
-                                  ) : (
-                                    <Copy className="w-3 h-3" />
-                                  )}
-                                </button>
-                              </div>
+                              {guide.testSamplePayload && (
+                                <div className="space-y-1">
+                                  <span className="text-[10px] uppercase font-bold text-slate-500">
+                                    Sample Webhook Payload JSON
+                                  </span>
+                                  <div className="bg-[#05070f] border border-slate-900 rounded-xl p-3 relative font-mono text-[10px] text-slate-400 leading-normal max-h-32 overflow-y-auto">
+                                    <pre className="whitespace-pre-wrap select-all">
+                                      {guide.testSamplePayload}
+                                    </pre>
+                                    <button
+                                      onClick={() =>
+                                        handleCopy(guide.testSamplePayload!, 'test-payload')
+                                      }
+                                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-[#070B16] border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                                    >
+                                      {copiedId === 'test-payload' ? (
+                                        <Check className="w-3 h-3 text-emerald-400" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
-                        </div>
                       </div>
                     )}
                   </div>
@@ -1190,6 +1350,19 @@ export default function IntegrationsPage() {
                     >
                       Close Guide
                     </button>
+
+                    {isActive && (
+                      <button
+                        onClick={handleSaveSettings}
+                        disabled={actionLoading === selectedGuideProvider}
+                        className="flex-1 btn-primary bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        {actionLoading === selectedGuideProvider && (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        )}
+                        Save Settings
+                      </button>
+                    )}
 
                     <button
                       onClick={() => {

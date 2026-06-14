@@ -304,18 +304,40 @@ router.post('/invites/accept/:token', async (req: Request, res: Response, next: 
       return;
     }
 
-    // Create user profile linked to invite org
-    const [newUser] = await db
-      .insert(schema.users)
-      .values({
-        id: userId,
-        orgId: invite.orgId,
-        email: email,
-        role: invite.role,
-        name: email.split('@')[0],
-        onboardingComplete: true,
-      })
-      .returning();
+    // Create user profile linked to invite org or update if it already exists (conflict safe)
+    const existingUser = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    let newUser;
+    if (existingUser) {
+      const [updated] = await db
+        .update(schema.users)
+        .set({
+          orgId: invite.orgId,
+          role: invite.role,
+          onboardingComplete: true,
+        })
+        .where(eq(schema.users.id, userId))
+        .returning();
+      newUser = updated;
+    } else {
+      const [inserted] = await db
+        .insert(schema.users)
+        .values({
+          id: userId,
+          orgId: invite.orgId,
+          email: email,
+          role: invite.role,
+          name: email.split('@')[0],
+          onboardingComplete: true,
+        })
+        .returning();
+      newUser = inserted;
+    }
 
     // Mark invite as accepted
     await db

@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import nodemailer from 'nodemailer';
 import { db, schema } from '../lib/db.js';
 import { eq, and, gte, lte, lt, gt, desc, asc, sql } from 'drizzle-orm';
+import { decryptConfig } from '../lib/crypto.js';
 
 // Nodemailer transport initialization
 const host = process.env.SMTP_HOST || 'smtp.mailtrap.io';
@@ -219,7 +220,40 @@ export async function checkAndDeliverAlerts(): Promise<void> {
             if (rulePriority === 'critical') slackEmoji = '🚨';
             else if (rulePriority === 'info') slackEmoji = 'ℹ️';
 
-            if (alertConfig.notifySlack && process.env.SLACK_WEBHOOK_URL) {
+            let slackWebhookUrl = process.env.SLACK_WEBHOOK_URL || '';
+
+            if (alertConfig.notifySlack) {
+              try {
+                const slackIntegration = await db
+                  .select()
+                  .from(schema.integrations)
+                  .where(
+                    and(
+                      eq(schema.integrations.orgId, org.id),
+                      eq(schema.integrations.provider, 'slack'),
+                      eq(schema.integrations.status, 'active'),
+                    ),
+                  )
+                  .limit(1)
+                  .then((rows) => rows[0]);
+
+                if (slackIntegration && slackIntegration.config) {
+                  const decryptedConfig = decryptConfig(
+                    slackIntegration.config as Record<string, any>,
+                  );
+                  if (decryptedConfig.slackWebhookUrl) {
+                    slackWebhookUrl = decryptedConfig.slackWebhookUrl;
+                  }
+                }
+              } catch (err: any) {
+                console.error(
+                  `[AlertWorker] Error resolving Slack integration for org ${org.id}:`,
+                  err.message,
+                );
+              }
+            }
+
+            if (alertConfig.notifySlack && slackWebhookUrl) {
               try {
                 const slackPayload = {
                   blocks: [
@@ -255,7 +289,7 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                   ],
                 };
 
-                const slackRes = await fetch(process.env.SLACK_WEBHOOK_URL, {
+                const slackRes = await fetch(slackWebhookUrl, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(slackPayload),

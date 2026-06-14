@@ -8,6 +8,7 @@ import { Chrome } from '@/components/icons/Chrome';
 import { Brain, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
+import { fetchFromApi } from '@/lib/api';
 
 import { Suspense } from 'react';
 
@@ -30,6 +31,8 @@ function LoginForm() {
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,6 +60,13 @@ function LoginForm() {
       setErrorMsg(error.message);
       setLoading(false);
     } else {
+      if (token) {
+        try {
+          await fetchFromApi('/users/invites/accept/' + token, { method: 'POST' });
+        } catch (err) {
+          console.error('Failed to accept invite on login:', err);
+        }
+      }
       router.refresh();
       window.location.href = '/dashboard';
     }
@@ -66,10 +76,14 @@ function LoginForm() {
     setLoading(true);
     setErrorMsg('');
     const supabase = createClient();
+    const redirectTo = token
+      ? `${window.location.origin}/auth/callback?next=/dashboard&token=${token}`
+      : `${window.location.origin}/auth/callback`;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo,
       },
     });
 
@@ -91,9 +105,13 @@ function LoginForm() {
           <span className="font-bold text-sm tracking-widest text-white uppercase">RetentIQ</span>
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight text-white">Welcome back</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white">
+          {token ? 'Sign in to join' : 'Welcome back'}
+        </h1>
         <p className="text-sm text-[#8B95AB]">
-          Enter your credentials to access your churn dashboard
+          {token
+            ? 'Sign in to accept your invitation and join the workspace'
+            : 'Enter your credentials to access your churn dashboard'}
         </p>
       </div>
 
@@ -170,7 +188,10 @@ function LoginForm() {
       {/* Signup Link */}
       <div className="text-center text-xs text-[#8B95AB] mt-6">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="text-[#00D4FF] hover:underline font-semibold">
+        <Link
+          href={token ? `/signup?token=${token}` : '/signup'}
+          className="text-[#00D4FF] hover:underline font-semibold"
+        >
           Sign up
         </Link>
       </div>

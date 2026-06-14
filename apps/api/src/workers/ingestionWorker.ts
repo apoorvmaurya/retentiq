@@ -1,6 +1,7 @@
 import { db, schema } from '../lib/db.js';
 import { eq, and, gte, sql } from 'drizzle-orm';
 import { computeAndTriggerRescore } from '../lib/featureEngine.js';
+import { decryptConfig } from '../lib/crypto.js';
 import Papa from 'papaparse';
 import { z } from 'zod';
 
@@ -406,8 +407,25 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
     throw new Error('Mixpanel integration not configured');
   }
 
-  const username = process.env.MIXPANEL_SERVICE_ACCOUNT_USERNAME || '';
-  const secret = process.env.MIXPANEL_SERVICE_ACCOUNT_SECRET || '';
+  let username = '';
+  let secret = '';
+
+  if (mixpanelIntegration.config) {
+    try {
+      const decryptedConfig = decryptConfig(mixpanelIntegration.config as Record<string, any>);
+      username = decryptedConfig.mixpanelServiceAccountUsername || '';
+      secret = decryptedConfig.mixpanelServiceAccountSecret || '';
+    } catch (err: any) {
+      console.error('[Mixpanel Ingestion] Error decrypting config:', err.message);
+    }
+  }
+
+  if (!username) {
+    username = process.env.MIXPANEL_SERVICE_ACCOUNT_USERNAME || '';
+  }
+  if (!secret) {
+    secret = process.env.MIXPANEL_SERVICE_ACCOUNT_SECRET || '';
+  }
 
   const today = new Date();
   const thirtyDaysAgo = new Date();

@@ -49,6 +49,9 @@ app.get('/api/invites/accept/test', (req, res) => {
 
 describe('RetentIQ API Routes & Middleware Tests', () => {
   beforeAll(async () => {
+    // Clear database to ensure test isolation and correct fallback org selection
+    await db.delete(schema.organizations);
+
     // Seed test org, user and customer so that database constraints and authentication succeeded
     await db
       .insert(schema.organizations)
