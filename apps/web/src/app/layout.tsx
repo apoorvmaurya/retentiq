@@ -29,6 +29,11 @@ export const metadata: Metadata = {
   title: 'RetentIQ — Customer Health Intelligence',
   description:
     'Spot SaaS churn risk 30–60 days early. AI-powered health scores, smart alerts, and retention playbooks.',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.svg',
+  },
   openGraph: {
     title: 'RetentIQ — Customer Health Intelligence',
     description:

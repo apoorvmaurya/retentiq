@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Brand Gradients -->
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00D4FF" />
+      <stop offset="100%" stop-color="#6366F1" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+    <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00D4FF" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#020205" stop-opacity="0" />
+    </radialGradient>
+    
+    <!-- Drop Shadows for depth -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#00D4FF" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Glow Background -->
+  <circle cx="256" cy="256" r="240" fill="url(#glowGrad)" />
+
+  <!-- Outer Ring Connection Mesh -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#accentGrad)" stroke-width="2" stroke-dasharray="12 16" opacity="0.4" />
+  
+  <!-- Outer Connection Nodes -->
+  <circle cx="256" cy="76" r="6" fill="#00D4FF" />
+  <circle cx="256" cy="436" r="6" fill="#6366F1" />
+  <circle cx="76" cy="256" r="6" fill="#06B6D4" />
+  <circle cx="436" cy="256" r="6" fill="#4F46E5" />
+
+  <!-- Stylized Churn Loop & Neural Network "R" -->
+  <g filter="url(#shadow)">
+    <!-- Neural Node connections -->
+    <path d="M 220,180 L 292,180 L 330,225 L 292,270 L 220,270 Z" fill="none" stroke="url(#primaryGrad)" stroke-width="4" stroke-linejoin="round" opacity="0.3" />
+    
+    <!-- Central Ribbon "R" shape representing Retention -->
+    <path d="M 190,140 
+             C 190,140 280,120 310,170 
+             C 335,210 310,250 270,260 
+             L 340,380 
+             M 210,140 
+             L 210,380" 
+          fill="none" 
+          stroke="url(#primaryGrad)" 
+          stroke-width="36" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+          
+    <!-- Core Synapse / AI Predictor Core -->
+    <circle cx="256" cy="200" r="28" fill="url(#accentGrad)" />
+    <circle cx="256" cy="200" r="12" fill="#FFFFFF" />
+    
+    <!-- Floating Data Nodes -->
+    <circle cx="340" cy="380" r="14" fill="#6366F1" />
+    <circle cx="210" cy="140" r="14" fill="#00D4FF" />
+    <circle cx="210" cy="380" r="14" fill="#4F46E5" />
+  </g>
+</svg>
