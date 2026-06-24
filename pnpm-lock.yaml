@@ -8,6 +8,7 @@ settings:
 overrides:
   esbuild: ^0.28.1
   postcss: ^8.5.15
+  form-data: ^4.0.6
 
 importers:
   .:
@@ -161,8 +162,8 @@ importers:
         specifier: ^12.0.6
         version: 12.40.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       lucide-react:
-        specifier: ^1.18.0
-        version: 1.18.0(react@19.2.7)
+        specifier: ^1.21.0
+        version: 1.21.0(react@19.2.7)
       next:
         specifier: 16.2.9
         version: 16.2.9(@babel/core@7.29.7)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -3315,10 +3316,10 @@ packages:
       }
     engines: { node: '>= 0.4' }
 
-  form-data@4.0.5:
+  form-data@4.0.6:
     resolution:
       {
-        integrity: sha512-8RipRLol37bNs2bhoV67fiTEvdTrbMUYcFTiy3+wuuOnUog2QBHCZWXDRijWQfAkhBj2Uf5UnVaiWwA5vdd82w==,
+        integrity: sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ==,
       }
     engines: { node: '>= 6' }
 
@@ -4169,10 +4170,10 @@ packages:
         integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==,
       }
 
-  lucide-react@1.18.0:
+  lucide-react@1.21.0:
     resolution:
       {
-        integrity: sha512-LZDb7H/0YfM+RJncD0hDQRCAu+vSGODqpe35TuVI8EuXaRjkczbsx7p8dY4J87F/MUSj6bpYqeI8nw8qXaAdmA==,
+        integrity: sha512-reEZMXq8Qdd5jg5XYkQ5TR1fB/GiQ7ih4vcrthYDtgjSDwh0i6/YLiGjsWsIwgN49gpAnd4J2elSNzncMEEUUQ==,
       }
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -6470,7 +6471,7 @@ snapshots:
       '@types/cookiejar': 2.1.5
       '@types/methods': 1.1.4
       '@types/node': 26.0.0
-      form-data: 4.0.5
+      form-data: 4.0.6
 
   '@types/supertest@7.2.0':
     dependencies:
@@ -7579,7 +7580,7 @@ snapshots:
     dependencies:
       is-callable: 1.2.7
 
-  form-data@4.0.5:
+  form-data@4.0.6:
     dependencies:
       asynckit: 0.4.0
       combined-stream: 1.0.8
@@ -8054,7 +8055,7 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@1.18.0(react@19.2.7):
+  lucide-react@1.21.0(react@19.2.7):
     dependencies:
       react: 19.2.7
 
@@ -8753,7 +8754,7 @@ snapshots:
       cookiejar: 2.1.4
       debug: 4.4.3
       fast-safe-stringify: 2.1.1
-      form-data: 4.0.5
+      form-data: 4.0.6
       formidable: 3.5.4
       methods: 1.1.2
       mime: 2.6.0
