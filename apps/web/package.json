@@ -12,11 +12,11 @@
   "dependencies": {
     "@retentiq/shared": "workspace:*",
     "@supabase/ssr": "^0.12.0",
-    "@supabase/supabase-js": "^2.108.1",
+    "@supabase/supabase-js": "^2.108.2",
     "framer-motion": "^12.0.6",
     "lucide-react": "^1.18.0",
     "next": "16.2.9",
-    "nodemailer": "^8.0.11",
+    "nodemailer": "^9.0.1",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "recharts": "^3.8.1",
@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.1",
-    "@types/node": "^25",
+    "@types/node": "^26",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
