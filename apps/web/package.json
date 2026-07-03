@@ -19,7 +19,7 @@
     "nodemailer": "^9.0.1",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "recharts": "^3.8.1",
+    "recharts": "^3.9.1",
     "uuid": "^14.0.0"
   },
   "devDependencies": {
