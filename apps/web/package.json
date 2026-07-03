@@ -13,7 +13,7 @@
     "@retentiq/shared": "workspace:*",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
-    "framer-motion": "^12.0.6",
+    "framer-motion": "^12.42.2",
     "lucide-react": "^1.21.0",
     "next": "16.2.9",
     "nodemailer": "^9.0.1",
