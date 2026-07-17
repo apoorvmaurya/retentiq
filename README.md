@@ -1,6 +1,6 @@
 <div align="center">
   <img src="https://img.shields.io/badge/RetentIQ-Predictive%20CS%20Intelligence-blueviolet?style=for-the-badge&logo=supabase&logoColor=white" alt="RetentIQ Badge" />
-  
+
   <p align="center">
     <strong>🔮 State-of-the-Art Enterprise Churn Intelligence & Health-Scoring Platform</strong>
   </p>
