@@ -637,7 +637,7 @@ async function main() {
       orgId: org.id,
       customerId: seededCustomers[5].id,
       actionType: 'Discount Offered',
-      outcome: 'won',
+      outcome: 'success',
       revenueSaved: '500.00',
       actionedAt: new Date(Date.now() - 5 * 24 * 3600 * 1000), // 5 days ago
     },
@@ -645,7 +645,7 @@ async function main() {
       orgId: org.id,
       customerId: seededCustomers[10].id,
       actionType: 'Feature Training Session',
-      outcome: 'won',
+      outcome: 'success',
       revenueSaved: '2499.00',
       actionedAt: new Date(Date.now() - 12 * 24 * 3600 * 1000), // 12 days ago
     },
