@@ -9,4 +9,4 @@ scikit-learn>=1.9.0
 numpy>=2.4.6
 psycopg2-binary>=2.9.12
 lightgbm>=4.6.0
-shap>=0.52.0
+shap>=0.51.0
