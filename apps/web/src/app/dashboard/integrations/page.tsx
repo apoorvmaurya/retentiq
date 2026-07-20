@@ -394,6 +394,59 @@ export default function IntegrationsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
+  const [csvModalTab, setCsvModalTab] = useState<'upload' | 'history'>('upload');
+  const [csvJobs, setCsvJobs] = useState<any[]>([]);
+  const [loadingCsvJobs, setLoadingCsvJobs] = useState(false);
+  const [providerJobs, setProviderJobs] = useState<any[]>([]);
+  const [loadingProviderJobs, setLoadingProviderJobs] = useState(false);
+
+  const fetchCsvJobs = async () => {
+    setLoadingCsvJobs(true);
+    try {
+      const data = await fetchFromApi('/integrations/jobs');
+      const csvOnly = (data || []).filter((j: any) => j.type.toLowerCase() === 'csv');
+      setCsvJobs(csvOnly);
+    } catch (err) {
+      console.error('Error fetching CSV jobs:', err);
+    } finally {
+      setLoadingCsvJobs(false);
+    }
+  };
+
+  const fetchProviderJobs = async (provider: string) => {
+    setLoadingProviderJobs(true);
+    try {
+      const data = await fetchFromApi('/integrations/jobs');
+      const filtered = (data || []).filter(
+        (j: any) => j.type.toLowerCase() === provider.toLowerCase(),
+      );
+      setProviderJobs(filtered);
+    } catch (err) {
+      console.error('Error fetching provider jobs:', err);
+    } finally {
+      setLoadingProviderJobs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isUploadModalOpen) {
+      setCsvModalTab('upload');
+      fetchCsvJobs();
+    }
+  }, [isUploadModalOpen]);
+
+  useEffect(() => {
+    if (isUploadModalOpen && csvModalTab === 'history') {
+      fetchCsvJobs();
+    }
+  }, [csvModalTab, isUploadModalOpen]);
+
+  useEffect(() => {
+    if (selectedGuideProvider && activeTab === 'status') {
+      fetchProviderJobs(selectedGuideProvider);
+    }
+  }, [selectedGuideProvider, activeTab]);
+
   // Load existing credentials when modal is opened
   useEffect(() => {
     if (selectedGuideProvider) {
@@ -689,7 +742,7 @@ export default function IntegrationsPage() {
             return (
               <div
                 key={prov.id}
-                className="glass-panel glass-card-hover rounded-xl p-6 flex flex-col justify-between h-72 border border-white/[0.04] bg-slate-900/30 relative overflow-hidden"
+                className="glass-panel glass-card-hover rounded-xl p-6 flex flex-col justify-between h-72 border border-white/4 bg-slate-900/30 relative overflow-hidden"
               >
                 <div>
                   <div className="flex items-start justify-between mb-4">
@@ -792,13 +845,13 @@ export default function IntegrationsPage() {
                   setUploadError(null);
                 }
               }}
-              className="fixed inset-0 bg-[#000]/70 z-40"
+              className="fixed inset-0 bg-black/70 z-40"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] max-w-[90vw] bg-[#070B16] border border-[#152347] shadow-2xl z-50 p-6 sm:p-8 rounded-xl flex flex-col justify-between backdrop-blur-md text-slate-100"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 max-w-[90vw] bg-[#070B16] border border-[#152347] shadow-2xl z-50 p-6 sm:p-8 rounded-xl flex flex-col justify-between backdrop-blur-md text-slate-100"
             >
               <div>
                 <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#152347]">
@@ -831,140 +884,232 @@ export default function IntegrationsPage() {
                   </button>
                 </div>
 
-                {!uploadSuccess ? (
-                  <div className="space-y-4">
-                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                      Upload a CSV containing customer event stream records. The system will
-                      validate and queue the rows for background rescoring.
-                    </p>
+                {/* CSV Modal Tabs */}
+                <div className="flex border-b border-slate-800/80 mb-4 text-xs font-bold">
+                  <button
+                    onClick={() => setCsvModalTab('upload')}
+                    className={`pb-2.5 px-4 relative transition-colors cursor-pointer ${
+                      csvModalTab === 'upload'
+                        ? 'text-[#00D4FF]'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Upload CSV
+                    {csvModalTab === 'upload' && (
+                      <motion.div
+                        layoutId="activeCsvTab"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00D4FF]"
+                      />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setCsvModalTab('history')}
+                    className={`pb-2.5 px-4 relative transition-colors cursor-pointer ${
+                      csvModalTab === 'history'
+                        ? 'text-[#00D4FF]'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Sync History & Logs
+                    {csvModalTab === 'history' && (
+                      <motion.div
+                        layoutId="activeCsvTab"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00D4FF]"
+                      />
+                    )}
+                  </button>
+                </div>
 
-                    {/* Drag & Drop Zone */}
-                    <div
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setDragActive(true);
-                      }}
-                      onDragLeave={() => setDragActive(false)}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        setDragActive(false);
-                        if (e.dataTransfer.files?.[0]) {
-                          handleFileValidation(e.dataTransfer.files[0]);
-                        }
-                      }}
-                      className={`border-2 border-dashed rounded-xl p-8 text-center flex flex-col items-center justify-center transition-all cursor-pointer ${
-                        dragActive
-                          ? 'border-cyan-400 bg-cyan-500/5'
-                          : 'border-slate-800 bg-[#0C1224]/50 hover:border-slate-700 hover:bg-[#0C1224]/80'
-                      }`}
-                      onClick={() => document.getElementById('csv-file-input')?.click()}
-                    >
-                      <input
-                        type="file"
-                        id="csv-file-input"
-                        className="hidden"
-                        accept=".csv"
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            handleFileValidation(e.target.files[0]);
+                {csvModalTab === 'upload' ? (
+                  !uploadSuccess ? (
+                    <div className="space-y-4">
+                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                        Upload a CSV containing customer event stream records. The system will
+                        validate and queue the rows for background rescoring.
+                      </p>
+
+                      {/* Drag & Drop Zone */}
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragActive(true);
+                        }}
+                        onDragLeave={() => setDragActive(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragActive(false);
+                          if (e.dataTransfer.files?.[0]) {
+                            handleFileValidation(e.dataTransfer.files[0]);
                           }
                         }}
-                      />
-                      <CloudUpload className="w-8 h-8 text-slate-500 mb-2" />
-                      <span className="text-xs text-slate-300 font-semibold">
-                        {uploadFile ? uploadFile.name : 'Click to select or drag & drop CSV'}
-                      </span>
-                      <span className="text-[10px] text-slate-500 mt-1 font-bold">
-                        {uploadFile
-                          ? `${(uploadFile.size / 1024).toFixed(1)} KB`
-                          : 'Maximum size 5MB'}
-                      </span>
-                    </div>
-
-                    {/* Warnings and Errors */}
-                    {uploadError && (
-                      <div className="p-3 border border-rose-500/20 bg-rose-500/5 text-rose-400 text-xs font-semibold rounded-lg flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                        <div>{uploadError}</div>
-                      </div>
-                    )}
-
-                    {uploadWarnings &&
-                      uploadWarnings.map((warning, idx) => (
-                        <div
-                          key={idx}
-                          className="p-3 border border-amber-500/20 bg-amber-500/5 text-amber-400 text-xs font-semibold rounded-lg flex items-start gap-2"
-                        >
-                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                          <div>{warning}</div>
-                        </div>
-                      ))}
-
-                    <div className="border-t border-[#152347] pt-4 mt-6 flex gap-3">
-                      <button
-                        onClick={() => {
-                          setIsUploadModalOpen(false);
-                          setUploadFile(null);
-                          setUploadWarnings(null);
-                          setUploadError(null);
-                        }}
-                        disabled={uploading}
-                        className="btn-secondary flex-1"
+                        className={`border-2 border-dashed rounded-xl p-8 text-center flex flex-col items-center justify-center transition-all cursor-pointer ${
+                          dragActive
+                            ? 'border-cyan-400 bg-cyan-500/5'
+                            : 'border-slate-800 bg-[#0C1224]/50 hover:border-slate-700 hover:bg-[#0C1224]/80'
+                        }`}
+                        onClick={() => document.getElementById('csv-file-input')?.click()}
                       >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleUploadSubmit}
-                        disabled={uploading || !uploadFile}
-                        className="btn-primary flex-1 inline-flex items-center justify-center gap-2"
-                      >
-                        {uploading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                        {uploading ? 'Processing File...' : 'Upload & Ingest'}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-6 space-y-4">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h5 className="font-extrabold text-white text-base">Ingestion Queued</h5>
-                      <p className="text-xs text-slate-400 mt-1">
-                        We have successfully parsed {uploadSuccess.rowsQueued} event rows and
-                        registered them in our data processing queues.
-                      </p>
-                    </div>
-                    <div className="bg-[#0C1224] border border-slate-800 rounded-lg p-3 text-left space-y-1 text-xs">
-                      <div className="flex justify-between text-slate-500 font-bold">
-                        <span>Job ID:</span>
-                        <span className="text-slate-300 font-mono select-all">
-                          {uploadSuccess.jobId}
+                        <input
+                          type="file"
+                          id="csv-file-input"
+                          className="hidden"
+                          accept=".csv"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              handleFileValidation(e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <CloudUpload className="w-8 h-8 text-slate-500 mb-2" />
+                        <span className="text-xs text-slate-300 font-semibold">
+                          {uploadFile ? uploadFile.name : 'Click to select or drag & drop CSV'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 mt-1 font-bold">
+                          {uploadFile
+                            ? `${(uploadFile.size / 1024).toFixed(1)} KB`
+                            : 'Maximum size 5MB'}
                         </span>
                       </div>
-                      <div className="flex justify-between text-slate-500 font-bold">
-                        <span>Status:</span>
-                        <span className="text-emerald-400 capitalize">{uploadSuccess.status}</span>
-                      </div>
-                      <div className="flex justify-between text-slate-500 font-bold">
-                        <span>Rows Count:</span>
-                        <span className="text-white">{uploadSuccess.rowsQueued} lines</span>
+
+                      {/* Warnings and Errors */}
+                      {uploadError && (
+                        <div className="p-3 border border-rose-500/20 bg-rose-500/5 text-rose-400 text-xs font-semibold rounded-lg flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <div>{uploadError}</div>
+                        </div>
+                      )}
+
+                      {uploadWarnings &&
+                        uploadWarnings.map((warning, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 border border-amber-500/20 bg-amber-500/5 text-amber-400 text-xs font-semibold rounded-lg flex items-start gap-2"
+                          >
+                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                            <div>{warning}</div>
+                          </div>
+                        ))}
+
+                      <div className="border-t border-[#152347] pt-4 mt-6 flex gap-3">
+                        <button
+                          onClick={() => {
+                            setIsUploadModalOpen(false);
+                            setUploadFile(null);
+                            setUploadWarnings(null);
+                            setUploadError(null);
+                          }}
+                          disabled={uploading}
+                          className="btn-secondary flex-1"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleUploadSubmit}
+                          disabled={uploading || !uploadFile}
+                          className="btn-primary flex-1 inline-flex items-center justify-center gap-2"
+                        >
+                          {uploading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                          {uploading ? 'Processing File...' : 'Upload & Ingest'}
+                        </button>
                       </div>
                     </div>
-                    <div className="border-t border-[#152347] pt-4 mt-6">
-                      <button
-                        onClick={() => {
-                          setIsUploadModalOpen(false);
-                          setUploadFile(null);
-                          setUploadWarnings(null);
-                          setUploadSuccess(null);
-                          setUploadError(null);
-                        }}
-                        className="btn-primary w-full"
-                      >
-                        Done
-                      </button>
+                  ) : (
+                    <div className="text-center py-6 space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto">
+                        <CheckCircle2 className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h5 className="font-extrabold text-white text-base">Ingestion Queued</h5>
+                        <p className="text-xs text-slate-400 mt-1">
+                          We have successfully parsed {uploadSuccess.rowsQueued} event rows and
+                          registered them in our data processing queues.
+                        </p>
+                      </div>
+                      <div className="bg-[#0C1224] border border-slate-800 rounded-lg p-3 text-left space-y-1 text-xs">
+                        <div className="flex justify-between text-slate-500 font-bold">
+                          <span>Job ID:</span>
+                          <span className="text-slate-300 font-mono select-all">
+                            {uploadSuccess.jobId}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-slate-500 font-bold">
+                          <span>Status:</span>
+                          <span className="text-emerald-400 capitalize">
+                            {uploadSuccess.status}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-slate-500 font-bold">
+                          <span>Rows Count:</span>
+                          <span className="text-white">{uploadSuccess.rowsQueued} lines</span>
+                        </div>
+                      </div>
+                      <div className="border-t border-[#152347] pt-4 mt-6">
+                        <button
+                          onClick={() => {
+                            setIsUploadModalOpen(false);
+                            setUploadFile(null);
+                            setUploadWarnings(null);
+                            setUploadSuccess(null);
+                            setUploadError(null);
+                          }}
+                          className="btn-primary w-full"
+                        >
+                          Done
+                        </button>
+                      </div>
                     </div>
+                  )
+                ) : (
+                  <div className="space-y-4 flex-1 overflow-y-auto max-h-87.5 pr-1">
+                    {loadingCsvJobs ? (
+                      <div className="text-center py-8 text-slate-400 text-xs">
+                        <RefreshCw className="w-5 h-5 animate-spin mx-auto text-cyan-400 mb-2" />
+                        Loading job history...
+                      </div>
+                    ) : csvJobs.length === 0 ? (
+                      <div className="text-center py-10 text-slate-500 text-xs italic">
+                        No past upload jobs found.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {csvJobs.map((job) => (
+                          <div
+                            key={job.id}
+                            className="bg-[#0C1224] border border-slate-800/80 rounded-xl p-4 text-xs space-y-2"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-slate-500 font-mono">
+                                ID: {job.id.substring(0, 8)}...
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                                  job.status === 'completed'
+                                    ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5'
+                                    : job.status === 'failed'
+                                      ? 'text-rose-400 border-rose-500/20 bg-rose-500/5'
+                                      : job.status === 'processing'
+                                        ? 'text-cyan-400 border-cyan-500/20 bg-cyan-500/5'
+                                        : 'text-slate-400 border-slate-700 bg-slate-800'
+                                }`}
+                              >
+                                {job.status}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-[11px] text-slate-400">
+                              <span>
+                                Uploaded:{' '}
+                                {new Date(job.createdAt || job.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                            {job.error && (
+                              <div className="mt-2 p-2 border border-rose-500/20 bg-rose-500/5 text-rose-400 rounded-lg text-[10px] font-mono whitespace-pre-wrap max-h-24 overflow-y-auto">
+                                {job.error}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1016,13 +1161,13 @@ export default function IntegrationsPage() {
                   animate={{ opacity: 0.5 }}
                   exit={{ opacity: 0 }}
                   onClick={() => setSelectedGuideProvider(null)}
-                  className="fixed inset-0 bg-[#000]/70 z-40"
+                  className="fixed inset-0 bg-black/70 z-40"
                 />
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] max-w-[95vw] h-[600px] max-h-[90vh] bg-[#070B16] border border-[#152347] shadow-2xl z-50 p-6 sm:p-8 rounded-xl flex flex-col justify-between backdrop-blur-md text-slate-100"
+                  className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-162.5 max-w-[95vw] h-150 max-h-[90vh] bg-[#070B16] border border-[#152347] shadow-2xl z-50 p-6 sm:p-8 rounded-xl flex flex-col justify-between backdrop-blur-md text-slate-100"
                 >
                   <div>
                     {/* Header */}
@@ -1113,7 +1258,7 @@ export default function IntegrationsPage() {
                     {activeTab === 'overview' && (
                       <div className="space-y-4">
                         <div className="p-4 border border-[#152347] bg-[#0C1224]/50 rounded-xl space-y-2">
-                          <h5 className="text-white font-bold text-xs uppercase tracking-wider text-slate-500">
+                          <h5 className="text-slate-500 font-bold text-xs uppercase tracking-wider">
                             About the Integration
                           </h5>
                           <p className="text-xs text-slate-300 leading-relaxed font-medium">
@@ -1140,7 +1285,7 @@ export default function IntegrationsPage() {
                           </div>
                         </div>
 
-                        <div className="p-4 border border-white/[0.04] bg-slate-950/20 rounded-xl flex items-center justify-between text-xs">
+                        <div className="p-4 border border-white/4 bg-slate-950/20 rounded-xl flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2 text-slate-400 font-medium">
                             <Lock className="w-4 h-4 text-slate-500" />
                             <span>All data transfer is encrypted using TLS/SSL protocols.</span>
@@ -1209,7 +1354,7 @@ export default function IntegrationsPage() {
                           PROVIDER_FIELDS[selectedGuideProvider]?.length > 0 && (
                             <div className="border-t border-[#152347] pt-4 mt-6 space-y-4">
                               <div>
-                                <h5 className="font-extrabold text-white text-xs uppercase tracking-wider text-slate-400">
+                                <h5 className="font-extrabold text-slate-400 text-xs uppercase tracking-wider">
                                   Secure API Credentials
                                 </h5>
                                 <p className="text-[10px] text-slate-500 font-medium leading-normal mt-0.5">
@@ -1233,7 +1378,7 @@ export default function IntegrationsPage() {
                                           [field.key]: e.target.value,
                                         })
                                       }
-                                      className="w-full bg-[#05070f] border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-colors"
+                                      className="dashboard-input placeholder:text-slate-600"
                                     />
                                   </div>
                                 ))}
@@ -1247,7 +1392,7 @@ export default function IntegrationsPage() {
                       <div className="space-y-4">
                         {/* Connection Details */}
                         <div className="p-4 border border-[#152347] bg-[#0C1224]/50 rounded-xl space-y-3">
-                          <h5 className="text-white font-bold text-xs uppercase tracking-wider text-slate-400">
+                          <h5 className="text-slate-400 font-bold text-xs uppercase tracking-wider">
                             Connection Details
                           </h5>
                           <div className="grid grid-cols-2 gap-4 text-xs font-medium">
@@ -1338,6 +1483,62 @@ export default function IntegrationsPage() {
                               )}
                             </div>
                           )}
+
+                        {/* Recent Ingestion/Sync Jobs */}
+                        <div className="space-y-3 pt-4 border-t border-[#152347] mt-4">
+                          <h5 className="text-slate-400 font-bold text-xs uppercase tracking-wider">
+                            Recent Ingestion Jobs
+                          </h5>
+                          {loadingProviderJobs ? (
+                            <div className="text-center py-6 text-slate-400 text-xs">
+                              <RefreshCw className="w-4 h-4 animate-spin inline-block mr-2 text-cyan-400" />
+                              Loading job history...
+                            </div>
+                          ) : providerJobs.length === 0 ? (
+                            <div className="text-center py-6 text-slate-500 text-xs italic">
+                              No ingestion jobs recorded for this integration.
+                            </div>
+                          ) : (
+                            <div className="space-y-3 max-h-55 overflow-y-auto pr-1">
+                              {providerJobs.map((job) => (
+                                <div
+                                  key={job.id}
+                                  className="bg-[#0C1224] border border-slate-800/80 rounded-xl p-3 text-xs space-y-1.5"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-slate-500 font-mono">
+                                      ID: {job.id.substring(0, 8)}...
+                                    </span>
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                                        job.status === 'completed'
+                                          ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5'
+                                          : job.status === 'failed'
+                                            ? 'text-rose-400 border-rose-500/20 bg-rose-500/5'
+                                            : job.status === 'processing'
+                                              ? 'text-cyan-400 border-cyan-500/20 bg-cyan-500/5'
+                                              : 'text-slate-400 border-slate-700 bg-slate-800'
+                                      }`}
+                                    >
+                                      {job.status}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between text-[11px] text-slate-400">
+                                    <span>
+                                      Triggered:{' '}
+                                      {new Date(job.createdAt || job.created_at).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  {job.error && (
+                                    <div className="mt-1.5 p-2 border border-rose-500/20 bg-rose-500/5 text-rose-400 rounded-lg text-[10px] font-mono whitespace-pre-wrap max-h-24 overflow-y-auto">
+                                      {job.error}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

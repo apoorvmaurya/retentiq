@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { db, schema } from '../lib/db.js';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { encryptConfig, maskConfig, decryptConfig, isMasked } from '../lib/crypto.js';
 
 import stripeRouter from '../integrations/stripe.js';
@@ -42,6 +42,27 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     }));
 
     res.json(maskedList);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/integrations/jobs
+ * Get background ingestion jobs history for the authenticated org.
+ */
+router.get('/jobs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const orgId = req.user!.org_id;
+
+    const jobsList = await db
+      .select()
+      .from(schema.jobs)
+      .where(eq(schema.jobs.orgId, orgId))
+      .orderBy(desc(schema.jobs.createdAt))
+      .limit(50);
+
+    res.json(jobsList);
   } catch (err) {
     next(err);
   }

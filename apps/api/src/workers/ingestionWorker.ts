@@ -1,5 +1,5 @@
 import { db, schema } from '../lib/db.js';
-import { eq, and, gte, sql } from 'drizzle-orm';
+import { eq, and, gte, sql, inArray } from 'drizzle-orm';
 import { computeAndTriggerRescore } from '../lib/featureEngine.js';
 import { decryptConfig } from '../lib/crypto.js';
 import Papa from 'papaparse';
@@ -200,13 +200,6 @@ async function handleCsvJob(payload: { csvContent: string }, orgId: string): Pro
     throw new Error('CSV content is empty');
   }
 
-  const customersList = await db
-    .select({ id: schema.customers.id })
-    .from(schema.customers)
-    .where(eq(schema.customers.orgId, orgId));
-
-  const allowedCustomerIds = new Set(customersList.map((c) => c.id));
-
   const parsed = Papa.parse(csvContent, {
     header: true,
     skipEmptyLines: true,
@@ -229,12 +222,7 @@ async function handleCsvJob(payload: { csvContent: string }, orgId: string): Pro
           validation.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
       );
     } else {
-      const rowData = validation.data;
-      if (!allowedCustomerIds.has(rowData.customer_id)) {
-        errors.push(`Row ${idx + 1}: customer_id does not belong to organization.`);
-      } else {
-        validRows.push(rowData);
-      }
+      validRows.push(validation.data);
     }
   });
 
@@ -242,45 +230,118 @@ async function handleCsvJob(payload: { csvContent: string }, orgId: string): Pro
     throw new Error(`CSV Validation errors:\n${errors.join('\n')}`);
   }
 
-  for (const row of validRows) {
-    const occurredAtDate = new Date(row.occurred_at);
+  // 1. Gather all unique customer IDs
+  const uniqueCustomerIds = Array.from(new Set(validRows.map((r) => r.customer_id)));
 
-    let eventPayload: Record<string, any> = {};
-    if (row.payload) {
-      try {
-        eventPayload = JSON.parse(row.payload);
-      } catch {
-        eventPayload = { raw: row.payload };
+  if (uniqueCustomerIds.length > 0) {
+    // 2. Fetch existing customers in one query
+    const existingCustomers = await db
+      .select()
+      .from(schema.customers)
+      .where(inArray(schema.customers.id, uniqueCustomerIds));
+
+    const existingCustomersMap = new Map(existingCustomers.map((c) => [c.id, c]));
+
+    // 3. Ensure all customers exist and belong to this organization
+    for (const customerId of uniqueCustomerIds) {
+      const existingCustomer = existingCustomersMap.get(customerId);
+      if (!existingCustomer) {
+        // Auto-create customer
+        await db.insert(schema.customers).values({
+          id: customerId,
+          orgId: orgId,
+          name: `CSV Customer (${customerId.substring(0, 8)})`,
+          email: `csv_customer_${customerId.substring(0, 8)}@example.com`,
+          company: `CSV Company (${customerId.substring(0, 8)})`,
+          planTier: 'Pro',
+          mrr: '0.00',
+        });
+        console.log(
+          `[ingestionWorker] Auto-created customer ${customerId} under org ${orgId} during CSV ingestion.`,
+        );
+      } else if (existingCustomer.orgId !== orgId) {
+        // Adopt customer to this organization
+        await db
+          .update(schema.customers)
+          .set({ orgId: orgId })
+          .where(eq(schema.customers.id, customerId));
+        console.log(
+          `[ingestionWorker] Adopted customer ${customerId} from org ${existingCustomer.orgId} to org ${orgId} during CSV ingestion.`,
+        );
+      }
+    }
+  }
+
+  if (validRows.length > 0) {
+    // 4. Batch fetch existing events for these customers
+    const existingEvents = await db
+      .select({
+        customerId: schema.events.customerId,
+        eventType: schema.events.eventType,
+        occurredAt: schema.events.occurredAt,
+      })
+      .from(schema.events)
+      .where(inArray(schema.events.customerId, uniqueCustomerIds));
+
+    // Create a fast lookup string for existing events
+    const existingEventsSet = new Set(
+      existingEvents.map(
+        (e) => `${e.customerId}|${e.eventType}|${new Date(e.occurredAt!).getTime()}`,
+      ),
+    );
+
+    const eventsToInsert: any[] = [];
+    for (const row of validRows) {
+      const occurredAtDate = new Date(row.occurred_at);
+      const lookupKey = `${row.customer_id}|${row.event_type}|${occurredAtDate.getTime()}`;
+
+      if (!existingEventsSet.has(lookupKey)) {
+        let eventPayload: Record<string, any> = {};
+        if (row.payload) {
+          try {
+            eventPayload = JSON.parse(row.payload);
+          } catch {
+            eventPayload = { raw: row.payload };
+          }
+        }
+        if (row.feature) {
+          eventPayload.feature = row.feature;
+        }
+
+        eventsToInsert.push({
+          customerId: row.customer_id,
+          orgId: orgId,
+          eventType: row.event_type,
+          source: 'csv_upload',
+          payload: eventPayload,
+          occurredAt: occurredAtDate,
+        });
+
+        // Avoid adding duplicate rows from the SAME CSV file
+        existingEventsSet.add(lookupKey);
       }
     }
 
-    if (row.feature) {
-      eventPayload.feature = row.feature;
+    if (eventsToInsert.length > 0) {
+      console.log(`[ingestionWorker] Batch inserting ${eventsToInsert.length} new events...`);
+      // Insert in chunks of 50 to avoid parameter limits or timeouts
+      const chunkSize = 50;
+      for (let i = 0; i < eventsToInsert.length; i += chunkSize) {
+        const chunk = eventsToInsert.slice(i, i + chunkSize);
+        await db.insert(schema.events).values(chunk);
+      }
     }
+  }
 
-    const existing = await db
-      .select()
-      .from(schema.events)
-      .where(
-        and(
-          eq(schema.events.customerId, row.customer_id),
-          eq(schema.events.eventType, row.event_type),
-          eq(schema.events.occurredAt, occurredAtDate),
-        ),
-      )
-      .limit(1);
-
-    if (existing.length === 0) {
-      await db.insert(schema.events).values({
-        customerId: row.customer_id,
-        orgId: orgId,
-        eventType: row.event_type,
-        source: 'csv_upload',
-        payload: eventPayload,
-        occurredAt: occurredAtDate,
-      });
-
-      await computeAndTriggerRescore(row.customer_id, orgId);
+  // 5. Rescore unique customers once at the end
+  console.log(
+    `[ingestionWorker] Rescoring ${uniqueCustomerIds.length} unique customers for job...`,
+  );
+  for (const customerId of uniqueCustomerIds) {
+    try {
+      await computeAndTriggerRescore(customerId, orgId);
+    } catch (err: any) {
+      console.error(`[ingestionWorker] Failed to rescore customer ${customerId}:`, err.message);
     }
   }
 }

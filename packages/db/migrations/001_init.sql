@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS public.alerts (
 CREATE TABLE IF NOT EXISTS public.integrations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
-  provider TEXT NOT NULL CHECK (provider IN ('slack', 'stripe', 'intercom', 'mixpanel')),
+  provider TEXT NOT NULL CHECK (provider IN ('slack', 'stripe', 'intercom', 'mixpanel', 'csv')),
   status TEXT NOT NULL,
   config JSONB NOT NULL DEFAULT '{}'::jsonb,
   last_synced_at TIMESTAMPTZ,

@@ -1,23 +1,12 @@
 import type { Metadata, Viewport } from 'next';
-import { Instrument_Serif, DM_Sans } from 'next/font/google';
 import './globals.css';
 
 import { ToastProvider } from '@/components/Toast';
 import CommandMenu from '@/components/CommandMenu';
 import CookieBanner from '@/components/CookieBanner';
 
-const instrumentSerif = Instrument_Serif({
-  subsets: ['latin'],
-  weight: ['400'],
-  style: ['normal', 'italic'],
-  variable: '--font-serif',
-});
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
-  variable: '--font-sans',
-});
+const instrumentSerif = { variable: '' };
+const dmSans = { variable: '' };
 
 export const viewport: Viewport = {
   width: 'device-width',

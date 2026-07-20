@@ -140,7 +140,7 @@ export async function completeOnboarding(data: OnboardingData) {
     } else if (rawProvider.includes('intercom')) {
       provider = 'intercom';
     } else if (rawProvider.includes('csv')) {
-      provider = 'mixpanel'; // fallback to mixpanel to satisfy check constraint
+      provider = 'csv';
       isCsv = true;
     }
 
@@ -148,7 +148,7 @@ export async function completeOnboarding(data: OnboardingData) {
       const { error: intError } = await adminSupabase.from('integrations').insert({
         org_id: org.id,
         provider: provider,
-        status: 'pending',
+        status: isCsv ? 'active' : 'pending',
         config: isCsv ? { type: 'manual_csv' } : {},
       });
 

@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
   },
   async headers() {
+    let apiOrigin = 'http://localhost:4000';
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      try {
+        apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL).origin;
+      } catch (e) {
+        // Fallback
+      }
+    }
+
     const securityHeaders = [
       {
         key: 'X-DNS-Prefetch-Control',
@@ -33,8 +42,7 @@ const nextConfig: NextConfig = {
       },
       {
         key: 'Content-Security-Policy',
-        value:
-          "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https: ws: wss:; media-src 'self'; object-src 'none'; frame-ancestors 'none';",
+        value: `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ${apiOrigin} https: ws: wss:; media-src 'self'; object-src 'none'; frame-ancestors 'none';`,
       },
     ];
     return [

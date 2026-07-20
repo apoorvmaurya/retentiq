@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import Papa from 'papaparse';
 import { db, schema } from '../lib/db.js';
+import { and, eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -41,6 +42,28 @@ router.post(
       if (parsed.errors.length > 0 && parsed.data.length === 0) {
         res.status(400).json({ error: 'Failed to parse CSV file structure', code: 'INVALID_CSV' });
         return;
+      }
+
+      // Upsert integration status to 'active' for CSV
+      const existing = await db
+        .select()
+        .from(schema.integrations)
+        .where(and(eq(schema.integrations.orgId, orgId), eq(schema.integrations.provider, 'csv')))
+        .limit(1);
+
+      if (existing.length === 0) {
+        await db.insert(schema.integrations).values({
+          orgId,
+          provider: 'csv',
+          status: 'active',
+          config: { type: 'manual_csv' },
+          lastSyncedAt: new Date(),
+        });
+      } else {
+        await db
+          .update(schema.integrations)
+          .set({ status: 'active', lastSyncedAt: new Date() })
+          .where(eq(schema.integrations.id, existing[0].id));
       }
 
       const newJob = await db
