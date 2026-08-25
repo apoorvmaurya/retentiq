@@ -28,17 +28,17 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.2",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.2.0",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitejs/plugin-react": "^4.3.4",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitejs/plugin-react": "^6.1.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9.20.0",
     "eslint-config-next": "^16.2.14",
-    "jsdom": "^26.0.0",
+    "jsdom": "^30.0.1",
     "tailwindcss": "^4.3.2",
     "typescript": "^6",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.11"
   }
 }
