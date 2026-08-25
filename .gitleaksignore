@@ -1,0 +1,5 @@
+# Gitleaks ignore patterns
+.env.example
+.env.local.example
+apps/ai-service/tests/*
+apps/api/src/*.test.ts

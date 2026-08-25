@@ -1,0 +1,17 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ignore example env files and test mock keys"
+paths = [
+  '''^\.env\.example$''',
+  '''^\.env\.local\.example$''',
+  '''^apps/ai-service/tests/.*''',
+  '''^apps/api/src/.*\.test\.ts$''',
+  '''^apps/web/src/.*\.test\.tsx?$'''
+]
+regexes = [
+  '''your-.*-key''',
+  '''test-key''',
+  '''mock-key'''
+]
