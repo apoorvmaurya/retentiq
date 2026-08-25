@@ -17,10 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Split 1,596 LOC monolithic `integrations/page.tsx` into modular components: `IntegrationCard.tsx`, `CsvUploadModal.tsx`, `IntegrationConfigModal.tsx`, `constants.ts`, and `types.ts`.
 - **Frontend Test Suite (`apps/web`)**:
   - Configured Vitest test runner with JSDOM environment.
-  - Added unit tests for UI components (`Toast`, `CustomDropdown`, `FloatingInput`, `ConfirmModal`) and utility modules (`api`, `dateUtils`).
+  - Added 10 test suites covering UI components (`Toast`, `CustomDropdown`, `FloatingInput`, `ConfirmModal`, `CookieBanner`, `Footer`, `Navbar`, `RoiCalculator`) and utility modules (`api`, `dateUtils`).
+- **API & Shared Test Suite (`apps/api`)**:
+  - Added unit test suites for AES-256-GCM encryption/decryption/masking (`crypto.test.ts`), telemetry feature engineering (`featureEngine.test.ts`), and end-to-end REST routes (`routes.test.ts`).
 - **AI Service Test Suite (`apps/ai-service`)**:
   - Configured Pytest test runner with `asyncio` and mock client fixtures (`conftest.py`).
-  - Added unit and integration tests for schemas, classifier, feature engineering, scoring calculations, prompts, and REST API endpoints.
+  - Added 31 unit and integration tests with >65% code coverage for schemas, classifier, feature engineering, scoring calculations, prompts, and REST API endpoints.
+- **Hygiene & Cleanup**:
+  - Removed legacy scratch scripts (`test_sklearn.py`, `test_alert.ts`, `get_customers.js`, `test_connect.js`).
 - **CI/CD & Security Hardening**:
   - Configured Dependabot grouping (npm, pip, GitHub actions), monthly schedules, and PR throttling (max 3 PRs).
   - Pinned production Docker images to LTS Node (`node:20-alpine`) to prevent breaking builds from upstream Node 25 bumps.

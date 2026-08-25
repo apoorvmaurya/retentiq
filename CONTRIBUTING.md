@@ -15,7 +15,7 @@ RetentIQ/
 │   ├── web/          # Next.js App Router frontend (React 19, TailwindCSS)
 │   └── ai-service/   # Churn Intelligence FastAPI microservice (Python 3.11+, Scikit-Learn/LightGBM, Groq)
 ├── packages/
-│   ├── db/           # Prisma & Supabase schema and database client
+│   ├── db/           # Drizzle ORM & Supabase schema, migrations, and database client
 │   └── shared/       # Shared TypeScript schemas, types, and constants
 └── docs/             # Model Cards, Reproducibility, and Architecture guides
 ```

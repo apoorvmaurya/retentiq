@@ -199,16 +199,17 @@ pnpm typecheck
 # 2. Run web frontend tests (Vitest + JSDOM)
 pnpm test:web
 
-# 3. Run API backend tests (Jest)
+# 3. Run API backend tests (Vitest + Supertest)
 pnpm test:api
 
 # 4. Run AI microservice tests (Pytest + AsyncIO)
 pnpm test:ai
 # or:
-apps/ai-service/.venv/Scripts/python.exe -m pytest apps/ai-service/tests
+pytest apps/ai-service/tests
 
-# 5. Full workspace verification
+# 5. Full workspace verification & test coverage
 pnpm test
+pnpm test:coverage
 pnpm build
 ```
 

@@ -41,6 +41,9 @@ pg_logfile
 .lhci/
 .lighthouseci/
 coverage/
+.coverage
+.coverage.*
+htmlcov/
 
 # Environment configurations (Keep examples and templates committed)
 .env

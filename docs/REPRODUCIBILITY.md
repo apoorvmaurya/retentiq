@@ -40,7 +40,7 @@ To prevent drift or upstream breaking changes:
 # 1. Frontend Test Suite (Vitest)
 pnpm --filter @retentiq/web test
 
-# 2. API Test Suite (Jest)
+# 2. API Test Suite (Vitest)
 pnpm --filter @retentiq/api test
 
 # 3. AI Service Test Suite (Pytest)

@@ -26,7 +26,7 @@
     "test:web": "pnpm --filter @retentiq/web test",
     "test:api": "pnpm --filter @retentiq/api test",
     "test:ai": "pytest apps/ai-service/tests -v",
-    "test:coverage": "pnpm --filter @retentiq/api run test:coverage",
+    "test:coverage": "pnpm --filter @retentiq/web run test:coverage && pnpm --filter @retentiq/api run test:coverage",
     "prepare": "node -e \"try { if (!process.env.CI && process.env.NODE_ENV !== 'production' && require('fs').existsSync('.git')) { require('child_process').execSync('husky', { stdio: 'inherit' }) } } catch (e) {}\""
   },
   "devDependencies": {
