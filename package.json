@@ -19,9 +19,14 @@
     "supabase:start": "npx supabase start",
     "supabase:stop": "npx supabase stop",
     "supabase:status": "npx supabase status",
+    "typecheck": "pnpm --filter @retentiq/shared typecheck && pnpm --filter @retentiq/db typecheck && pnpm --filter @retentiq/api typecheck && pnpm --filter @retentiq/web typecheck",
     "lint": "eslint \"**/*.{ts,tsx}\" --quiet",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
-    "test:ai": "apps\\ai-service\\.venv\\Scripts\\python apps/ai-service/test_sklearn.py",
+    "test": "pnpm test:web && pnpm test:api",
+    "test:web": "pnpm --filter @retentiq/web test",
+    "test:api": "pnpm --filter @retentiq/api test",
+    "test:ai": "pytest apps/ai-service/tests -v",
+    "test:coverage": "pnpm --filter @retentiq/api run test:coverage",
     "prepare": "node -e \"try { if (!process.env.CI && process.env.NODE_ENV !== 'production' && require('fs').existsSync('.git')) { require('child_process').execSync('husky', { stdio: 'inherit' }) } } catch (e) {}\""
   },
   "devDependencies": {
@@ -45,8 +50,14 @@
   "pnpm": {
     "overrides": {
       "esbuild": "^0.28.1",
-      "postcss": "^8.5.15",
-      "form-data": "^4.0.6"
+      "postcss": "^8.5.26",
+      "form-data": "^4.0.6",
+      "ip-address": "^10.5.0",
+      "nanoid": "^3.3.18",
+      "brace-expansion": "^5.0.9",
+      "body-parser": "^2.3.0",
+      "shell-quote": "^1.10.0",
+      "js-yaml": "^4.3.1"
     },
     "onlyBuiltDependencies": [
       "esbuild",

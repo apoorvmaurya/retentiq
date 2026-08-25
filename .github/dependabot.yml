@@ -1,17 +1,22 @@
 version: 2
 updates:
-  # Maintain dependencies for GitHub Actions
+  # Maintain dependencies for GitHub Actions (monthly, grouped)
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
-      interval: 'weekly'
+      interval: 'monthly'
+    open-pull-requests-limit: 3
+    groups:
+      github-actions:
+        patterns:
+          - '*'
 
-  # Maintain npm dependencies in the monorepo
+  # Maintain npm dependencies in the monorepo (monthly, grouped)
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
-      interval: 'weekly'
-    open-pull-requests-limit: 10
+      interval: 'monthly'
+    open-pull-requests-limit: 3
     groups:
       lint-and-typescript:
         patterns:
@@ -19,20 +24,41 @@ updates:
           - 'typescript*'
           - '@typescript-eslint*'
           - 'prettier*'
+      production-dependencies:
+        dependency-type: 'production'
+        patterns:
+          - '*'
+      dev-dependencies:
+        dependency-type: 'development'
+        patterns:
+          - '*'
 
-  # Maintain Docker dependencies
+  # Maintain Docker base images (ignore non-LTS Node versions > 20/22)
   - package-ecosystem: 'docker'
     directory: '/apps/web'
     schedule:
       interval: 'monthly'
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: 'docker'
     directory: '/apps/api'
     schedule:
       interval: 'monthly'
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: 'node'
+        update-types: ['version-update:semver-major']
 
-  # Maintain Python dependencies in the AI service
+  # Maintain Python dependencies in the AI service (monthly, grouped)
   - package-ecosystem: 'pip'
     directory: '/apps/ai-service'
     schedule:
-      interval: 'weekly'
+      interval: 'monthly'
+    open-pull-requests-limit: 3
+    groups:
+      ai-service-dependencies:
+        patterns:
+          - '*'

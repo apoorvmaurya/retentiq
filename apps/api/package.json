@@ -7,8 +7,10 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/server.js",
-    "test": "vitest run --exclude dist"
+    "test": "vitest run --exclude dist",
+    "test:coverage": "vitest run --coverage --exclude dist"
   },
   "dependencies": {
     "@retentiq/db": "workspace:*",

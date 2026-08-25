@@ -11,14 +11,16 @@
     <a href="#-directory-structure">Directory Structure</a> •
     <a href="#-workspace-setup--local-execution">Setup Guide</a> •
     <a href="#-testing--verification">Testing</a> •
-    <a href="#-security-compliance--privacy">Security & Compliance</a>
+    <a href="#-security-compliance--privacy">Security & Compliance</a> •
+    <a href="CONTRIBUTING.md">Contributing</a> •
+    <a href="CHANGELOG.md">Changelog</a>
   </p>
 
   <p align="center">
-    <img src="https://img.shields.io/github/actions/workflow/status/apoorvmaurya/retentiq/ci.yml?branch=main&style=flat-square&label=CI%20Build" alt="CI Status" />
-    <img src="https://img.shields.io/badge/Coverage-97%25-emerald?style=flat-square" alt="Code Coverage" />
     <img src="https://img.shields.io/badge/TypeScript-5.x-blue?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
-    <img src="https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white" alt="Python" />
+    <img src="https://img.shields.io/badge/Python-3.11+-blue?style=flat-square&logo=python&logoColor=white" alt="Python" />
+    <img src="https://img.shields.io/badge/Next.js-16+-black?style=flat-square&logo=next.js&logoColor=white" alt="Next.js" />
+    <img src="https://img.shields.io/badge/FastAPI-0.115+-emerald?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
     <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License" />
   </p>
 </div>
@@ -27,14 +29,19 @@
 
 ## 🔮 Overview
 
-RetentIQ is an enterprise-grade SaaS customer churn-intelligence and health-scoring platform. It empowers Customer Success (CS) and Account Management teams by predicting customer churn risks 30–60 days before they happen. The system combines a local **LightGBM Machine Learning Classifier** with **SHAP explanations** (telemetry-based quantitative scoring grounded in model computation) and **Llama-3.3 LLM Qualitative Analysis** (natural language risk factors and dynamic playbooks) to deliver highly actionable account recovery strategies.
+RetentIQ is an enterprise-grade SaaS customer churn-intelligence and health-scoring platform. It empowers Customer Success (CS) and Account Management teams by predicting customer churn risks 30–60 days before they happen. The system combines a local **Gradient Boosting & LightGBM Machine Learning Classifier** with **SHAP explanations** (telemetry-based quantitative scoring grounded in model computation) and **Llama-3.3 LLM Qualitative Analysis** (natural language risk factors and dynamic playbooks via Groq) to deliver highly actionable account recovery strategies.
 
 RetentIQ is architected as a type-safe, high-performance monorepo:
 
-- **Next.js 16+ (Standalone)**: A performant, responsive frontend utilizing Turbopack, Framer Motion, and Tailwind CSS.
+- **Next.js 16+ (App Router)**: A performant, responsive frontend utilizing Turbopack, Framer Motion, and Tailwind CSS.
 - **Node.js Express API Server**: An ESM-based, type-safe API backend using Drizzle ORM.
 - **FastAPI AI Microservice**: A high-throughput Python service executing ML inference and LLM orchestrations.
 - **Supabase (PostgreSQL)**: Robust data persistence backed by Row Level Security (RLS) and real-time subscription broadcasts.
+
+For machine learning architecture, feature taxonomy, and reproducibility details, see:
+
+- [Model Card](docs/MODEL_CARD.md)
+- [Reproducibility Guide](docs/REPRODUCIBILITY.md)
 
 ---
 
@@ -47,7 +54,7 @@ graph TD
     %% Frontend Layer
     subgraph Frontend [Next.js Web Application]
         NextApp[Next.js App Router]
-        ProxyRules[Next.js proxy.ts Router]
+        ProxyRules[Next.js Proxy / Route Handlers]
         RealTimeClient[Supabase Realtime WebSocket client]
     end
 
@@ -63,9 +70,9 @@ graph TD
     %% Python AI Layer
     subgraph PyAI [AI & Machine Learning Service]
         FastAPI[FastAPI HTTP Server]
-        LightGBM[LGBMClassifier & SHAP]
+        LightGBM[GradientBoosting / LightGBM & SHAP]
         GroqClient[Async Groq API Client]
-        PyDBCompat[PostgresSupabaseCompatClient]
+        PyDBCompat[Postgres / Supabase Client]
     end
 
     %% Database Layer
@@ -75,10 +82,8 @@ graph TD
     end
 
     %% Communication Flow
-    NextApp -->|1. Authenticated API Calls| ProxyRules
-    ProxyRules -->|Proxy to Express port 4000| ExpServer
-    NextApp -->|2. Direct AI operations| ProxyRules
-    ProxyRules -->|Proxy /ai-service to Port 8000| FastAPI
+    NextApp -->|1. Authenticated API Calls| ExpServer
+    NextApp -->|2. Direct AI operations| FastAPI
 
     ExpServer -->|Verify JWT| AuthJWT
     AuthJWT -->|Lookup user profile| Drizzle
@@ -88,7 +93,7 @@ graph TD
     IngWorker -->|Trigger rescore POST /score/customer| FastAPI
     AlWorker -->|Poll scores & aggregate ROI| Postgres
 
-    FastAPI -->|Compute features via psycopg2| PyDBCompat
+    FastAPI -->|Compute features| PyDBCompat
     PyDBCompat -->|Direct SQL queries| Postgres
     FastAPI -->|Train model / local inference| LightGBM
     FastAPI -->|Enrich risk factors| GroqClient
@@ -98,254 +103,120 @@ graph TD
     RealTimeClient -.->|Update UI states dynamically| NextApp
 ```
 
-### 🔮 System Workflow Sequence
+---
 
-The sequence diagram below traces the end-to-end user lifecycle, asynchronous ingestion queue, and real-time health updates:
+## 📁 Monorepo Layout
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor CSM as Customer Success Manager
-    participant App as Next.js Web Application
-    participant Proxy as Next.js proxy.ts Router
-    participant API as Express API Server
-    participant AI as FastAPI AI Microservice
-    participant DB as Supabase PostgreSQL
-
-    %% Authentication & Onboarding
-    CSM->>App: Sign Up / Login
-    App->>Proxy: Authenticated Page Request (e.g. /dashboard)
-    Proxy->>DB: Verify JWT & Onboarding Complete Status
-    alt Onboarding Incomplete
-        DB-->>Proxy: onboarding_complete = false
-        Proxy-->>App: Redirect to Onboarding Wizard (/onboarding)
-        CSM->>App: Input Org details, Plan category, & Invite Team
-        App->>Proxy: completeOnboarding(data) Server Action
-        Proxy->>DB: Insert Org, Users, & Score Weights
-        Proxy-->>App: onboarding_complete = true (Redirect to /dashboard)
-    else Accept Invitation (with token)
-        App->>API: POST /api/users/invites/accept/:token
-        API->>DB: Link user to org & set onboarding_complete = true
-        App->>Proxy: Authenticated Page Request (/dashboard)
-        Proxy->>DB: Verify JWT & Onboarding Complete Status (true)
-        Proxy-->>App: Allow request (Redirect to /dashboard)
-    end
-
-    %% Data Sync / Ingestions
-    CSM->>App: Connect Stripe/Mixpanel or Upload CSV
-    App->>API: POST /api/integrations/csv/upload (or API Connect)
-    API->>DB: Insert Job in Ingestion Queue (status = 'queued')
-    loop background polling
-        API->>DB: Poll Ingestion Job (Every 10 seconds)
-        DB-->>API: Process Job payload
-        API->>API: Parse events/customer record
-        API->>DB: Upsert customers & events table
-        API->>AI: POST /score/customer (Trigger rescore)
-        AI->>DB: Query customer properties (psycopg2)
-        AI->>AI: Train LGBMClassifier / Inference
-        AI->>AI: Enrich risk factors with Groq API
-        AI->>DB: Save calculations in health_scores table
-        DB-->>App: Broadcast changes in real-time (Realtime WebSocket)
-        App-->>CSM: Refresh Dashboard metrics instantly
-    end
-
-    %% Analytics & Alerts
-    CSM->>App: Access Analytics Page (/dashboard/analytics)
-    App->>API: GET /api/analytics/feature-adoption & /api/analytics/cohort-retention
-    API->>DB: Fetch and aggregate events by Risk Tier & Customer Signup Dates
-    DB-->>API: Returns aggregated datasets
-    API-->>App: Dynamic JSON response
-    App-->>CSM: Render dynamic heatmap & cohort grids
 ```
-
----
-
-## ⚙️ Core Technical Capabilities
-
-### 1. Hybrid Churn Risk Predictive Model
-
-- **Quantitative Inference**: Evaluates customer behavioral telemetry using a locally compiled LightGBM Classifier (`LGBMClassifier`) trained on historical login frequency, feature adoption depth, billing trends, and support ticket parameters, with feature attributions calculated using `SHAP` values.
-- **Qualitative Risk Synthesis**: Uses Groq LLM API integrations (Llama-3.3) to translate mathematical predictions into natural language risk explanations and actionable playbooks.
-
-### 2. Asynchronous Ingestion & Database-backed Queue
-
-- **Thread Safety**: Long-running ingestion jobs (such as manual CSV parsing, Stripe billing syncs, or Mixpanel telemetry calls) are stored in a relational `jobs` queue to prevent API blocking.
-- **Background Worker**: A dedicated ingestion daemon polls the queue every 10 seconds to execute normalizations, rescore computations, and status updates asynchronously.
-
-### 3. ROI Metric Caching & Audited Alerting
-
-- **Cached Monthly Aggregates**: Complex SQL aggregates (measuring total MRR saved, CS team action success rates, and ROI) are computed hourly via a background cron task and cached in the `roi_aggregates` table to ensure <100ms dashboard queries.
-- **Automated Dispatching**: Dispatches automated email digests and real-time Slack webhooks when customer health drops below defined alert thresholds.
-
----
-
-## 📂 Directory Structure
-
-```text
-/retentiq
-  ├── /apps
-  │     ├── /web          ← Next.js 16+ Web Dashboard (Turbopack, Tailwind CSS 4, Framer Motion)
-  │     ├── /api          ← Express REST Backend (ESM, TypeScript, Vitest, PostgreSQL pooler)
-  │     └── /ai-service   ← Python 3.12 FastAPI microservice (Scikit-Learn, Groq Llama-3.3, psycopg2)
-  ├── /packages
-  │     ├── /db           ← Drizzle ORM schema, seeds, and local migrations
-  │     └── /shared       ← Monorepo-wide shared TypeScript types, interfaces, and schemas
-  ├── .lighthouserc.json  ← Lighthouse Audit Assertions configuration
-  └── .env.local.example  ← Standard template environment configuration
+RetentIQ/
+├── apps/
+│   ├── api/                  # Express REST API Server (Node 20, TypeScript, Drizzle)
+│   ├── web/                  # Next.js App Router UI (React 19, TailwindCSS, Framer Motion)
+│   │   └── src/app/dashboard/integrations/components/  # Modular integrations subcomponents
+│   └── ai-service/           # FastAPI Machine Learning Service
+│       ├── routers/          # Modular FastAPI routers (scoring, explain, playbook, legacy)
+│       ├── classifier.py     # Gradient Boosting & LightGBM churn classifier
+│       ├── feature_engine.py # 12-dimensional telemetry feature extractor
+│       ├── scoring.py        # Health score clamping, weights, and fallbacks
+│       ├── prompts.py        # Dynamic lexicon and LLM prompt templates
+│       ├── services.py       # Groq and Supabase service clients with DI
+│       └── tests/            # Pytest test suite (31 tests)
+├── packages/
+│   ├── db/                   # Database migrations, schema, and seed utilities
+│   └── shared/               # Shared types, validation schemas, and constants
+├── docs/
+│   ├── MODEL_CARD.md         # Detailed machine learning model card
+│   └── REPRODUCIBILITY.md    # Model seed and environment reproducibility guide
+├── .github/
+│   ├── dependabot.yml        # Grouped monthly dependency upgrade configuration
+│   └── workflows/
+│       ├── ci.yml            # Automated CI pipeline (lint, typecheck, web/api/ai tests)
+│       └── security-scan.yml # Security vulnerability audit (pnpm audit, pip-audit, gitleaks)
+├── .env.example              # Environment variable template
+├── CHANGELOG.md              # Historical change record
+└── CONTRIBUTING.md           # Developer onboarding and contribution guidelines
 ```
-
----
-
-## 🔧 Environment Variables Reference
-
-| Variable Name               | Scope         | Description                                    | Example Value                 |
-| :-------------------------- | :------------ | :--------------------------------------------- | :---------------------------- |
-| `PORT`                      | Web           | Main web application runtime port              | `3000`                        |
-| `API_PORT`                  | API           | Local port for the Express REST API            | `4000`                        |
-| `NODE_ENV`                  | Global        | System execution environment mode              | `development` \| `production` |
-| `NEXT_PUBLIC_APP_URL`       | Global        | Canonical URL of the frontend portal           | `http://localhost:3000`       |
-| `NEXT_PUBLIC_API_URL`       | Web           | Client-side API root path endpoint             | `http://localhost:4000/api`   |
-| `AI_SERVICE_URL`            | API / Web     | Connection URL for the FastAPI microservice    | `http://localhost:8000`       |
-| `DATABASE_URL`              | DB / API / AI | Supavisor pooler connection string (Port 6543) | `postgresql://...`            |
-| `DIRECT_URL`                | DB            | Direct Postgres connection string (Port 5432)  | `postgresql://...`            |
-| `SUPABASE_URL`              | API / AI      | Supabase project console instance URL          | `http://localhost:54321`      |
-| `SUPABASE_ANON_KEY`         | Web           | Supabase client anonymous public key           | `eyJhbGciOiJIUzI1Ni...`       |
-| `SUPABASE_SERVICE_ROLE_KEY` | API / AI      | Supabase service role secret admin key         | `eyJhbGciOiJIUzI1Ni...`       |
-| `GROQ_API_KEY`              | AI            | API authentication token for Groq Cloud        | `gsk_...`                     |
-| `SLACK_WEBHOOK_URL`         | API           | Webhook endpoint for team Slack alerts         | `https://hooks.slack.com/...` |
-| `SMTP_HOST`                 | API           | Outgoing email SMTP server hostname            | `smtp.mailtrap.io`            |
-| `SMTP_PORT`                 | API           | Outgoing email SMTP port                       | `2525`                        |
 
 ---
 
 ## 🛠️ Workspace Setup & Local Execution
 
-### 1. Prerequisite Installations
+### 1. Prerequisites
 
-Ensure you have Node.js 20+, Python 3.12+, and Docker running locally.
+- Node.js 20 LTS
+- pnpm 10+
+- Python 3.11+
 
-Install workspace dependencies:
+### 2. Install Dependencies
 
 ```bash
+# Monorepo dependencies
 pnpm install
-```
 
-Compile packages and static build assets:
-
-```bash
-pnpm build
-```
-
-### 2. Configure Environment Variables
-
-Copy the template configuration and populate your API credentials:
-
-```bash
-cp .env.local.example .env.local
-```
-
-### 3. Local Supabase CLI & Migrations
-
-1. Initialize and run the local Docker-backed Supabase stack:
-   ```bash
-   npx supabase start
-   ```
-2. Apply Drizzle database migrations:
-   ```bash
-   pnpm --filter @retentiq/db db:push
-   ```
-3. Run the DB seed script to generate mock customers, events, and metrics:
-   ```bash
-   pnpm seed
-   ```
-
-### 4. Running Services Locally
-
-Start Next.js and the Express API server concurrently:
-
-```bash
-pnpm dev
-```
-
-- Frontend: `http://localhost:3000`
-- API Backend: `http://localhost:4000/api`
-- Health check endpoint: `GET http://localhost:4000/health`
-
-Start the Python FastAPI AI microservice:
-
-```bash
+# Python AI microservice dependencies
 cd apps/ai-service
-.venv\Scripts\activate
+python -m venv .venv
+# On Windows: .venv\Scripts\activate
+# On Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt
+cd ../..
+```
+
+### 3. Environment Configuration
+
+Copy the template configuration and set your local credentials:
+
+```bash
+cp .env.example .env
+```
+
+### 4. Running Locally
+
+```bash
+# Run web and api in parallel
+pnpm dev
+
+# In a separate terminal, run the AI microservice
+cd apps/ai-service
 python main.py
 ```
 
-- FastAPI microservice: `http://localhost:8000`
+- Web UI: `http://localhost:3000`
+- API Server: `http://localhost:4000/api`
+- AI Microservice: `http://localhost:8000`
+- AI Service Docs: `http://localhost:8000/docs`
 
 ---
 
 ## 🧪 Testing & Verification
 
-### 1. API Route Testing
-
-RetentIQ enforces Vitest suite coverage checks. Run unit and integration tests locally:
+RetentIQ includes automated unit and integration tests across all frontend, backend, and machine learning components:
 
 ```bash
-pnpm --filter @retentiq/api test
-```
+# 1. Typecheck the entire monorepo
+pnpm typecheck
 
-Generate a local coverage report:
+# 2. Run web frontend tests (Vitest + JSDOM)
+pnpm test:web
 
-```bash
-pnpm --filter @retentiq/api test -- --coverage
-```
+# 3. Run API backend tests (Jest)
+pnpm test:api
 
-### 2. AI Service Model Testing
-
-Run local Python scikit-learn and LightGBM model prediction/classification tests:
-
-```bash
+# 4. Run AI microservice tests (Pytest + AsyncIO)
 pnpm test:ai
-```
+# or:
+apps/ai-service/.venv/Scripts/python.exe -m pytest apps/ai-service/tests
 
-### 3. Performance Auditing (Lighthouse CI)
-
-Run local Lighthouse assertion checks on built artifacts:
-
-```bash
-npx @lhci/cli autorun
-```
-
-### 3. Docker Compose Orchestration
-
-Verify multi-container orchestrations, networks, and Docker health checks:
-
-```bash
-docker compose up --build
+# 5. Full workspace verification
+pnpm test
+pnpm build
 ```
 
 ---
 
-## 🔒 Security, Compliance & Privacy
+## 🔒 Security & Governance
 
-RetentIQ is built from the ground up to support strict enterprise data governance standards:
-
-- **Row-Level Security (RLS)**: Enforces complete isolation at the database level. Customer telemetry and user details are only accessible to verified members of the corresponding tenant organization (`org_id`).
-- **Symmetric Application-Layer Encryption**: Encrypts all sensitive tenant-specific credentials (such as Stripe API keys, Mixpanel credentials, Slack Webhook URLs) at rest in PostgreSQL using AES-256-GCM. Decryption is isolated to backend routers and workers (alerting, ingestion), and keys are never returned in plaintext to the browser after being saved.
-- **Cryptographic Transit**: All API requests, Supabase database connections, and WebSocket subscription streams require SSL/TLS in transit.
-- **LLM Privacy**: Data sent to the Llama-3.3 model on Groq is anonymized. No personally identifiable customer information (PII) is transmitted.
-
----
-
-## 🤝 Contribution Guidelines
-
-We follow strict enterprise-level software engineering conventions:
-
-1. **Branch Model**:
-   - Features: `feat/feature-name`
-   - Patches/Fixes: `fix/bug-name`
-   - Chore/Documentation: `chore/doc-name`
-2. **Coding Standards**:
-   - Format all files with Prettier (`pnpm format`) and lint (`pnpm lint`) before opening a PR.
-3. **Pull Request Validation**:
-   - All code updates require passing CI pipelines (including unit tests, linter, TypeScript compiler checks, and Lighthouse performance assertions).
+- **Row-Level Security (RLS)**: Enforces multi-tenant data isolation at the PostgreSQL layer.
+- **Application-Layer Encryption**: Sensitive credentials (e.g. Stripe, Mixpanel, Slack webhooks) are encrypted at rest using AES-256-GCM.
+- **No PII Transmitted to LLMs**: Data sent to Groq is strictly pseudonymized telemetry.
+- **Controlled Dependencies**: Automated PR limits, grouped updates, and pinned container images prevent production disruptions.
