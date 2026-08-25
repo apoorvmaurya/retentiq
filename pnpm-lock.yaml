@@ -11,7 +11,6 @@ overrides:
   form-data: ^4.0.6
   ip-address: ^10.5.0
   nanoid: ^3.3.18
-  brace-expansion: ^5.0.9
   body-parser: ^2.3.0
   shell-quote: ^1.10.0
   js-yaml: ^4.3.1
@@ -2477,6 +2476,12 @@ packages:
       }
     engines: { node: '>= 0.4' }
 
+  balanced-match@1.0.2:
+    resolution:
+      {
+        integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==,
+      }
+
   balanced-match@4.0.4:
     resolution:
       {
@@ -2505,6 +2510,12 @@ packages:
         integrity: sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==,
       }
     engines: { node: '>=18' }
+
+  brace-expansion@1.1.18:
+    resolution:
+      {
+        integrity: sha512-Edep/X9fGqVNmzKBVsDYIOtD+z1tuezV70LBjdCst9Tqu76lsnvRiZ6oTic1n+/BIwX6QDGAO94PN4N2SADvtw==,
+      }
 
   brace-expansion@5.0.9:
     resolution:
@@ -2662,6 +2673,12 @@ packages:
         integrity: sha512-9mAqGPHLakhCLeNyxPkK4xVo746zQ/czLH1Ky+vkitMnWfWZps8r0qXuwhwizagCRttsL4lfG4pIOvaWLpAP0w==,
       }
     engines: { node: '>= 0.8.0' }
+
+  concat-map@0.0.1:
+    resolution:
+      {
+        integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==,
+      }
 
   concat-stream@2.0.0:
     resolution:
@@ -7388,6 +7405,8 @@ snapshots:
 
   axobject-query@4.1.0: {}
 
+  balanced-match@1.0.2: {}
+
   balanced-match@4.0.4: {}
 
   baseline-browser-mapping@2.10.36: {}
@@ -7409,6 +7428,11 @@ snapshots:
       type-is: 2.1.0
     transitivePeerDependencies:
       - supports-color
+
+  brace-expansion@1.1.18:
+    dependencies:
+      balanced-match: 1.0.2
+      concat-map: 0.0.1
 
   brace-expansion@5.0.9:
     dependencies:
@@ -7502,6 +7526,8 @@ snapshots:
       vary: 1.1.2
     transitivePeerDependencies:
       - supports-color
+
+  concat-map@0.0.1: {}
 
   concat-stream@2.0.0:
     dependencies:
@@ -8201,7 +8227,7 @@ snapshots:
       '@petamoriken/float16': 3.9.3
       debug: 4.4.3
       env-paths: 3.0.0
-      semver: 7.8.4
+      semver: 7.8.5
       shell-quote: 1.10.0
       which: 4.0.0
     transitivePeerDependencies:
@@ -8735,7 +8761,7 @@ snapshots:
 
   minimatch@3.1.5:
     dependencies:
-      brace-expansion: 5.0.9
+      brace-expansion: 1.1.18
 
   minimist@1.2.8: {}
 
