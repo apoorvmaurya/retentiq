@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
+if (process.env.VERCEL || process.env.NOW_BUILDER) {
+  console.log('Vercel environment detected. Skipping standalone static asset copy.');
+  process.exit(0);
+}
+
 function copyFolderSync(from, to) {
   if (!fs.existsSync(from)) return;
   fs.mkdirSync(to, { recursive: true });

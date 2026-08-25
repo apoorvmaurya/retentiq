@@ -1,7 +1,11 @@
 import type { NextConfig } from 'next';
 
+const isVercel = process.env.VERCEL === '1' || process.env.NOW_BUILDER === '1';
+
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // Standalone output is strictly for Docker / self-hosted environments.
+  // Vercel manages and optimizes serverless bundling automatically.
+  ...(isVercel ? {} : { output: 'standalone' }),
   images: {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
   },
