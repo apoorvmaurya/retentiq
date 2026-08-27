@@ -512,9 +512,9 @@ export default function MarketingPage() {
               FastAPI AI Health Scoring.
             </h3>
             <p className="text-sm text-[#8B95AB] leading-relaxed">
-              We leverage GROQ's Llama-3.3 layer to evaluate customer signals on the fly, outputting
-              a precise health index (0–100) and mapping top churn variables directly into your
-              dashboard.
+              We leverage GROQ's OpenAI GPT-OSS layer to evaluate customer signals on the fly,
+              outputting a precise health index (0–100) and mapping top churn variables directly
+              into your dashboard.
             </p>
           </motion.div>
 
@@ -535,7 +535,7 @@ export default function MarketingPage() {
                 <Brain className="w-8 h-8 text-[#00D4FF]" />
               </div>
               <span className="text-xs font-bold text-[#F8F6F0] tracking-wider uppercase">
-                Llama-3.3 Scoring Active
+                GPT-OSS Scoring Active
               </span>
             </SpotlightCard>
           </motion.div>

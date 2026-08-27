@@ -3,7 +3,8 @@ RUN apk add --no-cache libc6-compat
 ENV PNPM_UPDATE_NOTIFIER=false
 ENV CI=true
 ENV pnpm_config_inject_workspace_packages=true
-RUN npm install -g pnpm
+ENV pnpm_config_manage_package_manager_versions=false
+RUN npm install -g pnpm@10.20.0
 
 # Stage 1: Install dependencies
 FROM base AS deps

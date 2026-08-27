@@ -5,8 +5,9 @@ WORKDIR /app
 ENV CI=true
 ENV PNPM_UPDATE_NOTIFIER=false
 ENV pnpm_config_inject_workspace_packages=true
+ENV pnpm_config_manage_package_manager_versions=false
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.20.0
 
 # Copy root workspace configurations
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./

@@ -258,7 +258,7 @@ export default function ChatbotWidget() {
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(!isOpen)}
-          className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#00D4FF] via-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-[#0A0F1E] flex items-center justify-center shadow-[0_8px_30px_rgba(0,212,255,0.4)] cursor-pointer relative"
+          className="w-14 h-14 rounded-full bg-linear-to-tr from-[#00D4FF] via-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-[#0A0F1E] flex items-center justify-center shadow-[0_8px_30px_rgba(0,212,255,0.4)] cursor-pointer relative"
           aria-label={isOpen ? 'Close support chat' : '1, Toggle AI support chat'}
         >
           <AnimatePresence mode="wait">
@@ -299,14 +299,14 @@ export default function ChatbotWidget() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.85, y: 30 }}
               transition={{ type: 'spring', stiffness: 280, damping: 25 }}
-              className={`fixed z-50 rounded-2xl glass-panel border border-white/[0.08] shadow-[0_24px_50px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden origin-bottom-right ${
+              className={`fixed z-50 rounded-2xl glass-panel border border-white/8 shadow-[0_24px_50px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden origin-bottom-right ${
                 isExpanded
-                  ? 'bottom-24 right-4 left-4 sm:left-auto sm:right-6 w-auto sm:w-[650px] h-[600px] sm:h-[650px] max-h-[calc(100vh-8rem)]'
-                  : 'bottom-24 right-4 left-4 sm:left-auto sm:right-6 w-auto sm:w-[380px] h-[500px] max-h-[calc(100vh-8rem)]'
+                  ? 'bottom-24 right-4 left-4 sm:left-auto sm:right-6 w-auto sm:w-162.5 h-150 sm:h-162.5 max-h-[calc(100vh-8rem)]'
+                  : 'bottom-24 right-4 left-4 sm:left-auto sm:right-6 w-auto sm:w-95 h-125 max-h-[calc(100vh-8rem)]'
               }`}
             >
               {/* Header */}
-              <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.01] flex items-center justify-between shrink-0">
+              <div className="px-4 py-3 border-b border-white/6 bg-white/1 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 flex items-center justify-center text-[#00D4FF] relative">
                     <Bot className="w-4 h-4 animate-pulse" />
@@ -342,7 +342,7 @@ export default function ChatbotWidget() {
                     }}
                     title="Close support chat"
                     aria-label="Close support chat"
-                    className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all cursor-pointer"
+                    className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/4 transition-all cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -350,14 +350,14 @@ export default function ChatbotWidget() {
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-white/[0.04] bg-[#0A0F1E]/30">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-white/4 bg-[#0A0F1E]/30">
                 {messages.map((msg, idx) => {
                   const isAI = msg.sender === 'ai';
                   return (
                     <div key={idx} className="flex flex-col gap-1.5">
                       <div className={`flex gap-2.5 ${isAI ? 'justify-start' : 'justify-end'}`}>
                         {isAI && (
-                          <div className="w-6.5 h-6.5 rounded-md bg-gradient-to-br from-[#101726] to-[#0A0F1E] border border-white/[0.08] flex items-center justify-center text-[#00D4FF] shrink-0 shadow-sm mt-0.5">
+                          <div className="w-6.5 h-6.5 rounded-md bg-linear-to-br from-[#101726] to-[#0A0F1E] border border-white/8 flex items-center justify-center text-[#00D4FF] shrink-0 shadow-sm mt-0.5">
                             <Bot className="w-3.5 h-3.5" />
                           </div>
                         )}
@@ -365,7 +365,7 @@ export default function ChatbotWidget() {
                           className={`rounded-2xl px-3.5 py-2.5 leading-relaxed shadow-sm transition-all ${
                             isAI
                               ? 'bg-[#0c1224]/85 border border-white/[0.07] text-slate-200 max-w-[85%]'
-                              : 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-medium max-w-[78%] shadow-[0_4px_12px_rgba(6,182,212,0.15)]'
+                              : 'bg-linear-to-r from-cyan-500 to-indigo-600 text-white font-medium max-w-[78%] shadow-[0_4px_12px_rgba(6,182,212,0.15)]'
                           }`}
                         >
                           <Markdown content={msg.text} />
@@ -412,7 +412,7 @@ export default function ChatbotWidget() {
                     <div className="w-6 h-6 rounded-md bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-[#00D4FF] shrink-0">
                       <Bot className="w-3.5 h-3.5" />
                     </div>
-                    <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl px-4 py-2 text-xs text-slate-400 flex items-center gap-1">
+                    <div className="bg-white/3 border border-white/6 rounded-2xl px-4 py-2 text-xs text-slate-400 flex items-center gap-1">
                       <span
                         className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"
                         style={{ animationDelay: '0ms' }}
@@ -433,7 +433,7 @@ export default function ChatbotWidget() {
 
               {/* Suggestions / FAQ items */}
               {messages.length === 1 && !isTyping && (
-                <div className="p-3 border-t border-white/[0.04] bg-white/[0.005] shrink-0">
+                <div className="p-3 border-t border-white/4 bg-white/0.5 shrink-0">
                   <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 px-1">
                     Common Questions
                   </p>
@@ -442,7 +442,7 @@ export default function ChatbotWidget() {
                       <button
                         key={item.label}
                         onClick={() => handleSend(item.query)}
-                        className="px-2.5 py-1.5 rounded-full bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] text-[10px] text-slate-300 hover:text-[#00D4FF] hover:border-[#00D4FF]/25 transition-all text-left cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-full bg-white/2 hover:bg-white/5 border border-white/6 text-[10px] text-slate-300 hover:text-[#00D4FF] hover:border-[#00D4FF]/25 transition-all text-left cursor-pointer"
                       >
                         {item.label}
                       </button>
@@ -457,21 +457,21 @@ export default function ChatbotWidget() {
                   e.preventDefault();
                   handleSend(input);
                 }}
-                className="p-3 border-t border-white/[0.06] bg-[#020205]/40 flex items-center gap-2 shrink-0"
+                className="p-3 border-t border-white/6 bg-[#020205]/40 flex items-center gap-2 shrink-0"
               >
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask a question..."
-                  className="flex-1 bg-white/[0.02] border border-white/[0.08] rounded-full px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40 focus:bg-white/[0.04] transition-all"
+                  className="flex-1 bg-white/2 border border-white/8 rounded-full px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40 focus:bg-white/4 transition-all"
                   aria-label="Ask chatbot assistant"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim()}
                   aria-label="Send message"
-                  className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00D4FF] to-cyan-500 text-[#0A0F1E] flex items-center justify-center transition-all disabled:opacity-40 disabled:pointer-events-none hover:scale-105 cursor-pointer shadow-md shadow-cyan-500/10"
+                  className="w-8 h-8 rounded-full bg-linear-to-tr from-[#00D4FF] to-cyan-500 text-[#0A0F1E] flex items-center justify-center transition-all disabled:opacity-40 disabled:pointer-events-none hover:scale-105 cursor-pointer shadow-md shadow-cyan-500/10"
                 >
                   <Send className="w-3.5 h-3.5" />
                 </button>
