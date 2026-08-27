@@ -29,111 +29,9 @@ import Footer from '@/components/Footer';
 import Image from 'next/image';
 import RoiCalculator from '@/components/RoiCalculator';
 
-// --- CUSTOM COUNTER COMPONENT ---
-function Counter({
-  value,
-  suffix = '',
-  duration = 1.5,
-}: {
-  value: number;
-  suffix?: string;
-  duration?: number;
-}) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (isInView) {
-      const controls = animate(0, value, {
-        duration,
-        ease: 'easeOut',
-        onUpdate: (latest) => setCount(Math.round(latest)),
-      });
-      return () => controls.stop();
-    }
-  }, [isInView, value, duration]);
-
-  return (
-    <span ref={ref}>
-      {count}
-      {suffix}
-    </span>
-  );
-}
-
-// --- SPOTLIGHT CARD COMPONENT ---
-function SpotlightCard({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [coords, setCoords] = useState({ x: 0, y: 0 });
-  const [isHovered, setIsHovered] = useState(false);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    setCoords({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-  };
-
-  return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className={`relative overflow-hidden rounded-2xl border border-white/[0.08] transition-colors duration-300 ${className}`}
-      style={{
-        background: isHovered
-          ? `radial-gradient(circle 220px at ${coords.x}px ${coords.y}px, rgba(0, 212, 255, 0.08), transparent 70%), rgba(255,255,255,0.015)`
-          : 'rgba(255,255,255,0.015)',
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-// --- TIMELINE PROGRESS NODE COMPONENT ---
-function TimelineNode({ index, progress }: { index: number; progress: any }) {
-  const threshold = index === 0 ? 0.05 : index === 1 ? 0.33 : index === 2 ? 0.66 : 0.9;
-  const [active, setActive] = useState(false);
-
-  useMotionValueEvent(progress, 'change', (latest: number) => {
-    const isNextActive = latest >= threshold;
-    setActive((prevActive) => {
-      if (prevActive !== isNextActive) {
-        return isNextActive;
-      }
-      return prevActive;
-    });
-  });
-
-  return (
-    <div className="relative flex items-center justify-center">
-      <motion.div
-        animate={{
-          scale: active ? 1.25 : 1,
-          backgroundColor: active ? 'rgba(0, 212, 255, 1)' : 'rgba(10, 15, 30, 1)',
-          borderColor: active ? 'rgba(0, 212, 255, 1)' : 'rgba(255, 255, 255, 0.12)',
-          boxShadow: active ? '0 0 12px rgba(0, 212, 255, 0.6)' : 'none',
-        }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="w-3.5 h-3.5 rounded-full border-2 bg-[#0A0F1E] z-10 cursor-pointer"
-      />
-      {active && (
-        <span className="absolute w-6 h-6 rounded-full bg-[#00D4FF]/20 animate-ping pointer-events-none z-0" />
-      )}
-    </div>
-  );
-}
+import Counter from '@/components/marketing/Counter';
+import SpotlightCard from '@/components/marketing/SpotlightCard';
+import TimelineNode from '@/components/marketing/TimelineNode';
 
 export default function MarketingPage() {
   const [tickerIndex, setTickerIndex] = useState(0);
@@ -177,11 +75,11 @@ export default function MarketingPage() {
       {/* Decorative gradient meshes */}
       <div
         aria-hidden="true"
-        className="hidden md:block absolute top-[-10%] left-[10%] w-[600px] h-[600px] rounded-full bg-indigo-950/20 blur-[120px] pointer-events-none"
+        className="hidden md:block absolute top-[-10%] left-[10%] w-150 h-150 rounded-full bg-indigo-950/20 blur-[120px] pointer-events-none"
       />
       <div
         aria-hidden="true"
-        className="hidden md:block absolute top-[20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#00D4FF]/5 blur-[150px] pointer-events-none"
+        className="hidden md:block absolute top-[20%] right-[-10%] w-125 h-125 rounded-full bg-[#00D4FF]/5 blur-[150px] pointer-events-none"
       />
 
       {/* Shared Navbar */}
@@ -199,7 +97,7 @@ export default function MarketingPage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-md"
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/3 border border-white/8 backdrop-blur-md"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#00D4FF] animate-pulse" />
             <span className="text-[11px] font-bold tracking-wider text-[#8B95AB] uppercase">
@@ -215,7 +113,7 @@ export default function MarketingPage() {
             className="font-serif text-5xl md:text-7xl font-semibold leading-[1.05] tracking-[-0.02em] text-[#F8F6F0]"
           >
             Stop losing customers you <br className="hidden md:inline" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] via-cyan-400 to-[#F8F6F0] italic">
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-[#00D4FF] via-cyan-400 to-[#F8F6F0] italic">
               haven't met yet.
             </span>
           </motion.h1>
@@ -274,7 +172,7 @@ export default function MarketingPage() {
                 const element = document.getElementById('how-it-works');
                 if (element) element.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="px-6 py-3 rounded-full bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.08] text-[#F8F6F0] font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-2"
+              className="px-6 py-3 rounded-full bg-white/2 hover:bg-white/6 border border-white/8 text-[#F8F6F0] font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-2"
             >
               See a demo <Play className="w-3 h-3 text-[#8B95AB]" />
             </a>
@@ -289,17 +187,17 @@ export default function MarketingPage() {
           {/* Neon back-glow */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-tr from-[#00D4FF]/20 to-indigo-500/10 blur-[40px] rounded-2xl -z-10 pointer-events-none scale-[0.98]"
+            className="absolute inset-0 bg-linear-to-tr from-[#00D4FF]/20 to-indigo-500/10 blur-2xl rounded-2xl -z-10 pointer-events-none scale-[0.98]"
           />
-          <div className="rounded-2xl border border-white/[0.08] bg-[#0c1224] p-6 shadow-[0_24px_50px_rgba(0,0,0,0.6)] flex flex-col gap-6 relative overflow-hidden">
+          <div className="rounded-2xl border border-white/8 bg-[#0c1224] p-6 shadow-[0_24px_50px_rgba(0,0,0,0.6)] flex flex-col gap-6 relative overflow-hidden">
             {/* Gloss reflection overlay */}
             <div
               aria-hidden="true"
-              className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none"
+              className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-linear-to-tr from-transparent via-white/1.5 to-transparent rotate-45 pointer-events-none"
             />
 
             {/* Mock Header */}
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
+            <div className="flex items-center justify-between border-b border-white/6 pb-4">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-rose-500/80" />
                 <span className="w-3 h-3 rounded-full bg-amber-500/80" />
@@ -311,8 +209,8 @@ export default function MarketingPage() {
             </div>
 
             {/* Gauge */}
-            <div className="flex items-center gap-6 p-4 rounded-xl bg-white/[0.01] border border-white/[0.03]">
-              <div className="w-16 h-16 rounded-full border-4 border-white/[0.05] flex items-center justify-center relative">
+            <div className="flex items-center gap-6 p-4 rounded-xl bg-white/1 border border-white/3">
+              <div className="w-16 h-16 rounded-full border-4 border-white/5 flex items-center justify-center relative">
                 {/* Simulated circle border color */}
                 <div className="absolute inset-0 rounded-full border-4 border-[#00D4FF] border-r-transparent animate-spin-slow" />
                 <span className="text-lg font-black text-[#F8F6F0]">78</span>
@@ -327,7 +225,7 @@ export default function MarketingPage() {
 
             {/* Rows */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/2 border border-white/4">
                 <div>
                   <p className="text-xs font-bold text-[#F8F6F0]">CloudForge Inc.</p>
                   <p className="text-[9px] text-[#8B95AB]">Basic Plan • $99/mo</p>
@@ -336,7 +234,7 @@ export default function MarketingPage() {
                   Critical
                 </span>
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/2 border border-white/4">
                 <div>
                   <p className="text-xs font-bold text-[#F8F6F0]">NexaPlatform</p>
                   <p className="text-[9px] text-[#8B95AB]">Pro Plan • $499/mo</p>
@@ -345,7 +243,7 @@ export default function MarketingPage() {
                   Medium
                 </span>
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/2 border border-white/4">
                 <div>
                   <p className="text-xs font-bold text-[#F8F6F0]">DeltaLogic</p>
                   <p className="text-[9px] text-[#8B95AB]">Enterprise • $2,499/mo</p>
@@ -363,7 +261,7 @@ export default function MarketingPage() {
       <section
         id="how-it-works"
         ref={stepsRef}
-        className="py-20 md:py-32 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] scroll-mt-24 content-visibility-auto"
+        className="py-20 md:py-32 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/4 scroll-mt-24 content-visibility-auto"
       >
         <div className="text-center max-w-xl mx-auto mb-16 md:mb-24 space-y-4">
           <span className="text-[10px] text-[#00D4FF] font-bold uppercase tracking-widest block">
@@ -377,15 +275,15 @@ export default function MarketingPage() {
         {/* Step cards container */}
         <div className="relative max-w-5xl mx-auto pl-10 md:pl-0 flex flex-col gap-16 md:gap-28">
           {/* Vertical Timeline Track (Mobile: left-[18px], Desktop: centered) */}
-          <div className="absolute left-[18px] md:left-1/2 top-[40px] md:top-[12.5%] bottom-[40px] md:bottom-[12.5%] w-[2px] md:-translate-x-1/2 bg-white/[0.04]">
+          <div className="absolute left-4.5 md:left-1/2 top-10 md:top-[12.5%] bottom-10 md:bottom-[12.5%] w-0.5 md:-translate-x-1/2 bg-white/4">
             <motion.div
               style={{ scaleY: stepsScrollProgress, originY: 0 }}
-              className="w-full h-full bg-gradient-to-b from-[#00D4FF] via-cyan-400 to-indigo-500 shadow-[0_0_8px_rgba(0,212,255,0.6)] will-change-transform"
+              className="w-full h-full bg-linear-to-b from-[#00D4FF] via-cyan-400 to-indigo-500 shadow-[0_0_8px_rgba(0,212,255,0.6)] will-change-transform"
             />
             {/* Glowing tracer tip dot tracking scroll progress */}
             <motion.div
               style={{ top: tracerY }}
-              className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#00D4FF] shadow-[0_0_15px_rgba(0,212,255,1),_0_0_5px_rgba(255,255,255,0.8)] z-10 pointer-events-none will-change-[top]"
+              className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#00D4FF] shadow-[0_0_15px_rgba(0,212,255,1),0_0_5px_rgba(255,255,255,0.8)] z-10 pointer-events-none will-change-[top]"
             />
           </div>
 
@@ -423,9 +321,9 @@ export default function MarketingPage() {
                 className="relative grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-24 items-center"
               >
                 {/* Timeline Node */}
-                {/* Mobile: aligns with vertical line at left-[18px]. Placed at left-[-22px] and top-[39px] */}
+                {/* Mobile: aligns with vertical line at left-4.5. Placed at -left-5.5 and top-9.75 */}
                 {/* Desktop: aligns with vertical line at left-1/2. Placed at left-1/2 and top-1/2 */}
-                <div className="absolute left-[-22px] md:left-1/2 top-[39px] md:top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+                <div className="absolute -left-5.5 md:left-1/2 top-9.75 md:top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
                   <TimelineNode index={idx} progress={stepsScrollProgress} />
                 </div>
 
@@ -437,7 +335,7 @@ export default function MarketingPage() {
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true, margin: '-100px' }}
                       transition={{ duration: 0.6, delay: 0.15 }}
-                      className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 md:p-8 flex flex-col gap-4 relative z-10 backdrop-blur-sm shadow-xl text-left font-sans"
+                      className="bg-white/2 border border-white/6 rounded-2xl p-6 md:p-8 flex flex-col gap-4 relative z-10 backdrop-blur-sm shadow-xl text-left font-sans"
                     >
                       <span className="font-serif text-3xl italic text-[#00D4FF]/40">
                         {item.step}
@@ -448,7 +346,7 @@ export default function MarketingPage() {
                       </p>
 
                       {/* Mobile-only Image */}
-                      <div className="mt-4 block md:hidden rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-white/[0.01]">
+                      <div className="mt-4 block md:hidden rounded-xl overflow-hidden border border-white/8 shadow-inner bg-white/1">
                         <Image
                           src={item.image}
                           alt={item.title}
@@ -465,13 +363,13 @@ export default function MarketingPage() {
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true, margin: '-100px' }}
                       transition={{ duration: 0.6, delay: 0.25 }}
-                      className="hidden md:block rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl bg-[#0c1224] p-2 relative group"
+                      className="hidden md:block rounded-2xl overflow-hidden border border-white/8 shadow-2xl bg-[#0c1224] p-2 relative group"
                     >
                       <div className="relative rounded-xl overflow-hidden aspect-square w-full">
                         {/* Gloss reflection overlay */}
                         <div
                           aria-hidden="true"
-                          className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none z-10"
+                          className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-linear-to-tr from-transparent via-white/1.5 to-transparent rotate-45 pointer-events-none z-10"
                         />
                         <Image
                           src={item.image}
@@ -491,13 +389,13 @@ export default function MarketingPage() {
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true, margin: '-100px' }}
                       transition={{ duration: 0.6, delay: 0.25 }}
-                      className="hidden md:block rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl bg-[#0c1224] p-2 relative group"
+                      className="hidden md:block rounded-2xl overflow-hidden border border-white/8 shadow-2xl bg-[#0c1224] p-2 relative group"
                     >
                       <div className="relative rounded-xl overflow-hidden aspect-square w-full">
                         {/* Gloss reflection overlay */}
                         <div
                           aria-hidden="true"
-                          className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/[0.015] to-transparent rotate-45 pointer-events-none z-10"
+                          className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-linear-to-tr from-transparent via-white/1.5 to-transparent rotate-45 pointer-events-none z-10"
                         />
                         <Image
                           src={item.image}
@@ -515,7 +413,7 @@ export default function MarketingPage() {
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true, margin: '-100px' }}
                       transition={{ duration: 0.6, delay: 0.15 }}
-                      className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 md:p-8 flex flex-col gap-4 relative z-10 backdrop-blur-sm shadow-xl text-left font-sans"
+                      className="bg-white/2 border border-white/6 rounded-2xl p-6 md:p-8 flex flex-col gap-4 relative z-10 backdrop-blur-sm shadow-xl text-left font-sans"
                     >
                       <span className="font-serif text-3xl italic text-[#00D4FF]/40">
                         {item.step}
@@ -526,7 +424,7 @@ export default function MarketingPage() {
                       </p>
 
                       {/* Mobile-only Image */}
-                      <div className="mt-4 block md:hidden rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-white/[0.01]">
+                      <div className="mt-4 block md:hidden rounded-xl overflow-hidden border border-white/8 shadow-inner bg-white/1">
                         <Image
                           src={item.image}
                           alt={item.title}
@@ -547,7 +445,7 @@ export default function MarketingPage() {
       {/* 3. FEATURES SECTION (Alternating side entries) */}
       <section
         id="features"
-        className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04] space-y-24 md:space-y-36 scroll-mt-24 content-visibility-auto"
+        className="py-20 md:py-32 max-w-7xl mx-auto px-4 md:px-8 border-t border-white/4 space-y-24 md:space-y-36 scroll-mt-24 content-visibility-auto"
       >
         {/* Title */}
         <div className="text-center max-w-xl mx-auto space-y-4">
@@ -587,14 +485,14 @@ export default function MarketingPage() {
             transition={{ duration: 0.7 }}
             className="md:col-span-6"
           >
-            <SpotlightCard className="p-8 flex items-center justify-around bg-white/[0.01]">
-              <div className="p-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl flex items-center justify-center hover:scale-105 transition-transform duration-300">
+            <SpotlightCard className="p-8 flex items-center justify-around bg-white/1">
+              <div className="p-4 bg-white/3 border border-white/6 rounded-2xl flex items-center justify-center hover:scale-105 transition-transform duration-300">
                 <Layers className="w-8 h-8 text-indigo-400" />
               </div>
-              <div className="p-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl flex items-center justify-center hover:scale-105 transition-transform duration-300">
+              <div className="p-4 bg-white/3 border border-white/6 rounded-2xl flex items-center justify-center hover:scale-105 transition-transform duration-300">
                 <Activity className="w-8 h-8 text-cyan-400" />
               </div>
-              <div className="p-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl flex items-center justify-center hover:scale-105 transition-transform duration-300">
+              <div className="p-4 bg-white/3 border border-white/6 rounded-2xl flex items-center justify-center hover:scale-105 transition-transform duration-300">
                 <MessageSquare className="w-8 h-8 text-purple-400" />
               </div>
             </SpotlightCard>
@@ -627,8 +525,8 @@ export default function MarketingPage() {
             transition={{ duration: 0.7 }}
             className="md:col-span-6 md:order-1"
           >
-            <SpotlightCard className="p-8 flex flex-col items-center justify-center bg-white/[0.01] gap-4">
-              <div className="w-24 h-24 rounded-full border-4 border-white/[0.05] flex items-center justify-center relative">
+            <SpotlightCard className="p-8 flex flex-col items-center justify-center bg-white/1 gap-4">
+              <div className="w-24 h-24 rounded-full border-4 border-white/5 flex items-center justify-center relative">
                 {/* Glow ring */}
                 <div
                   aria-hidden="true"
@@ -668,7 +566,7 @@ export default function MarketingPage() {
             transition={{ duration: 0.7 }}
             className="md:col-span-6"
           >
-            <SpotlightCard className="p-8 bg-white/[0.01]">
+            <SpotlightCard className="p-8 bg-white/1">
               {/* SVG Sparkline Spark */}
               <svg viewBox="0 0 500 100" className="w-full h-24 overflow-visible" fill="none">
                 <path
@@ -709,7 +607,7 @@ export default function MarketingPage() {
             transition={{ duration: 0.7 }}
             className="md:col-span-6 md:order-1"
           >
-            <SpotlightCard className="p-8 flex justify-center items-center gap-6 sm:gap-10 bg-white/[0.01]">
+            <SpotlightCard className="p-8 flex justify-center items-center gap-6 sm:gap-10 bg-white/1">
               <div className="flex flex-col items-center gap-2">
                 <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center">
                   <Slack className="w-8 h-8 text-emerald-400" />
@@ -755,7 +653,7 @@ export default function MarketingPage() {
             transition={{ duration: 0.7 }}
             className="md:col-span-6"
           >
-            <SpotlightCard className="p-8 bg-white/[0.01] flex flex-col items-center justify-center gap-2">
+            <SpotlightCard className="p-8 bg-white/1 flex flex-col items-center justify-center gap-2">
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                 Total Revenue Recovered
               </span>
@@ -778,24 +676,24 @@ export default function MarketingPage() {
         {/* Glow effect behind stats */}
         <div
           aria-hidden="true"
-          className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[150px] bg-[#00D4FF]/5 blur-[80px] rounded-full pointer-events-none -z-10"
+          className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-37.5 bg-[#00D4FF]/5 blur-[80px] rounded-full pointer-events-none -z-10"
         />
 
-        <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] rounded-2xl p-8 md:p-12 shadow-[0_24px_60px_rgba(0,0,0,0.5)] relative z-10">
+        <div className="backdrop-blur-md bg-white/2 border border-white/6 rounded-2xl p-8 md:p-12 shadow-[0_24px_60px_rgba(0,0,0,0.5)] relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-0 items-center">
             {/* Stat Item 1 */}
             <motion.div
               whileHover={{ y: -4 }}
               transition={{ duration: 0.2 }}
-              className="space-y-3 md:px-8 text-center md:border-r border-white/[0.06]"
+              className="space-y-3 md:px-8 text-center md:border-r border-white/6"
             >
               <h3
-                className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight"
+                className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-linear-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight"
                 aria-label="8 percent"
               >
                 <Counter value={8} suffix="%" />
               </h3>
-              <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-[200px] mx-auto">
+              <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-50 mx-auto">
                 Average Monthly B2B Churn Rate
               </p>
             </motion.div>
@@ -804,15 +702,15 @@ export default function MarketingPage() {
             <motion.div
               whileHover={{ y: -4 }}
               transition={{ duration: 0.2 }}
-              className="space-y-3 md:px-8 text-center md:border-r border-white/[0.06]"
+              className="space-y-3 md:px-8 text-center md:border-r border-white/6"
             >
               <h3
-                className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight"
+                className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-linear-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight"
                 aria-label="25 times"
               >
                 <Counter value={25} suffix="x" />
               </h3>
-              <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-[200px] mx-auto">
+              <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-50 mx-auto">
                 Cost to Acquire vs Retain Customers
               </p>
             </motion.div>
@@ -824,12 +722,12 @@ export default function MarketingPage() {
               className="space-y-3 md:px-8 text-center"
             >
               <h3
-                className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight"
+                className="font-serif text-5xl md:text-6xl text-transparent bg-clip-text bg-linear-to-r from-[#00D4FF] to-cyan-400 font-normal tracking-tight"
                 aria-label="68 percent"
               >
                 <Counter value={68} suffix="%" />
               </h3>
-              <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-[200px] mx-auto">
+              <p className="text-xs text-[#8B95AB] uppercase tracking-wider font-bold max-w-50 mx-auto">
                 SaaS Teams Missing Churn Signals
               </p>
             </motion.div>
@@ -838,7 +736,7 @@ export default function MarketingPage() {
       </section>
 
       {/* ROI CALCULATOR SECTION */}
-      <section className="py-20 md:py-28 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/[0.04]">
+      <section className="py-20 md:py-28 relative max-w-7xl mx-auto px-4 md:px-8 border-t border-white/4">
         <div className="text-center max-w-xl mx-auto mb-12 md:mb-16 space-y-4">
           <span className="text-[10px] text-[#00D4FF] font-bold uppercase tracking-widest block">
             Impact Analysis
@@ -865,7 +763,7 @@ export default function MarketingPage() {
           </h2>
 
           {/* Toggle */}
-          <div className="inline-flex items-center gap-1.5 p-1 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-md">
+          <div className="inline-flex items-center gap-1.5 p-1 rounded-full bg-white/3 border border-white/8 backdrop-blur-md">
             <button
               onClick={() => setBillingPeriod('monthly')}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all cursor-pointer ${
@@ -927,7 +825,7 @@ export default function MarketingPage() {
           <motion.div
             whileHover={{ y: -4 }}
             transition={{ duration: 0.3 }}
-            className="rounded-2xl border border-white/[0.08] bg-white/[0.015] p-8 flex flex-col justify-between shadow-xl relative overflow-hidden backdrop-blur-sm"
+            className="rounded-2xl border border-white/8 bg-white/1.5 p-8 flex flex-col justify-between shadow-xl relative overflow-hidden backdrop-blur-sm"
           >
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -943,7 +841,7 @@ export default function MarketingPage() {
                 Best for small SaaS applications looking to build early indicators.
               </p>
 
-              <ul className="space-y-3 border-t border-white/[0.06] pt-6 mb-8 text-xs text-[#F8F6F0]">
+              <ul className="space-y-3 border-t border-white/6 pt-6 mb-8 text-xs text-[#F8F6F0]">
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-[#00D4FF]" />
                   <span>Up to 500 customers</span>
@@ -967,7 +865,7 @@ export default function MarketingPage() {
 
             <a
               href="/dashboard"
-              className="w-full py-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] text-white font-bold text-xs tracking-wider uppercase text-center rounded-full transition-all cursor-pointer block"
+              className="w-full py-3 bg-white/3 hover:bg-white/8 border border-white/8 text-white font-bold text-xs tracking-wider uppercase text-center rounded-full transition-all cursor-pointer block"
             >
               Start Free Trial
             </a>
@@ -977,7 +875,7 @@ export default function MarketingPage() {
           <motion.div
             whileHover={{ y: -4 }}
             transition={{ duration: 0.3 }}
-            className="rounded-2xl border border-[#00D4FF]/30 bg-gradient-to-b from-[#0c162e] to-[#0A0F1E] p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden backdrop-blur-sm"
+            className="rounded-2xl border border-[#00D4FF]/30 bg-linear-to-b from-[#0c162e] to-[#0A0F1E] p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden backdrop-blur-sm"
           >
             {/* Pop tag */}
             <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full bg-[#00D4FF]/10 border border-[#00D4FF]/20 text-[9px] font-bold text-[#00D4FF] uppercase tracking-wider">
@@ -998,7 +896,7 @@ export default function MarketingPage() {
                 For scaling applications looking to automate retention outreaches.
               </p>
 
-              <ul className="space-y-3 border-t border-white/[0.06] pt-6 mb-8 text-xs text-[#F8F6F0]">
+              <ul className="space-y-3 border-t border-white/6 pt-6 mb-8 text-xs text-[#F8F6F0]">
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-[#00D4FF]" />
                   <span>Unlimited customer index</span>

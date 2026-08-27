@@ -16,9 +16,10 @@ if (process.env.NODE_ENV === 'test') {
   process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
   process.env.SUPABASE_SERVICE_ROLE_KEY =
     process.env.SUPABASE_SERVICE_ROLE_KEY || 'mock-test-service-role-key-for-testing-only';
+  process.env.SMTP_HOST = process.env.SMTP_HOST || 'smtp.mailtrap.io';
 }
 
-const envSchema = z.object({
+export const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   SUPABASE_URL: z.string().url('SUPABASE_URL must be a valid URL'),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
@@ -27,7 +28,11 @@ const envSchema = z.object({
     .url('AI_SERVICE_URL must be a valid URL')
     .default('http://localhost:8000'),
   API_PORT: z.preprocess(
-    (val) => val || '3001',
+    (val) => val || process.env.PORT || '4000',
+    z.string().transform((v) => parseInt(v, 10)),
+  ),
+  PORT: z.preprocess(
+    (val) => val || process.env.API_PORT || '4000',
     z.string().transform((v) => parseInt(v, 10)),
   ),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -49,11 +54,32 @@ const envSchema = z.object({
     .transform((val) => val === 'true')
     .default(false),
   ENCRYPTION_KEY: z.string().optional(),
+  JWT_SECRET: z.string().optional(),
+  CRON_SECRET: z.string().optional(),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  INTERCOM_CLIENT_SECRET: z.string().optional(),
 });
+
+export function validateEnv() {
+  const parsed = envSchema.safeParse(process.env);
+
+  if (!parsed.success) {
+    console.error('❌ Environment validation failed:');
+    parsed.error.issues.forEach((issue) => {
+      console.error(`  Missing / invalid env var: ${issue.path.join('.')} - ${issue.message}`);
+    });
+    if (process.env.NODE_ENV !== 'test') {
+      process.exit(1);
+    }
+  }
+
+  return parsed.data;
+}
 
 const parsed = envSchema.safeParse(process.env);
 
-if (!parsed.success) {
+if (!parsed.success && process.env.NODE_ENV !== 'test') {
   console.error('❌ Environment validation failed:');
   parsed.error.issues.forEach((issue) => {
     console.error(`  Missing env var: ${issue.path.join('.')} - ${issue.message}`);
@@ -61,4 +87,4 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const env = parsed.data;
+export const env = parsed.data || ({} as z.infer<typeof envSchema>);

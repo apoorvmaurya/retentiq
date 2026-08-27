@@ -1,17 +1,30 @@
-import cron from 'node-cron';
+import cron, { ScheduledTask } from 'node-cron';
 import nodemailer from 'nodemailer';
 import { db, schema } from '../lib/db.js';
 import { eq, and, gte, lte, lt, gt, desc, asc, sql } from 'drizzle-orm';
 import { decryptConfig } from '../lib/crypto.js';
+import { logger } from '../lib/logger.js';
+import { ConfigurationError, WorkerError, toAppError } from '../lib/errors.js';
+import {
+  isAlertSuppressed,
+  evaluateDefaultRule,
+  evaluateRuleConditions,
+  resolveSlackEmoji,
+  RuleCondition,
+} from '../lib/alertRules.js';
 
 // Nodemailer transport initialization
-const host = process.env.SMTP_HOST || 'smtp.mailtrap.io';
+const host = process.env.SMTP_HOST;
 const port = parseInt(process.env.SMTP_PORT || '2525', 10);
 const user = process.env.SMTP_USER;
 const pass = process.env.SMTP_PASS;
 
-const transportOptions: any = {
-  host,
+if (!host && process.env.NODE_ENV !== 'test') {
+  logger.warn('SMTP_HOST is not set. Email delivery will be unavailable.');
+}
+
+const transportOptions: nodemailer.TransportOptions | any = {
+  host: host || 'smtp.mailtrap.io',
   port,
 };
 
@@ -19,21 +32,19 @@ if (user && pass && user !== 'your-smtp-username' && pass !== 'your-smtp-passwor
   transportOptions.auth = { user, pass };
 }
 
-const transporter = nodemailer.createTransport(transportOptions);
+export const transporter = nodemailer.createTransport(transportOptions);
 
 export async function checkAndDeliverAlerts(): Promise<void> {
-  console.log('[AlertWorker] Checking health scores against configurations & custom rules...');
+  logger.info('[AlertWorker] Checking health scores against configurations & custom rules...');
   try {
-    const orgs = (await db.select().from(schema.organizations)) as any[];
+    const orgs = (await db.select().from(schema.organizations)) as Array<{ id: string }>;
 
     for (const org of orgs) {
-      // 1. Fetch custom alert rules for this organization
       const customRules = await db
         .select()
         .from(schema.alertRules)
         .where(and(eq(schema.alertRules.orgId, org.id), eq(schema.alertRules.isActive, true)));
 
-      // Fetch alert config (for default settings fallback)
       let alertConfig = (await db
         .select()
         .from(schema.alertConfigs)
@@ -55,10 +66,14 @@ export async function checkAndDeliverAlerts(): Promise<void> {
       const customersList = (await db
         .select()
         .from(schema.customers)
-        .where(eq(schema.customers.orgId, org.id))) as any[];
+        .where(eq(schema.customers.orgId, org.id))) as Array<{
+        id: string;
+        name: string;
+        email: string;
+        company: string;
+      }>;
 
       for (const customer of customersList) {
-        // Get latest health score
         const latestScore = await db
           .select()
           .from(schema.healthScores)
@@ -80,14 +95,13 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                     {
                       type: 'score_below',
                       threshold: alertConfig.threshold ?? 40,
-                      priority: 'warning',
+                      priority: 'warning' as const,
                     },
                   ],
                 },
               ];
 
         for (const rule of rulesToEvaluate) {
-          // Cooldown suppression check: 7 days default
           const sevenDaysAgo = new Date();
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -101,100 +115,85 @@ export async function checkAndDeliverAlerts(): Promise<void> {
               ),
             );
 
-          // Check if this specific rule was triggered recently
-          const isSuppressed = recentAlerts.some((a: any) => {
-            const channels = a.deliveryChannels as any;
-            return channels && channels.ruleId === rule.id;
-          });
-
-          if (isSuppressed) {
-            continue; // Snoozed!
+          if (isAlertSuppressed(recentAlerts, rule.id)) {
+            continue;
           }
 
-          // Evaluate conditions
-          const conditions = (rule.conditions as any[]) || [];
-          let ruleTriggered = false;
-          let rulePriority = 'warning'; // default
-          let triggerReason = '';
+          let evaluation = {
+            triggered: false,
+            priority: 'warning' as 'info' | 'warning' | 'critical',
+            reason: '',
+          };
 
           if (rule.id === 'default-rule') {
-            // Fallback rule evaluation
-            if (latestScore.score < (alertConfig.threshold ?? 40)) {
-              ruleTriggered = true;
-              rulePriority = 'warning';
-              triggerReason = `Health score (${latestScore.score}) dropped below default threshold (${alertConfig.threshold ?? 40})`;
-            }
+            evaluation = evaluateDefaultRule(latestScore, alertConfig.threshold ?? 40);
           } else {
-            // Evaluate custom rule conditions (AND logic: all conditions must match)
-            let allMatch = conditions.length > 0;
-            for (const cond of conditions) {
-              if (cond.priority) rulePriority = cond.priority;
+            const conditions = (rule.conditions as RuleCondition[]) || [];
+            let pastScore: { score: number } | null = null;
+            let recentLoginsCount = 1;
 
-              if (cond.type === 'score_below') {
-                if (!(latestScore.score < cond.threshold)) {
-                  allMatch = false;
-                } else {
-                  triggerReason += `Score below ${cond.threshold}. `;
-                }
-              } else if (cond.type === 'score_drop') {
-                const days = cond.days || 7;
-                const dropThreshold = cond.drop || 15;
-                const cutoff = new Date();
-                cutoff.setDate(cutoff.getDate() - days);
+            const hasDropCondition = conditions.some((c) => c.type === 'score_drop');
+            if (hasDropCondition) {
+              const dropCond = conditions.find((c) => c.type === 'score_drop');
+              const days = dropCond?.days || 7;
+              const cutoff = new Date();
+              cutoff.setDate(cutoff.getDate() - days);
 
-                const pastScore = await db
-                  .select()
-                  .from(schema.healthScores)
-                  .where(
-                    and(
-                      eq(schema.healthScores.customerId, customer.id),
-                      gte(schema.healthScores.scoredAt, cutoff),
-                    ),
-                  )
-                  .orderBy(asc(schema.healthScores.scoredAt))
-                  .limit(1)
-                  .then((rows) => rows[0]);
-
-                if (pastScore && pastScore.score - latestScore.score >= dropThreshold) {
-                  triggerReason += `Score dropped by ${pastScore.score - latestScore.score} points in ${days} days. `;
-                } else {
-                  allMatch = false;
-                }
-              } else if (cond.type === 'inactivity') {
-                const inactiveDays = cond.days || 10;
-                const cutoff = new Date();
-                cutoff.setDate(cutoff.getDate() - inactiveDays);
-
-                const recentLogins = await db
-                  .select()
-                  .from(schema.events)
-                  .where(
-                    and(
-                      eq(schema.events.customerId, customer.id),
-                      gte(schema.events.occurredAt, cutoff),
-                      sql`${schema.events.eventType} IN ('login', 'user.login', 'identify')`,
-                    ),
-                  )
-                  .limit(1);
-
-                if (recentLogins.length === 0) {
-                  triggerReason += `No logins in last ${inactiveDays} days. `;
-                } else {
-                  allMatch = false;
-                }
-              } else {
-                allMatch = false;
-              }
+              pastScore = await db
+                .select()
+                .from(schema.healthScores)
+                .where(
+                  and(
+                    eq(schema.healthScores.customerId, customer.id),
+                    gte(schema.healthScores.scoredAt, cutoff),
+                  ),
+                )
+                .orderBy(asc(schema.healthScores.scoredAt))
+                .limit(1)
+                .then((rows) => rows[0] || null);
             }
-            ruleTriggered = allMatch;
+
+            const hasInactivityCondition = conditions.some((c) => c.type === 'inactivity');
+            if (hasInactivityCondition) {
+              const inactCond = conditions.find((c) => c.type === 'inactivity');
+              const days = inactCond?.days || 10;
+              const cutoff = new Date();
+              cutoff.setDate(cutoff.getDate() - days);
+
+              const recentLogins = await db
+                .select()
+                .from(schema.events)
+                .where(
+                  and(
+                    eq(schema.events.customerId, customer.id),
+                    gte(schema.events.occurredAt, cutoff),
+                    sql`${schema.events.eventType} IN ('login', 'user.login', 'identify')`,
+                  ),
+                )
+                .limit(1);
+
+              recentLoginsCount = recentLogins.length;
+            }
+
+            evaluation = evaluateRuleConditions(
+              conditions,
+              latestScore,
+              pastScore,
+              recentLoginsCount,
+            );
           }
 
-          if (ruleTriggered) {
-            console.log(
-              `[AlertWorker] Rule '${rule.name}' triggered for customer ${customer.name} (Priority: ${rulePriority})`,
+          if (evaluation.triggered) {
+            logger.info(
+              {
+                orgId: org.id,
+                customerId: customer.id,
+                ruleName: rule.name,
+                priority: evaluation.priority,
+              },
+              `[AlertWorker] Rule '${rule.name}' triggered for customer ${customer.name}`,
             );
 
-            // 1. Insert alert
             const [alert] = await db
               .insert(schema.alerts)
               .values({
@@ -205,8 +204,8 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                   slack: alertConfig.notifySlack || false,
                   email: alertConfig.notifyEmail || false,
                   ruleId: rule.id,
-                  priority: rulePriority,
-                  reason: triggerReason || 'Custom alert rule conditions met.',
+                  priority: evaluation.priority,
+                  reason: evaluation.reason || 'Custom alert rule conditions met.',
                 },
                 acknowledged: false,
               })
@@ -214,11 +213,7 @@ export async function checkAndDeliverAlerts(): Promise<void> {
 
             const channelsDelivered = { slack: false, email: false };
             const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/customers/${customer.id}`;
-
-            // Slack theme colors/formatting
-            let slackEmoji = '⚠️';
-            if (rulePriority === 'critical') slackEmoji = '🚨';
-            else if (rulePriority === 'info') slackEmoji = 'ℹ️';
+            const slackEmoji = resolveSlackEmoji(evaluation.priority);
 
             let slackWebhookUrl = process.env.SLACK_WEBHOOK_URL || '';
 
@@ -245,10 +240,10 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                     slackWebhookUrl = decryptedConfig.slackWebhookUrl;
                   }
                 }
-              } catch (err: any) {
-                console.error(
-                  `[AlertWorker] Error resolving Slack integration for org ${org.id}:`,
-                  err.message,
+              } catch (err: unknown) {
+                logger.error(
+                  { orgId: org.id, err: toAppError(err) },
+                  `[AlertWorker] Error resolving Slack integration for org ${org.id}`,
                 );
               }
             }
@@ -261,7 +256,7 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                       type: 'header',
                       text: {
                         type: 'plain_text',
-                        text: `${slackEmoji} RetentIQ Churn Risk Alert (${rulePriority.toUpperCase()})`,
+                        text: `${slackEmoji} RetentIQ Churn Risk Alert (${evaluation.priority.toUpperCase()})`,
                         emoji: true,
                       },
                     },
@@ -272,7 +267,10 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                         { type: 'mrkdwn', text: `*Customer:* ${customer.name}` },
                         { type: 'mrkdwn', text: `*Company:* ${customer.company}` },
                         { type: 'mrkdwn', text: `*Health Score:* \`${latestScore.score}/100\`` },
-                        { type: 'mrkdwn', text: `*Reason:* ${triggerReason || 'Conditions met.'}` },
+                        {
+                          type: 'mrkdwn',
+                          text: `*Reason:* ${evaluation.reason || 'Conditions met.'}`,
+                        },
                       ],
                     },
                     {
@@ -282,7 +280,7 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                           type: 'button',
                           text: { type: 'plain_text', text: 'View Customer →', emoji: true },
                           url: dashboardUrl,
-                          style: rulePriority === 'critical' ? 'danger' : 'primary',
+                          style: evaluation.priority === 'critical' ? 'danger' : 'primary',
                         },
                       ],
                     },
@@ -298,15 +296,14 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                 if (slackRes.ok) {
                   channelsDelivered.slack = true;
                 }
-              } catch (slackErr: any) {
-                console.error(`[AlertWorker] Slack alert failed: ${slackErr.message}`);
+              } catch (slackErr: unknown) {
+                logger.error({ err: toAppError(slackErr) }, `[AlertWorker] Slack alert failed`);
               }
             }
 
-            // Email Priority Colors
-            let priorityColor = '#F59E0B'; // Warning
-            if (rulePriority === 'critical') priorityColor = '#EF4444';
-            else if (rulePriority === 'info') priorityColor = '#3B82F6';
+            let priorityColor = '#F59E0B';
+            if (evaluation.priority === 'critical') priorityColor = '#EF4444';
+            else if (evaluation.priority === 'info') priorityColor = '#3B82F6';
 
             if (alertConfig.notifyEmail) {
               try {
@@ -316,7 +313,7 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                   <body style="font-family: sans-serif; background-color: #F8FAFC; padding: 20px; color: #1E293B;">
                     <div style="background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; padding: 32px; max-width: 550px; margin: 0 auto;">
                       <div style="font-size: 20px; font-weight: bold; color: ${priorityColor}; margin-bottom: 24px; border-bottom: 1px solid #F1F5F9; padding-bottom: 16px;">
-                        ${slackEmoji} RetentIQ Alert (${rulePriority.toUpperCase()})
+                        ${slackEmoji} RetentIQ Alert (${evaluation.priority.toUpperCase()})
                       </div>
                       <div style="font-size: 16px; font-weight: bold; margin-bottom: 20px;">
                         ${customer.name} from <strong>${customer.company}</strong> has triggered an alert.
@@ -337,7 +334,7 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                         Reason
                       </div>
                       <p style="font-size: 14px; color: #475569; margin-top: 4px; margin-bottom: 24px;">
-                        ${triggerReason || 'Conditions met.'}
+                        ${evaluation.reason || 'Conditions met.'}
                       </p>
                       <a href="${dashboardUrl}" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; font-weight: bold; font-size: 13px; padding: 12px 24px; border-radius: 8px; text-decoration: none;">
                         View in Dashboard &rarr;
@@ -350,17 +347,16 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                 await transporter.sendMail({
                   from: process.env.SMTP_FROM || 'noreply@retentiq.io',
                   to: customer.email,
-                  subject: `[RetentIQ ${rulePriority.toUpperCase()}] Churn Risk: ${customer.company}`,
+                  subject: `[RetentIQ ${evaluation.priority.toUpperCase()}] Churn Risk: ${customer.company}`,
                   html: emailHtml,
                 });
 
                 channelsDelivered.email = true;
-              } catch (emailErr: any) {
-                console.error(`[AlertWorker] Email alert failed: ${emailErr.message}`);
+              } catch (emailErr: unknown) {
+                logger.error({ err: toAppError(emailErr) }, `[AlertWorker] Email alert failed`);
               }
             }
 
-            // Update delivery state
             await db
               .update(schema.alerts)
               .set({
@@ -368,8 +364,8 @@ export async function checkAndDeliverAlerts(): Promise<void> {
                   slack: channelsDelivered.slack,
                   email: channelsDelivered.email,
                   ruleId: rule.id,
-                  priority: rulePriority,
-                  reason: triggerReason || 'Custom alert rule conditions met.',
+                  priority: evaluation.priority,
+                  reason: evaluation.reason || 'Custom alert rule conditions met.',
                   delivered_at: new Date().toISOString(),
                 },
               })
@@ -378,18 +374,17 @@ export async function checkAndDeliverAlerts(): Promise<void> {
         }
       }
     }
-  } catch (err: any) {
-    console.error('[AlertWorker] Error checking alerts:', err.message);
+  } catch (err: unknown) {
+    logger.error({ err: toAppError(err) }, '[AlertWorker] Error checking alerts');
   }
 }
 
 export async function verifyRoiRecoveries(): Promise<void> {
-  console.log('[AlertWorker] Running ROI recovery validation check...');
+  logger.info('[AlertWorker] Running ROI recovery validation check...');
   try {
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    // 1. Find all completed tasks in last 90 days with positive outcome
     const completedTasks = await db
       .select()
       .from(schema.tasks)
@@ -406,7 +401,6 @@ export async function verifyRoiRecoveries(): Promise<void> {
       const orgId = task.orgId;
       const actionTime = task.completedAt!;
 
-      // 2. Check if customer had a critical score (< 40) in the 30 days before/at completion
       const thirtyDaysBefore = new Date(actionTime.getTime());
       thirtyDaysBefore.setDate(thirtyDaysBefore.getDate() - 30);
 
@@ -425,12 +419,8 @@ export async function verifyRoiRecoveries(): Promise<void> {
         .limit(1)
         .then((rows) => rows[0]);
 
-      if (!criticalScore) {
-        // Not a critical account at time of intervention, skip
-        continue;
-      }
+      if (!criticalScore) continue;
 
-      // 3. Look for a recovery score (>= 60) within 90 days after completion
       const ninetyDaysAfter = new Date(actionTime.getTime());
       ninetyDaysAfter.setDate(ninetyDaysAfter.getDate() + 90);
 
@@ -450,7 +440,6 @@ export async function verifyRoiRecoveries(): Promise<void> {
         .then((rows) => rows[0]);
 
       if (recoveryScore) {
-        // Customer recovered! Let's check if we recorded a retention action for this task
         const actionType = `Task: ${task.title}`;
         const existingAction = await db
           .select()
@@ -465,7 +454,6 @@ export async function verifyRoiRecoveries(): Promise<void> {
           .then((rows) => rows[0]);
 
         if (!existingAction) {
-          // Get customer's MRR
           const customer = await db
             .select()
             .from(schema.customers)
@@ -475,8 +463,9 @@ export async function verifyRoiRecoveries(): Promise<void> {
 
           const mrr = customer?.mrr || '0.00';
 
-          console.log(
-            `[AlertWorker] ROI SAVED account validated! Customer ${customerId} recovered to ${recoveryScore.score} after task completion.`,
+          logger.info(
+            { customerId, orgId, score: recoveryScore.score },
+            `[AlertWorker] ROI SAVED account validated! Customer recovered.`,
           );
           await db.insert(schema.retentionActions).values({
             orgId,
@@ -489,15 +478,14 @@ export async function verifyRoiRecoveries(): Promise<void> {
         }
       }
     }
-  } catch (err: any) {
-    console.error('[AlertWorker] ROI recovery validation failed:', err.message);
+  } catch (err: unknown) {
+    logger.error({ err: toAppError(err) }, '[AlertWorker] ROI recovery validation failed');
   }
 }
 
 export async function runRoiAggregation(): Promise<void> {
-  console.log('[AlertWorker] Running ROI aggregation task...');
+  logger.info('[AlertWorker] Running ROI aggregation task...');
   try {
-    // Run recoveries check first
     await verifyRoiRecoveries();
 
     const rawAggregates = await db
@@ -542,19 +530,18 @@ export async function runRoiAggregation(): Promise<void> {
         });
       }
     }
-    console.log('[AlertWorker] ROI aggregation completed successfully.');
-  } catch (err: any) {
-    console.error('[AlertWorker] ROI aggregation failed:', err.message);
+    logger.info('[AlertWorker] ROI aggregation completed successfully.');
+  } catch (err: unknown) {
+    logger.error({ err: toAppError(err) }, '[AlertWorker] ROI aggregation failed');
   }
 }
 
 export async function checkIntegrationsHealth(): Promise<void> {
-  console.log('[AlertWorker] Checking integrations health (last sync check)...');
+  logger.info('[AlertWorker] Checking integrations health (last sync check)...');
   try {
     const twentyFourHoursAgo = new Date();
     twentyFourHoursAgo.setDate(twentyFourHoursAgo.getDate() - 1);
 
-    // Fetch all active integrations
     const activeIntegrations = await db
       .select({
         id: schema.integrations.id,
@@ -569,11 +556,11 @@ export async function checkIntegrationsHealth(): Promise<void> {
     for (const integration of activeIntegrations) {
       const lastSync = integration.lastSyncedAt ? new Date(integration.lastSyncedAt) : null;
       if (!lastSync || lastSync < twentyFourHoursAgo) {
-        console.warn(
-          `[AlertWorker] Integration ${integration.provider} for org ${integration.orgId} has not synced for > 24 hours.`,
+        logger.warn(
+          { orgId: integration.orgId, provider: integration.provider },
+          `[AlertWorker] Integration has not synced for > 24 hours.`,
         );
 
-        // Find organization owner or admin to notify
         const admins = await db
           .select({ email: schema.users.email, name: schema.users.name })
           .from(schema.users)
@@ -604,31 +591,33 @@ export async function checkIntegrationsHealth(): Promise<void> {
                 subject: `[RetentIQ Alert] Integration Sync Failed: ${integration.provider}`,
                 html: emailHtml,
               });
-              console.log(`[AlertWorker] Dispatched sync failure notification to ${admin.email}`);
-            } catch (err: any) {
-              console.error(
-                `[AlertWorker] Failed to email sync alert to ${admin.email}:`,
-                err.message,
+              logger.info(
+                { email: admin.email },
+                `[AlertWorker] Dispatched sync failure notification`,
+              );
+            } catch (err: unknown) {
+              logger.error(
+                { err: toAppError(err), email: admin.email },
+                `[AlertWorker] Failed to email sync alert`,
               );
             }
           }
         }
       }
     }
-  } catch (err: any) {
-    console.error('[AlertWorker] Error checking integrations health:', err.message);
+  } catch (err: unknown) {
+    logger.error({ err: toAppError(err) }, '[AlertWorker] Error checking integrations health');
   }
 }
 
 export async function sendWeeklyEmailDigest(): Promise<void> {
-  console.log('[AlertWorker] Compiling weekly Monday morning email digests...');
+  logger.info('[AlertWorker] Compiling weekly Monday morning email digests...');
   try {
     const orgs = await db.select().from(schema.organizations);
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     for (const org of orgs) {
-      // 1. Find accounts that moved into Critical this week (score < 40)
       const criticalAccounts = await db
         .select({
           name: schema.customers.name,
@@ -651,7 +640,6 @@ export async function sendWeeklyEmailDigest(): Promise<void> {
       }
       const uniqueCriticalList = Array.from(uniqueCriticalMap.values());
 
-      // 2. Find accounts that improved (interventions in last 7 days)
       const improvements = await db
         .select({
           name: schema.customers.name,
@@ -667,56 +655,7 @@ export async function sendWeeklyEmailDigest(): Promise<void> {
           ),
         );
 
-      // 3. Find upcoming renewals to watch (renewal proximity in next 60 days)
-      const upcomingRenewals: any[] = [];
-      const sixtyDaysFromNow = new Date();
-      sixtyDaysFromNow.setDate(sixtyDaysFromNow.getDate() + 60);
-
-      const crmEvents = await db
-        .select()
-        .from(schema.events)
-        .where(
-          and(
-            eq(schema.events.orgId, org.id),
-            eq(schema.events.eventType, 'crm_sync'),
-            gte(schema.events.occurredAt, oneWeekAgo),
-          ),
-        );
-
-      const customerLatestCrm = new Map<string, any>();
-      for (const event of crmEvents) {
-        const payload = event.payload as any;
-        if (payload && payload.renewal_date) {
-          const renDate = new Date(payload.renewal_date);
-          if (renDate >= new Date() && renDate <= sixtyDaysFromNow) {
-            customerLatestCrm.set(event.customerId, {
-              renewalDate: payload.renewal_date,
-              nps: payload.nps_score || 'N/A',
-            });
-          }
-        }
-      }
-
-      for (const [custEvId, details] of customerLatestCrm.entries()) {
-        const cust = await db
-          .select()
-          .from(schema.customers)
-          .where(eq(schema.customers.id, custEvId))
-          .limit(1)
-          .then((rows) => rows[0]);
-
-        if (cust) {
-          upcomingRenewals.push({
-            name: cust.name,
-            company: cust.company,
-            renewalDate: new Date(details.renewalDate).toLocaleDateString(),
-            nps: details.nps,
-          });
-        }
-      }
-
       const members = await db.select().from(schema.users).where(eq(schema.users.orgId, org.id));
-
       if (members.length === 0) continue;
 
       const criticalRowsHtml =
@@ -739,24 +678,13 @@ export async function sendWeeklyEmailDigest(): Promise<void> {
               .join('')
           : '<tr><td colspan="2" style="padding: 8px; color: #64748B;">No actions recorded.</td></tr>';
 
-      const renewalRowsHtml =
-        upcomingRenewals.length > 0
-          ? upcomingRenewals
-              .map(
-                (c) =>
-                  `<tr><td style="padding: 8px; border-bottom: 1px solid #E2E8F0;">${c.name} (${c.company})</td><td style="padding: 8px; border-bottom: 1px solid #E2E8F0;">${c.renewalDate}</td></tr>`,
-              )
-              .join('')
-          : '<tr><td colspan="2" style="padding: 8px; color: #64748B;">No renewals in the next 60 days.</td></tr>';
-
       const digestHtml = `
         <!DOCTYPE html>
         <html>
         <body style="font-family: sans-serif; color: #1e293b; background-color: #f8fafc; padding: 20px;">
           <div style="background-color: white; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; margin: 0 auto; padding: 32px;">
-            <h2 style="color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">Weekly ChurnRadar Digest</h2>
+            <h2 style="color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">Weekly RetentIQ Digest</h2>
             <p>Here is your weekly customer success summary for the week ending ${new Date().toLocaleDateString()}:</p>
-            
             <h3 style="color: #ef4444; margin-top: 24px;">🔴 Critical Risk Accounts</h3>
             <table style="width: 100%; border-collapse: collapse;">
               <thead>
@@ -764,7 +692,6 @@ export async function sendWeeklyEmailDigest(): Promise<void> {
               </thead>
               <tbody>${criticalRowsHtml}</tbody>
             </table>
-
             <h3 style="color: #10b981; margin-top: 24px;">💚 Recoveries & Interventions</h3>
             <table style="width: 100%; border-collapse: collapse;">
               <thead>
@@ -772,17 +699,8 @@ export async function sendWeeklyEmailDigest(): Promise<void> {
               </thead>
               <tbody>${improvementRowsHtml}</tbody>
             </table>
-
-            <h3 style="color: #3b82f6; margin-top: 24px;">📅 Upcoming Renewals (60 Days)</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background-color: #f1f5f9; text-align: left;"><th style="padding: 8px;">Customer</th><th style="padding: 8px;">Renewal Date</th></tr>
-              </thead>
-              <tbody>${renewalRowsHtml}</tbody>
-            </table>
-
             <div style="margin-top: 32px; font-size: 12px; color: #94a3b8; text-align: center;">
-              Sent by ChurnRadar intelligence platform.
+              Sent by RetentIQ Intelligence Platform.
             </div>
           </div>
         </body>
@@ -794,117 +712,103 @@ export async function sendWeeklyEmailDigest(): Promise<void> {
           await transporter.sendMail({
             from: process.env.SMTP_FROM || 'noreply@retentiq.io',
             to: member.email,
-            subject: `[ChurnRadar] Your Weekly Customer Success Digest`,
+            subject: `[RetentIQ] Your Weekly Customer Success Digest`,
             html: digestHtml,
           });
-          console.log(`[AlertWorker] Dispatched weekly digest email to ${member.email}`);
-        } catch (e: any) {
-          console.error(`[AlertWorker] Failed to send digest to ${member.email}:`, e.message);
+          logger.info({ email: member.email }, `[AlertWorker] Dispatched weekly digest email`);
+        } catch (e: unknown) {
+          logger.error(
+            { err: toAppError(e), email: member.email },
+            `[AlertWorker] Failed to send digest`,
+          );
         }
       }
     }
-  } catch (err: any) {
-    console.error('[AlertWorker] Weekly digest compiling failed:', err.message);
+  } catch (err: unknown) {
+    logger.error({ err: toAppError(err) }, '[AlertWorker] Weekly digest compiling failed');
   }
 }
 
 export async function triggerModelRetrain(): Promise<void> {
-  console.log('[AlertWorker] Triggering model retraining...');
+  logger.info('[AlertWorker] Triggering model retraining...');
   try {
     const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
     const res = await fetch(`${aiServiceUrl}/model/retrain`, {
       method: 'POST',
     });
     if (!res.ok) {
-      throw new Error(`AI Service retraining returned status ${res.status}`);
+      throw new WorkerError(`AI Service retraining returned status ${res.status}`);
     }
-    console.log('[AlertWorker] Model retraining triggered successfully.');
-  } catch (err: any) {
-    console.error('[AlertWorker] Model retraining trigger failed:', err.message);
+    logger.info('[AlertWorker] Model retraining triggered successfully.');
+  } catch (err: unknown) {
+    logger.error({ err: toAppError(err) }, '[AlertWorker] Model retraining trigger failed');
   }
 }
 
-let scheduledTasks: any[] = [];
+let scheduledTasks: ScheduledTask[] = [];
 
 export function stopAlertWorker() {
-  console.log('[AlertWorker] Stopping background cron jobs...');
+  logger.info('[AlertWorker] Stopping background cron jobs...');
   for (const task of scheduledTasks) {
     try {
       task.stop();
-    } catch (e: any) {
-      console.error('[AlertWorker] Failed to stop cron task:', e.message);
+    } catch (e: unknown) {
+      logger.error({ err: toAppError(e) }, '[AlertWorker] Failed to stop cron task');
     }
   }
   scheduledTasks = [];
 }
 
 export function startAlertWorker() {
-  stopAlertWorker(); // Ensure clean state before scheduling
+  stopAlertWorker();
 
   if (process.env.DISABLE_BACKGROUND_WORKERS === 'true') {
-    console.log(
-      '[AlertWorker] Background cron workers disabled via DISABLE_BACKGROUND_WORKERS env var.',
-    );
+    logger.info('[AlertWorker] Background cron workers disabled via DISABLE_BACKGROUND_WORKERS.');
     return;
   }
 
-  console.log('[AlertWorker] Initializing alert delivery cron job (running every 5 minutes)...');
+  logger.info('[AlertWorker] Initializing alert delivery cron job (running every 5 minutes)...');
   const task1 = cron.schedule('*/5 * * * *', async () => {
-    console.log('[AlertWorker] Cron triggered. Running health check...');
     try {
       await checkAndDeliverAlerts();
-    } catch (err: any) {
-      console.error('[AlertWorker] Cron job execution failed:', err.message);
+    } catch (err: unknown) {
+      logger.error({ err: toAppError(err) }, '[AlertWorker] Cron job execution failed');
     }
   });
   scheduledTasks.push(task1);
 
-  console.log('[AlertWorker] Initializing ROI aggregation cron job (running every 5 minutes)...');
   const task2 = cron.schedule('*/5 * * * *', async () => {
-    console.log('[AlertWorker] ROI Cron triggered. Running aggregation...');
     try {
       await runRoiAggregation();
-    } catch (err: any) {
-      console.error('[AlertWorker] ROI aggregation cron failed:', err.message);
+    } catch (err: unknown) {
+      logger.error({ err: toAppError(err) }, '[AlertWorker] ROI aggregation cron failed');
     }
   });
   scheduledTasks.push(task2);
 
-  console.log(
-    '[AlertWorker] Initializing integrations health check cron job (running every hour)...',
-  );
   const task3 = cron.schedule('0 * * * *', async () => {
-    console.log('[AlertWorker] Health Cron triggered. Checking integrations...');
     try {
       await checkIntegrationsHealth();
-    } catch (err: any) {
-      console.error('[AlertWorker] Integrations health check cron failed:', err.message);
+    } catch (err: unknown) {
+      logger.error({ err: toAppError(err) }, '[AlertWorker] Integrations health check cron failed');
     }
   });
   scheduledTasks.push(task3);
 
-  console.log(
-    '[AlertWorker] Initializing weekly model retraining cron (running every Sunday at midnight)...',
-  );
   const task4 = cron.schedule('0 0 * * 0', async () => {
-    console.log('[AlertWorker] Retraining Cron triggered.');
     try {
       await triggerModelRetrain();
-    } catch (err: any) {
-      console.error('[AlertWorker] Weekly retraining cron failed:', err.message);
+    } catch (err: unknown) {
+      logger.error({ err: toAppError(err) }, '[AlertWorker] Weekly retraining cron failed');
     }
   });
   scheduledTasks.push(task4);
 
-  console.log(
-    '[AlertWorker] Initializing weekly Monday morning email digest (running every Monday at 8 AM)...',
-  );
   const task5 = cron.schedule('0 8 * * 1', async () => {
-    console.log('[AlertWorker] Weekly digest Cron triggered.');
     try {
       await sendWeeklyEmailDigest();
-    } catch (err: any) {
-      console.error('[AlertWorker] Weekly digest cron failed:', err.message);
+    } catch (err: unknown) {
+      logger.error({ err: toAppError(err) }, '[AlertWorker] Weekly digest cron failed');
     }
   });
   scheduledTasks.push(task5);

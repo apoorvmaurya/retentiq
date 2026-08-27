@@ -117,9 +117,10 @@ async def generate_playbook(customer_id: str):
         """
 
         try:
+            playbook_model = getattr(settings, "PLAYBOOK_MODEL_ID", settings.MODEL_ID)
             response = await call_groq_with_retry(
                 groq_client.chat.completions.create,
-                model=settings.MODEL_ID,
+                model=playbook_model,
                 messages=[
                     {"role": "system", "content": get_playbook_system_prompt(relevant_features)},
                     {"role": "user", "content": prompt},

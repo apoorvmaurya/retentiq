@@ -32,7 +32,8 @@
     "stripe": "^22.2.2",
     "uuid": "^14.0.0",
     "ws": "^8.21.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "pino": "^9.6.0"
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",

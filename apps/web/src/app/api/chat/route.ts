@@ -5,7 +5,7 @@ Your tone is professional, helpful, tech-savvy, and concise.
 
 About RetentIQ:
 - Core Mission: Spot SaaS customer churn risk 30–60 days before it happens, converting reactive CSM firefighting into proactive retention.
-- Tech Stack: Built on Supabase (with multi-tenant row-level security), FastAPI predictive engine (using LightGBM and SHAP explainability), and Llama-3.3 model scoring via GROQ.
+- Tech Stack: Built on Supabase (with multi-tenant row-level security), FastAPI predictive engine (using LightGBM and SHAP explainability), and OpenAI GPT-OSS model scoring via GROQ.
 - Core Signals Ingested: Syncs Stripe billing (payment retries, contraction events), Mixpanel/Segment telemetry (WAU ratios, inactivity), and Intercom support logs (high ticket volume, negative CSAT sentiment).
 - Key Features:
   1. ML Health Score: Organically computes a 0-100 customer health index.
@@ -221,7 +221,7 @@ export async function POST(req: Request) {
     let requestBody;
     if (isOffTopic) {
       requestBody = {
-        model: 'llama-3.1-8b-instant',
+        model: process.env.GROQ_ROAST_MODEL || 'openai/gpt-oss-20b',
         messages: [
           { role: 'system', content: ROAST_SYSTEM_PROMPT },
           { role: 'user', content: lastUserMessage.content },
@@ -231,7 +231,7 @@ export async function POST(req: Request) {
       };
     } else {
       requestBody = {
-        model: 'llama-3.3-70b-versatile',
+        model: process.env.GROQ_CHAT_MODEL || 'openai/gpt-oss-120b',
         messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
         tools: TOOLS,
         tool_choice: 'auto',

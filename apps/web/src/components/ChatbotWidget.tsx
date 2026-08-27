@@ -308,7 +308,7 @@ export default function ChatbotWidget() {
               {/* Header */}
               <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.01] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 flex items-center justify-center text-[#00D4FF] relative">
+                  <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 flex items-center justify-center text-[#00D4FF] relative">
                     <Bot className="w-4 h-4 animate-pulse" />
                     <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   </div>
@@ -317,7 +317,7 @@ export default function ChatbotWidget() {
                     <div className="flex items-center gap-1 mt-0.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       <span className="text-[8px] text-[#8B95AB] uppercase tracking-wider font-semibold">
-                        Llama 3.3 Active
+                        GPT-OSS Active
                       </span>
                     </div>
                   </div>
@@ -327,7 +327,7 @@ export default function ChatbotWidget() {
                     onClick={() => setIsExpanded(!isExpanded)}
                     title={isExpanded ? 'Minimize Window' : 'Expand Window'}
                     aria-label={isExpanded ? 'Minimize Window' : 'Expand Window'}
-                    className="p-1 rounded-md text-slate-400 hover:text-[#00D4FF] hover:bg-white/[0.04] transition-all cursor-pointer"
+                    className="p-1 rounded-md text-slate-400 hover:text-[#00D4FF] hover:bg-white/4 transition-all cursor-pointer"
                   >
                     {isExpanded ? (
                       <Minimize2 className="w-3.5 h-3.5" />

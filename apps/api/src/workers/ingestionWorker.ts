@@ -2,6 +2,15 @@ import { db, schema } from '../lib/db.js';
 import { eq, and, gte, sql, inArray } from 'drizzle-orm';
 import { computeAndTriggerRescore } from '../lib/featureEngine.js';
 import { decryptConfig } from '../lib/crypto.js';
+import { logger } from '../lib/logger.js';
+import {
+  AppError,
+  WorkerError,
+  ValidationError,
+  NotFoundError,
+  IntegrationError,
+  toAppError,
+} from '../lib/errors.js';
 import Papa from 'papaparse';
 import { z } from 'zod';
 
@@ -27,37 +36,47 @@ export async function processIngestionJobs(): Promise<void> {
   }
 
   for (const job of queuedJobs) {
-    console.log(`[IngestionWorker] Processing job ${job.id} of type ${job.type}...`);
+    logger.info(
+      { jobId: job.id, orgId: job.orgId, type: job.type },
+      `[IngestionWorker] Processing job...`,
+    );
     try {
       await db.update(schema.jobs).set({ status: 'processing' }).where(eq(schema.jobs.id, job.id));
 
       const payload = job.payload as any;
 
       if (job.type === 'stripe') {
-        await handleStripeJob(payload, job.orgId);
+        await handleStripeJob(payload, job.orgId, job.id);
       } else if (job.type === 'csv') {
-        await handleCsvJob(payload, job.orgId);
+        await handleCsvJob(payload, job.orgId, job.id);
       } else if (job.type === 'intercom') {
-        await handleIntercomJob(payload, job.orgId);
+        await handleIntercomJob(payload, job.orgId, job.id);
       } else if (job.type === 'mixpanel') {
-        await handleMixpanelJob(payload, job.orgId);
+        await handleMixpanelJob(payload, job.orgId, job.id);
       } else {
-        throw new Error(`Unknown job type: ${job.type}`);
+        throw new WorkerError(`Unknown job type: ${job.type}`, { jobId: job.id });
       }
 
       await db.update(schema.jobs).set({ status: 'completed' }).where(eq(schema.jobs.id, job.id));
-      console.log(`[IngestionWorker] Job ${job.id} completed successfully.`);
-    } catch (err: any) {
-      console.error(`[IngestionWorker] Job ${job.id} failed:`, err.message);
+      logger.info(
+        { jobId: job.id, orgId: job.orgId },
+        `[IngestionWorker] Job completed successfully.`,
+      );
+    } catch (err: unknown) {
+      const appErr = toAppError(err);
+      logger.error(
+        { jobId: job.id, orgId: job.orgId, err: appErr },
+        `[IngestionWorker] Job failed`,
+      );
       await db
         .update(schema.jobs)
-        .set({ status: 'failed', error: err.message })
+        .set({ status: 'failed', error: appErr.message })
         .where(eq(schema.jobs.id, job.id));
     }
   }
 }
 
-async function handleStripeJob(event: any, orgId: string): Promise<void> {
+export async function handleStripeJob(event: any, orgId: string, jobId?: string): Promise<void> {
   let customerId: string | null = null;
   let email: string | null = null;
   let subscription: any = null;
@@ -116,14 +135,15 @@ async function handleStripeJob(event: any, orgId: string): Promise<void> {
         })
         .returning();
       customer = newCustomer;
-      console.log(
-        `[ingestionWorker] Auto-created customer ${customer.id} for email ${email} under org ${orgId}`,
+      logger.info(
+        { jobId, customerId: customer.id, email, orgId },
+        `[IngestionWorker] Auto-created customer for email under org`,
       );
     }
   }
 
   if (!customer) {
-    throw new Error('No customer found to map Stripe event to.');
+    throw new NotFoundError('No customer found to map Stripe event to.', { jobId, orgId });
   }
 
   const customerIdStr = customer.id;
@@ -194,10 +214,14 @@ async function handleStripeJob(event: any, orgId: string): Promise<void> {
   }
 }
 
-async function handleCsvJob(payload: { csvContent: string }, orgId: string): Promise<void> {
+export async function handleCsvJob(
+  payload: { csvContent: string },
+  orgId: string,
+  jobId?: string,
+): Promise<void> {
   const { csvContent } = payload;
   if (!csvContent) {
-    throw new Error('CSV content is empty');
+    throw new ValidationError('CSV content is empty', { jobId, orgId });
   }
 
   const parsed = Papa.parse(csvContent, {
@@ -227,14 +251,12 @@ async function handleCsvJob(payload: { csvContent: string }, orgId: string): Pro
   });
 
   if (errors.length > 0) {
-    throw new Error(`CSV Validation errors:\n${errors.join('\n')}`);
+    throw new ValidationError(`CSV Validation errors:\n${errors.join('\n')}`, { jobId, orgId });
   }
 
-  // 1. Gather all unique customer IDs
   const uniqueCustomerIds = Array.from(new Set(validRows.map((r) => r.customer_id)));
 
   if (uniqueCustomerIds.length > 0) {
-    // 2. Fetch existing customers in one query
     const existingCustomers = await db
       .select()
       .from(schema.customers)
@@ -242,11 +264,9 @@ async function handleCsvJob(payload: { csvContent: string }, orgId: string): Pro
 
     const existingCustomersMap = new Map(existingCustomers.map((c) => [c.id, c]));
 
-    // 3. Ensure all customers exist and belong to this organization
     for (const customerId of uniqueCustomerIds) {
       const existingCustomer = existingCustomersMap.get(customerId);
       if (!existingCustomer) {
-        // Auto-create customer
         await db.insert(schema.customers).values({
           id: customerId,
           orgId: orgId,
@@ -256,24 +276,24 @@ async function handleCsvJob(payload: { csvContent: string }, orgId: string): Pro
           planTier: 'Pro',
           mrr: '0.00',
         });
-        console.log(
-          `[ingestionWorker] Auto-created customer ${customerId} under org ${orgId} during CSV ingestion.`,
+        logger.info(
+          { jobId, customerId, orgId },
+          `[IngestionWorker] Auto-created customer under org during CSV ingestion.`,
         );
       } else if (existingCustomer.orgId !== orgId) {
-        // Adopt customer to this organization
         await db
           .update(schema.customers)
           .set({ orgId: orgId })
           .where(eq(schema.customers.id, customerId));
-        console.log(
-          `[ingestionWorker] Adopted customer ${customerId} from org ${existingCustomer.orgId} to org ${orgId} during CSV ingestion.`,
+        logger.info(
+          { jobId, customerId, orgId, previousOrgId: existingCustomer.orgId },
+          `[IngestionWorker] Adopted customer to org during CSV ingestion.`,
         );
       }
     }
   }
 
   if (validRows.length > 0) {
-    // 4. Batch fetch existing events for these customers
     const existingEvents = await db
       .select({
         customerId: schema.events.customerId,
@@ -283,7 +303,6 @@ async function handleCsvJob(payload: { csvContent: string }, orgId: string): Pro
       .from(schema.events)
       .where(inArray(schema.events.customerId, uniqueCustomerIds));
 
-    // Create a fast lookup string for existing events
     const existingEventsSet = new Set(
       existingEvents.map(
         (e) => `${e.customerId}|${e.eventType}|${new Date(e.occurredAt!).getTime()}`,
@@ -317,14 +336,15 @@ async function handleCsvJob(payload: { csvContent: string }, orgId: string): Pro
           occurredAt: occurredAtDate,
         });
 
-        // Avoid adding duplicate rows from the SAME CSV file
         existingEventsSet.add(lookupKey);
       }
     }
 
     if (eventsToInsert.length > 0) {
-      console.log(`[ingestionWorker] Batch inserting ${eventsToInsert.length} new events...`);
-      // Insert in chunks of 50 to avoid parameter limits or timeouts
+      logger.info(
+        { jobId, count: eventsToInsert.length },
+        `[IngestionWorker] Batch inserting new events...`,
+      );
       const chunkSize = 50;
       for (let i = 0; i < eventsToInsert.length; i += chunkSize) {
         const chunk = eventsToInsert.slice(i, i + chunkSize);
@@ -333,20 +353,27 @@ async function handleCsvJob(payload: { csvContent: string }, orgId: string): Pro
     }
   }
 
-  // 5. Rescore unique customers once at the end
-  console.log(
-    `[ingestionWorker] Rescoring ${uniqueCustomerIds.length} unique customers for job...`,
+  logger.info(
+    { jobId, uniqueCustomerCount: uniqueCustomerIds.length },
+    `[IngestionWorker] Rescoring unique customers for job...`,
   );
   for (const customerId of uniqueCustomerIds) {
     try {
       await computeAndTriggerRescore(customerId, orgId);
-    } catch (err: any) {
-      console.error(`[ingestionWorker] Failed to rescore customer ${customerId}:`, err.message);
+    } catch (err: unknown) {
+      logger.error(
+        { jobId, customerId, orgId, err: toAppError(err) },
+        `[IngestionWorker] Failed to rescore customer`,
+      );
     }
   }
 }
 
-async function handleIntercomJob(payload: any, orgId: string): Promise<void> {
+export async function handleIntercomJob(
+  payload: any,
+  orgId: string,
+  jobId?: string,
+): Promise<void> {
   const topic = payload.topic || payload.type;
   const item = payload.data?.item || {};
   const email = item.user?.email || item.contacts?.[0]?.email || '';
@@ -381,14 +408,15 @@ async function handleIntercomJob(payload: any, orgId: string): Promise<void> {
         })
         .returning();
       customer = newCustomer;
-      console.log(
-        `[ingestionWorker] Auto-created customer ${customer.id} for email ${email} under org ${orgId}`,
+      logger.info(
+        { jobId, customerId: customer.id, email, orgId },
+        `[IngestionWorker] Auto-created customer for email under org`,
       );
     }
   }
 
   if (!customer) {
-    throw new Error('No customer found to map Intercom webhook to.');
+    throw new NotFoundError('No customer found to map Intercom webhook to.', { jobId, orgId });
   }
 
   const customerId = customer.id;
@@ -456,7 +484,11 @@ async function handleIntercomJob(payload: any, orgId: string): Promise<void> {
   }
 }
 
-async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
+export async function handleMixpanelJob(
+  payload: any,
+  orgId: string,
+  jobId?: string,
+): Promise<void> {
   const mixpanelIntegration = await db
     .select()
     .from(schema.integrations)
@@ -465,7 +497,7 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
     .then((rows) => rows[0]);
 
   if (!mixpanelIntegration) {
-    throw new Error('Mixpanel integration not configured');
+    throw new NotFoundError('Mixpanel integration not configured', { jobId, orgId });
   }
 
   let username = '';
@@ -476,8 +508,8 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
       const decryptedConfig = decryptConfig(mixpanelIntegration.config as Record<string, any>);
       username = decryptedConfig.mixpanelServiceAccountUsername || '';
       secret = decryptedConfig.mixpanelServiceAccountSecret || '';
-    } catch (err: any) {
-      console.error('[Mixpanel Ingestion] Error decrypting config:', err.message);
+    } catch (err: unknown) {
+      logger.error({ err: toAppError(err), orgId }, '[Mixpanel Ingestion] Error decrypting config');
     }
   }
 
@@ -498,14 +530,18 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
   const eventsData: any[] = [];
 
   if (!username || !secret || username.includes('your-') || secret.includes('your-')) {
-    console.warn(
-      `[Mixpanel Ingestion] Mixpanel credentials not configured for org ${orgId}. Degrading integration status.`,
+    logger.warn(
+      { orgId },
+      `[Mixpanel Ingestion] Mixpanel credentials not configured. Degrading integration status.`,
     );
     await db
       .update(schema.integrations)
       .set({ status: 'degraded' })
       .where(eq(schema.integrations.id, mixpanelIntegration.id));
-    throw new Error('Mixpanel service account credentials not configured.');
+    throw new IntegrationError('Mixpanel service account credentials not configured.', {
+      jobId,
+      orgId,
+    });
   } else {
     try {
       const authHeader = 'Basic ' + Buffer.from(`${username}:${secret}`).toString('base64');
@@ -516,7 +552,10 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
       });
 
       if (!response.ok) {
-        throw new Error(`Mixpanel API returned status: ${response.status}`);
+        throw new IntegrationError(`Mixpanel API returned status: ${response.status}`, {
+          jobId,
+          orgId,
+        });
       }
 
       const text = await response.text();
@@ -529,15 +568,17 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
           // Ignore malformed JSON lines
         }
       }
-    } catch (err: any) {
-      console.error(
-        `[Mixpanel Ingestion] Sync failed: ${err.message}. Degrading integration status.`,
+    } catch (err: unknown) {
+      const appErr = toAppError(err);
+      logger.error(
+        { err: appErr, orgId },
+        `[Mixpanel Ingestion] Sync failed. Degrading integration status.`,
       );
       await db
         .update(schema.integrations)
         .set({ status: 'degraded' })
         .where(eq(schema.integrations.id, mixpanelIntegration.id));
-      throw err;
+      throw appErr;
     }
   }
 
@@ -567,13 +608,13 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
     if (!customer) continue;
 
     let eventType = '';
-    let payload: any = {};
+    let payloadInner: any = {};
 
     if (mixpanelEventName === '$login') {
       eventType = 'login';
     } else if (mixpanelEventName.startsWith('feature_')) {
       eventType = 'feature_use';
-      payload = { feature: mixpanelEventName };
+      payloadInner = { feature: mixpanelEventName };
     } else {
       eventType = mixpanelEventName;
     }
@@ -596,7 +637,7 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
         orgId: customer.orgId,
         eventType,
         source: 'mixpanel',
-        payload,
+        payload: payloadInner,
         occurredAt: occurredTime,
       });
 
@@ -610,10 +651,10 @@ async function handleMixpanelJob(payload: any, orgId: string): Promise<void> {
     .where(eq(schema.integrations.id, mixpanelIntegration.id));
 }
 
-let pollerInterval: any = null;
+let pollerInterval: NodeJS.Timeout | null = null;
 
 export function stopIngestionWorker() {
-  console.log('[IngestionWorker] Stopping background ingestion queue poller...');
+  logger.info('[IngestionWorker] Stopping background ingestion queue poller...');
   if (pollerInterval) {
     clearInterval(pollerInterval);
     pollerInterval = null;
@@ -621,23 +662,23 @@ export function stopIngestionWorker() {
 }
 
 export function startIngestionWorker() {
-  stopIngestionWorker(); // Ensure clean state before starting
+  stopIngestionWorker();
 
   if (process.env.DISABLE_BACKGROUND_WORKERS === 'true') {
-    console.log(
-      '[IngestionWorker] Ingestion queue poller disabled via DISABLE_BACKGROUND_WORKERS env var.',
+    logger.info(
+      '[IngestionWorker] Ingestion queue poller disabled via DISABLE_BACKGROUND_WORKERS.',
     );
     return;
   }
 
-  console.log(
+  logger.info(
     '[IngestionWorker] Starting background ingestion queue poller (polling every 10 seconds)...',
   );
   pollerInterval = setInterval(async () => {
     try {
       await processIngestionJobs();
-    } catch (err: any) {
-      console.error('[IngestionWorker] Error processing queue:', err.message);
+    } catch (err: unknown) {
+      logger.error({ err: toAppError(err) }, '[IngestionWorker] Error processing queue');
     }
   }, 10000);
 }

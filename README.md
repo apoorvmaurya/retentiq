@@ -110,9 +110,13 @@ graph TD
 ```
 RetentIQ/
 ├── apps/
-│   ├── api/                  # Express REST API Server (Node 20, TypeScript, Drizzle)
+│   ├── api/                  # Express REST API Server (Node 20, TypeScript, Drizzle, Pino)
+│   │   ├── src/lib/          # Structured logger, typed errors, alert rules, crypto
+│   │   └── src/workers/      # Background ingestion & alert dispatch workers
 │   ├── web/                  # Next.js App Router UI (React 19, TailwindCSS, Framer Motion)
-│   │   └── src/app/dashboard/integrations/components/  # Modular integrations subcomponents
+│   │   ├── src/app/dashboard/settings/components/      # Modular settings tab subcomponents
+│   │   ├── src/app/dashboard/integrations/components/  # Modular integrations subcomponents
+│   │   └── src/components/marketing/                   # Modular marketing showcase components
 │   └── ai-service/           # FastAPI Machine Learning Service
 │       ├── routers/          # Modular FastAPI routers (scoring, explain, playbook, legacy)
 │       ├── classifier.py     # Gradient Boosting & LightGBM churn classifier
@@ -120,9 +124,9 @@ RetentIQ/
 │       ├── scoring.py        # Health score clamping, weights, and fallbacks
 │       ├── prompts.py        # Dynamic lexicon and LLM prompt templates
 │       ├── services.py       # Groq and Supabase service clients with DI
-│       └── tests/            # Pytest test suite (31 tests)
+│       └── tests/            # Pytest test suite (39 tests, >70% coverage gate)
 ├── packages/
-│   ├── db/                   # Database migrations, schema, and seed utilities
+│   ├── db/                   # Database migrations, schema, and modular seed utilities
 │   └── shared/               # Shared types, validation schemas, and constants
 ├── docs/
 │   ├── MODEL_CARD.md         # Detailed machine learning model card
@@ -130,9 +134,9 @@ RetentIQ/
 ├── .github/
 │   ├── dependabot.yml        # Grouped monthly dependency upgrade configuration
 │   └── workflows/
-│       ├── ci.yml            # Automated CI pipeline (lint, typecheck, web/api/ai tests)
+│       ├── ci.yml            # Automated CI pipeline (lint, typecheck, web/api/ai coverage gates)
 │       └── security-scan.yml # Security vulnerability audit (pnpm audit, pip-audit, gitleaks)
-├── .env.example              # Environment variable template
+├── .env.example              # Environment variable template with complete parameter definitions
 ├── CHANGELOG.md              # Historical change record
 └── CONTRIBUTING.md           # Developer onboarding and contribution guidelines
 ```

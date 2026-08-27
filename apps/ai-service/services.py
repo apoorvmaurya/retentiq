@@ -17,7 +17,8 @@ logger = logging.getLogger("ai-service.services")
 
 
 class Settings:
-    MODEL_ID = "llama-3.3-70b-versatile"
+    MODEL_ID = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+    PLAYBOOK_MODEL_ID = os.getenv("GROQ_PLAYBOOK_MODEL", "openai/gpt-oss-120b")
 
 
 settings = Settings()
@@ -115,43 +116,31 @@ async def select_best_model():
                 models = data.get("data", [])
                 model_ids = [m.get("id") for m in models if m.get("id")]
 
-                kimi_model = next((m for m in model_ids if "moonshotai/kimi-k2" in m), None)
-                if kimi_model:
-                    settings.MODEL_ID = kimi_model
-                    logger.info(f"✓ Chosen model name at startup: {settings.MODEL_ID}")
-                    return
+                # 1. Primary scoring & telemetry explanation model
+                if "openai/gpt-oss-20b" in model_ids:
+                    settings.MODEL_ID = "openai/gpt-oss-20b"
+                elif "openai/gpt-oss-120b" in model_ids:
+                    settings.MODEL_ID = "openai/gpt-oss-120b"
+                elif any("llama-3.3" in m for m in model_ids):
+                    settings.MODEL_ID = next(m for m in model_ids if "llama-3.3" in m)
+                elif any("llama-3.1" in m for m in model_ids):
+                    settings.MODEL_ID = next(m for m in model_ids if "llama-3.1" in m)
 
-                candidates = [m for m in model_ids if "preview" in m.lower() or "instruct" in m.lower()]
-                if candidates:
-
-                    def rank_model(model_id: str) -> int:
-                        score = 0
-                        if "70b" in model_id.lower():
-                            score += 100
-                        elif "8x7b" in model_id.lower():
-                            score += 80
-                        elif "8b" in model_id.lower():
-                            score += 40
-                        elif "9b" in model_id.lower():
-                            score += 40
-
-                        if "llama-3.3" in model_id.lower() or "llama3.3" in model_id.lower():
-                            score += 20
-                        elif "llama-3" in model_id.lower() or "llama3" in model_id.lower():
-                            score += 10
-                        return score
-
-                    candidates.sort(key=rank_model, reverse=True)
-                    settings.MODEL_ID = candidates[0]
-                    logger.info(f"✓ Chosen model name at startup: {settings.MODEL_ID}")
+                # 2. Playbook model (prefers higher reasoning 120b)
+                if "openai/gpt-oss-120b" in model_ids:
+                    settings.PLAYBOOK_MODEL_ID = "openai/gpt-oss-120b"
                 else:
-                    logger.info(f"No custom candidates found. Using default model: {settings.MODEL_ID}")
+                    settings.PLAYBOOK_MODEL_ID = settings.MODEL_ID
+
+                logger.info(
+                    f"✓ Selected Groq models: scoring={settings.MODEL_ID}, playbook={settings.PLAYBOOK_MODEL_ID}"
+                )
             else:
                 logger.warning(
-                    f"Error fetching models: status {response.status_code}. Using default {settings.MODEL_ID}"
+                    f"Error fetching models: status {response.status_code}. Using defaults: {settings.MODEL_ID}"
                 )
     except Exception as e:
-        logger.error(f"Startup model fetching failed: {e}. Using default {settings.MODEL_ID}")
+        logger.error(f"Startup model fetching failed: {e}. Using defaults: {settings.MODEL_ID}")
 
 
 async def save_health_score_and_usage(
