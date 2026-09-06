@@ -151,5 +151,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Prepare environment file
+        run: cp .env.example .env.local
+
       - name: Verify Docker Compose Build
         run: docker compose build
