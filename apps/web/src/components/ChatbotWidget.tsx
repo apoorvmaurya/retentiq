@@ -34,6 +34,7 @@ export default function ChatbotWidget() {
   const threadEndRef = useRef<HTMLDivElement>(null);
 
   const faqItems = [
+    { label: 'Try Guest Demo', query: 'Can I test RetentIQ right now without signing up?' },
     { label: 'How does ML scoring work?', query: 'How does your predictive health scoring work?' },
     { label: 'Which CRM tools sync?', query: 'What integrations does RetentIQ support?' },
     { label: 'Tell me about alerts.', query: 'How do Slack and email alerts trigger?' },
@@ -58,6 +59,8 @@ export default function ChatbotWidget() {
       'sign up',
       'sign in',
       'register',
+      'guest',
+      'demo',
     ];
     return explicitKeywords.some((keyword) => query.includes(keyword));
   };
@@ -70,7 +73,9 @@ export default function ChatbotWidget() {
           ? `Section ${target}`
           : target === '/'
             ? 'Home Page'
-            : `${target.replace('/', '').charAt(0).toUpperCase()}${target.slice(2)} Page`;
+            : target.includes('guest')
+              ? 'Guest / Recruiter Demo'
+              : `${target.replace('/', '').charAt(0).toUpperCase()}${target.slice(2)} Page`;
         return executed ? `Navigated to ${targetName}` : `Go to ${targetName}`;
       }
       case 'calculate_roi':

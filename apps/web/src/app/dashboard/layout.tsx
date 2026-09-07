@@ -43,8 +43,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [userInitials, setUserInitials] = useState('U');
   const [userName, setUserName] = useState('');
   const [userAvatar, setUserAvatar] = useState('');
+  const [resettingDemo, setResettingDemo] = useState(false);
 
   const [bannerOpen, setBannerOpen] = useState(false);
+
+  const isGuestUser = userEmail === 'guest.recruiter@retentiq.io';
+
+  const handleResetDemo = async () => {
+    setResettingDemo(true);
+    try {
+      await fetch('/api/auth/guest?reset=true', { method: 'POST' });
+      window.location.reload();
+    } catch (e) {
+      console.error('Failed to reset demo workspace:', e);
+      setResettingDemo(false);
+    }
+  };
 
   const fetchUserData = async () => {
     try {
@@ -102,16 +116,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen overflow-hidden bg-[#0A0F1E] text-slate-100 font-sans antialiased">
       {/* Left Sidebar */}
-      <aside className="w-16 md:w-[220px] bg-[#070B16] border-r border-[#152347] flex flex-col justify-between transition-all duration-300 shrink-0 select-none">
+      <aside className="w-16 md:w-55 bg-[#070B16] border-r border-[#152347] flex flex-col justify-between transition-all duration-300 shrink-0 select-none">
         {/* Top: Logo + Nav */}
         <div className="flex flex-col">
           {/* Logo area */}
           <div className="p-4 md:p-5 border-b border-[#152347] flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-400 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/25 shrink-0 mx-auto md:mx-0">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-cyan-400 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/25 shrink-0 mx-auto md:mx-0">
               <Brain className="w-4.5 h-4.5 text-white" />
             </div>
             <div className="hidden md:block">
-              <h1 className="font-bold text-sm tracking-tight bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">
+              <h1 className="font-bold text-sm tracking-tight bg-linear-to-r from-white to-cyan-300 bg-clip-text text-transparent">
                 RetentIQ
               </h1>
               <span className="text-[9px] text-cyan-400 font-bold tracking-wider uppercase block leading-none">
@@ -158,7 +172,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Bottom: Org Switcher + User Info */}
         <div className="border-t border-[#152347] bg-[#040812] p-2 md:p-3 space-y-3">
           {/* Org Switcher */}
-          <div className="flex items-center justify-between p-1.5 rounded-lg hover:bg-[#141F3E]/40 transition-colors cursor-pointer justify-center md:justify-between">
+          <div className="flex items-center justify-center md:justify-between p-1.5 rounded-lg hover:bg-[#141F3E]/40 transition-colors cursor-pointer">
             <div className="flex items-center gap-2 overflow-hidden">
               <div className="w-7 h-7 rounded-md bg-[#1D2E5C] flex items-center justify-center font-bold text-xs text-cyan-400 shrink-0">
                 {orgName.slice(0, 1).toUpperCase()}
@@ -176,7 +190,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {/* User Profile Info */}
-          <div className="flex items-center justify-between gap-2 p-1 border-t border-[#152347]/50 pt-3 justify-center md:justify-between">
+          <div className="flex items-center justify-center md:justify-between gap-2 p-1 border-t border-[#152347]/50 pt-3">
             <div className="flex items-center gap-2 overflow-hidden">
               {userAvatar ? (
                 <img
@@ -190,7 +204,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               )}
               <div className="hidden md:block overflow-hidden">
-                <p className="text-[10px] font-bold text-slate-300 truncate max-w-[110px] leading-tight">
+                <p className="text-[10px] font-bold text-slate-300 truncate max-w-27.5 leading-tight">
                   {userName || userEmail}
                 </p>
               </div>
@@ -208,6 +222,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main Content Area */}
       <div className="flex-1 bg-[#0A0F1E] overflow-hidden flex flex-col">
+        {/* Recruiter Guest Session Banner */}
+        {isGuestUser && (
+          <div className="relative z-30 bg-linear-to-r from-cyan-950/90 via-slate-900/90 to-indigo-950/90 border-b border-cyan-500/30 px-4 py-2 flex items-center justify-between gap-3 text-xs text-slate-200 shrink-0 shadow-sm">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-400/20 border border-cyan-400/40 text-[10px] font-extrabold text-cyan-300 uppercase tracking-wider shrink-0">
+                <Zap className="w-3 h-3 text-cyan-400 fill-current" />
+                Guest Recruiter Demo
+              </span>
+              <span className="truncate text-slate-300 hidden sm:inline">
+                Active sample workspace pre-seeded with 50 live accounts across all risk tiers.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleResetDemo}
+                disabled={resettingDemo}
+                className="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 font-bold text-[10px] uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                title="Wipe and regenerate fresh sample data"
+              >
+                {resettingDemo && (
+                  <div className="w-2.5 h-2.5 rounded-full border-2 border-cyan-400 border-r-transparent animate-spin" />
+                )}
+                {resettingDemo ? 'Resetting...' : 'Reset Demo Data'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Dynamic Premium Banner */}
         <AnimatePresence>
           {bannerOpen && (
@@ -219,7 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="relative z-20 overflow-hidden border-b border-cyan-500/20 bg-[#070b16]/75 backdrop-blur-md px-4 py-2.5 shrink-0 shadow-lg shadow-cyan-500/5"
             >
               {/* Bottom glowing line */}
-              <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400 via-indigo-500 via-purple-500 to-transparent opacity-85" />
+              <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-linear-to-r from-transparent via-cyan-400 to-transparent opacity-85" />
 
               <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-200 mx-auto text-center justify-center font-medium">

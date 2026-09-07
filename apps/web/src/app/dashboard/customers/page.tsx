@@ -17,10 +17,16 @@ import { createClient } from '@/lib/supabase/client';
 import { useHealthScoreRealtime } from '@/hooks/useHealthScoreRealtime';
 import { fetchFromApi } from '@/lib/api';
 import { timeAgo } from '@/lib/dateUtils';
+import { ColdStartNotice } from '@/components/ColdStartNotice';
+import { DEMO_CUSTOMERS_LIST } from '@/lib/demoData';
+import { Database, Sparkles } from 'lucide-react';
 
 export default function CustomersPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSlowLoading, setIsSlowLoading] = useState(false);
+  const [usingDemoFallback, setUsingDemoFallback] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -50,8 +56,24 @@ export default function CustomersPage() {
     return () => clearTimeout(handler);
   }, [searchVal]);
 
+  const loadSampleCustomers = () => {
+    setCustomers(DEMO_CUSTOMERS_LIST);
+    setTotalCount(DEMO_CUSTOMERS_LIST.length);
+    setError(null);
+    setUsingDemoFallback(true);
+    setLoading(false);
+    setIsSlowLoading(false);
+  };
+
   const loadCustomers = async () => {
     setLoading(true);
+    setError(null);
+    setIsSlowLoading(false);
+
+    const slowTimer = setTimeout(() => {
+      setIsSlowLoading(true);
+    }, 2500);
+
     try {
       // Build API query parameters
       const params = new URLSearchParams({
@@ -66,7 +88,7 @@ export default function CustomersPage() {
 
       const res = await fetchFromApi(`/customers?${params.toString()}`);
 
-      // Filter by name/company on the client side if searched (since search is not built into query params on Express side)
+      // Filter by name/company on the client side if searched
       let data = res.data || [];
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -80,9 +102,14 @@ export default function CustomersPage() {
 
       setCustomers(data);
       setTotalCount(res.total || 0);
-    } catch (err) {
+      setUsingDemoFallback(false);
+    } catch (err: any) {
       console.error('Error fetching customers:', err);
+      setError(
+        'Database query timed out or server is warming up. Cloud instances take ~5s on cold starts.',
+      );
     } finally {
+      clearTimeout(slowTimer);
       setLoading(false);
     }
   };
@@ -176,6 +203,33 @@ export default function CustomersPage() {
         </button>
       </div>
 
+      {/* Cold Start / Waking Up Notice */}
+      {(error || (loading && isSlowLoading)) && (
+        <ColdStartNotice
+          compact
+          isSlowLoading={loading && isSlowLoading}
+          error={error}
+          onRetry={loadCustomers}
+          onLoadDemoData={loadSampleCustomers}
+        />
+      )}
+
+      {/* Fallback Sample Data Indicator */}
+      {usingDemoFallback && (
+        <div className="p-3 bg-linear-to-r from-cyan-950/40 via-slate-900/60 to-indigo-950/40 border border-cyan-500/30 rounded-xl flex items-center justify-between gap-3 text-xs text-cyan-300 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>Currently previewing interactive sample customers.</span>
+          </div>
+          <button
+            onClick={loadCustomers}
+            className="px-3 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer shrink-0"
+          >
+            Connect Live Database
+          </button>
+        </div>
+      )}
+
       {/* Search and Filter panel */}
       <div className="glass-panel p-4 rounded-xl flex flex-col md:flex-row md:items-center gap-4 justify-between">
         {/* Search Input */}
@@ -219,7 +273,7 @@ export default function CustomersPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white/[0.015] border-b border-white/[0.06] text-[11px] font-bold uppercase tracking-wider text-slate-400 select-none">
+              <tr className="bg-white/1.5 border-b border-white/6 text-[11px] font-bold uppercase tracking-wider text-slate-400 select-none">
                 <th className="p-4 pl-6">Company / Representative</th>
                 <th className="p-4">Plan Level</th>
                 <th
@@ -259,7 +313,7 @@ export default function CustomersPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04] text-sm">
+            <tbody className="divide-y divide-white/4 text-sm">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="p-10 text-center text-slate-400">
@@ -269,8 +323,27 @@ export default function CustomersPage() {
                 </tr>
               ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-10 text-center text-slate-400 italic">
-                    No customers found matching the search/filter parameters.
+                  <td colSpan={5} className="p-10 text-center text-slate-400">
+                    {error ? (
+                      <div className="flex flex-col items-center gap-2 py-4">
+                        <Database className="w-6 h-6 text-cyan-400 animate-pulse" />
+                        <p className="font-semibold text-slate-300">Database is warming up...</p>
+                        <p className="text-xs text-slate-500 max-w-sm">
+                          Cloud database connection is resuming from cold start.
+                        </p>
+                        <button
+                          onClick={loadSampleCustomers}
+                          className="mt-2 btn-secondary text-xs px-3 py-1.5 text-cyan-300 border-cyan-500/30 hover:border-cyan-400/50 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                          View Sample Customers
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="italic">
+                        No customers found matching the search/filter parameters.
+                      </span>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -290,7 +363,7 @@ export default function CustomersPage() {
                       }
                       transition={{ duration: 0.6 }}
                       onClick={() => router.push(`/dashboard/customers/${cust.id}`)}
-                      className="hover:bg-white/[0.01] transition-colors cursor-pointer border-b border-white/[0.04]"
+                      className="hover:bg-white/1 transition-colors cursor-pointer border-b border-white/4"
                     >
                       {/* Avatar Initials & Company Info */}
                       <td className="p-4 pl-6">
@@ -309,7 +382,7 @@ export default function CustomersPage() {
 
                       {/* Plan Level */}
                       <td className="p-4">
-                        <span className="px-2 py-0.5 bg-white/[0.03] border border-white/[0.08] text-slate-300 rounded text-[10px] font-bold">
+                        <span className="px-2 py-0.5 bg-white/3 border border-white/8 text-slate-300 rounded text-[10px] font-bold">
                           {cust.planTier || cust.plan_tier}
                         </span>
                         <div className="text-xs font-semibold text-slate-400 mt-1">
@@ -384,7 +457,7 @@ export default function CustomersPage() {
 
         {/* Pagination controls */}
         {totalPages > 1 && (
-          <div className="p-4 border-t border-white/[0.06] flex items-center justify-between">
+          <div className="p-4 border-t border-white/6 flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-400">
               Showing page {currentPage} of {totalPages} ({totalCount} total customers)
             </span>

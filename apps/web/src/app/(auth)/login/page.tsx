@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FloatingInput } from '@/components/FloatingInput';
 import { createClient } from '@/lib/supabase/client';
 import { Chrome } from '@/components/icons/Chrome';
-import { Brain, AlertCircle } from 'lucide-react';
+import { Brain, AlertCircle, Sparkles, Zap, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
 import { fetchFromApi } from '@/lib/api';
@@ -32,16 +32,56 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const isGuestParam = searchParams.get('guest') === 'true';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const handleGuestLogin = async () => {
+    setGuestLoading(true);
+    setErrorMsg('');
+    try {
+      // 1. Initialize or verify guest credentials and sample workspace
+      const res = await fetch('/api/auth/guest', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to initialize guest session');
+      }
+
+      // 2. Sign in directly with pre-confirmed credentials
+      const supabase = createClient();
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (signInErr) {
+        throw signInErr;
+      }
+
+      // Ensure session is fully written to client cookies before navigating
+      await supabase.auth.getSession();
+
+      toast.success('Loaded live sample retention workspace!');
+      router.refresh();
+      window.location.href = '/dashboard';
+    } catch (err: any) {
+      console.error('Guest login failed:', err);
+      setErrorMsg(err.message || 'Unable to initialize guest session. Please try again.');
+      setGuestLoading(false);
+    }
+  };
 
   useEffect(() => {
     const errorParam = searchParams.get('error');
     if (errorParam) {
       setErrorMsg(errorParam);
+    }
+    if (isGuestParam) {
+      handleGuestLogin();
     }
   }, [searchParams]);
 
@@ -99,7 +139,7 @@ function LoginForm() {
       <div className="space-y-2 text-center lg:text-left">
         {/* Brand logo visible on mobile */}
         <div className="flex lg:hidden items-center justify-center gap-2 mb-6">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00D4FF] to-indigo-500 flex items-center justify-center shadow-lg">
+          <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-[#00D4FF] to-indigo-500 flex items-center justify-center shadow-lg">
             <Brain className="w-4.5 h-4.5 text-[#0A0F1E]" />
           </div>
           <span className="font-bold text-sm tracking-widest text-white uppercase">RetentIQ</span>
@@ -114,6 +154,55 @@ function LoginForm() {
             : 'Enter your credentials to access your churn dashboard'}
         </p>
       </div>
+
+      {/* Recruiter / Guest Demo Shortcut Card */}
+      {!token && (
+        <div className="relative group overflow-hidden rounded-2xl border border-cyan-500/30 bg-linear-to-b from-cyan-950/40 to-slate-900/60 p-4 shadow-[0_4px_25px_rgba(0,212,255,0.12)] backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-[10px] font-bold text-cyan-300 uppercase tracking-wider">
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+              Recruiter & Guest Access
+            </div>
+            <span className="text-[10px] text-slate-400 font-semibold">No signup required</span>
+          </div>
+
+          <p className="text-xs text-slate-300 mb-3 leading-relaxed">
+            Instantly explore RetentIQ with a pre-populated B2B SaaS workspace seeded with 50 live
+            customer accounts across all risk tiers.
+          </p>
+
+          <button
+            type="button"
+            onClick={handleGuestLogin}
+            disabled={loading || guestLoading}
+            className="w-full py-2.5 px-4 rounded-xl bg-linear-to-r from-[#00D4FF] to-indigo-500 hover:from-[#00D4FF]/90 hover:to-indigo-500/90 text-[#0A0F1E] font-extrabold text-xs tracking-wider uppercase transition-all shadow-[0_2px_15px_rgba(0,212,255,0.25)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {guestLoading ? (
+              <>
+                <div className="w-4 h-4 rounded-full border-2 border-[#0A0F1E] border-r-transparent animate-spin" />
+                <span>Initializing Live Workspace...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-3.5 h-3.5 fill-current" />
+                <span>Try as Guest / Recruiter</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Divider */}
+      {!token && (
+        <div className="relative flex py-1 items-center">
+          <div className="grow border-t border-white/6"></div>
+          <span className="shrink mx-3 text-[10px] text-[#8B95AB] font-bold uppercase tracking-wider">
+            Or sign in with credentials
+          </span>
+          <div className="grow border-t border-white/6"></div>
+        </div>
+      )}
 
       {/* Error Alert */}
       {errorMsg && (
@@ -168,18 +257,18 @@ function LoginForm() {
 
       {/* Divider */}
       <div className="relative flex py-2 items-center">
-        <div className="flex-grow border-t border-white/[0.06]"></div>
-        <span className="flex-shrink mx-4 text-[10px] text-[#8B95AB] font-bold uppercase tracking-wider">
+        <div className="grow border-t border-white/6"></div>
+        <span className="shrink mx-4 text-[10px] text-[#8B95AB] font-bold uppercase tracking-wider">
           Or continue with
         </span>
-        <div className="flex-grow border-t border-white/[0.06]"></div>
+        <div className="grow border-t border-white/6"></div>
       </div>
 
       {/* Google Sign In */}
       <button
         onClick={handleGoogleLogin}
         disabled={loading}
-        className="w-full py-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.08] text-white text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        className="w-full py-3 rounded-xl bg-white/2 hover:bg-white/6 border border-white/8 text-white text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       >
         <Chrome className="w-4 h-4 text-rose-400" />
         Sign in with Google

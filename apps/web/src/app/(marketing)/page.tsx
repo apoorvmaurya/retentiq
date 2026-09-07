@@ -23,6 +23,7 @@ import {
   Play,
   TrendingDown,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -166,15 +167,22 @@ export default function MarketingPage() {
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </a>
             <a
+              href="/login?guest=true"
+              className="px-6 py-3 rounded-full bg-linear-to-r from-cyan-500/20 to-indigo-500/20 hover:from-cyan-500/30 hover:to-indigo-500/30 border border-cyan-400/40 text-[#F8F6F0] font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-2 shadow-[0_4px_20px_rgba(0,212,255,0.15)] group"
+            >
+              <Zap className="w-3.5 h-3.5 text-cyan-400 fill-current" />
+              Try Live Demo as Guest
+            </a>
+            <a
               href="#how-it-works"
               onClick={(e) => {
                 e.preventDefault();
                 const element = document.getElementById('how-it-works');
                 if (element) element.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="px-6 py-3 rounded-full bg-white/2 hover:bg-white/6 border border-white/8 text-[#F8F6F0] font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-2"
+              className="px-5 py-3 rounded-full bg-white/2 hover:bg-white/6 border border-white/8 text-[#8B95AB] hover:text-[#F8F6F0] font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-2"
             >
-              See a demo <Play className="w-3 h-3 text-[#8B95AB]" />
+              How it works <Play className="w-3 h-3 text-[#8B95AB]" />
             </a>
           </motion.div>
         </div>

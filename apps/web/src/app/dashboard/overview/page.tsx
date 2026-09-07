@@ -28,6 +28,15 @@ import {
 } from 'recharts';
 import { fetchFromApi } from '@/lib/api';
 import { timeAgo } from '@/lib/dateUtils';
+import { ColdStartNotice } from '@/components/ColdStartNotice';
+import {
+  DEMO_OVERVIEW_METRICS,
+  DEMO_SCORE_DISTRIBUTION,
+  DEMO_ALERTS,
+  DEMO_ROI_HISTORY,
+  DEMO_CUSTOMERS_LIST,
+} from '@/lib/demoData';
+import { Sparkles } from 'lucide-react';
 
 export default function OverviewPage() {
   const router = useRouter();
@@ -51,10 +60,31 @@ export default function OverviewPage() {
   const [rawCustomers, setRawCustomers] = useState<any[]>([]);
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>('all');
   const [roiHistory, setRoiHistory] = useState<any[]>([]);
+  const [isSlowLoading, setIsSlowLoading] = useState(false);
+  const [usingDemoFallback, setUsingDemoFallback] = useState(false);
+
+  const loadSampleData = () => {
+    setMetrics(DEMO_OVERVIEW_METRICS);
+    setDistribution(DEMO_SCORE_DISTRIBUTION);
+    setAlerts(DEMO_ALERTS);
+    setRawCustomers(DEMO_CUSTOMERS_LIST);
+    setAtRiskCustomers(DEMO_CUSTOMERS_LIST);
+    setRoiHistory(DEMO_ROI_HISTORY);
+    setError(null);
+    setUsingDemoFallback(true);
+    setLoading(false);
+    setIsSlowLoading(false);
+  };
 
   const loadDashboardData = async () => {
     setLoading(true);
     setError(null);
+    setIsSlowLoading(false);
+
+    const slowTimer = setTimeout(() => {
+      setIsSlowLoading(true);
+    }, 2500);
+
     try {
       // 1. Fetch overview metrics
       const ov = await fetchFromApi('/analytics/overview');
@@ -90,12 +120,14 @@ export default function OverviewPage() {
       // 5. Fetch ROI aggregates history
       const history = await fetchFromApi('/analytics/roi-history');
       setRoiHistory(history);
+      setUsingDemoFallback(false);
     } catch (err: any) {
       console.error('Error fetching overview dashboard:', err);
       setError(
-        'Failed to load dashboard data from API. Please verify the backend service is running.',
+        'Database or backend service is warming up (cold start). Cloud instances pause after inactivity and take a few seconds to resume.',
       );
     } finally {
+      clearTimeout(slowTimer);
       setLoading(false);
     }
   };
@@ -231,13 +263,31 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3 text-amber-400 text-sm">
-          <AlertTriangle className="w-5 h-5 shrink-0 text-amber-500" />
-          <div>
-            <p className="font-bold">Backend API Offline</p>
-            <p className="mt-0.5">{error}</p>
+      {/* Cold Start / Waking Up Notice or Error State */}
+      {(error || (loading && isSlowLoading)) && (
+        <ColdStartNotice
+          isSlowLoading={loading && isSlowLoading}
+          error={error}
+          onRetry={loadDashboardData}
+          onLoadDemoData={loadSampleData}
+        />
+      )}
+
+      {/* Fallback Sample Data Indicator */}
+      {usingDemoFallback && (
+        <div className="p-3 bg-linear-to-r from-cyan-950/40 via-slate-900/60 to-indigo-950/40 border border-cyan-500/30 rounded-xl flex items-center justify-between gap-3 text-xs text-cyan-300 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>
+              Currently previewing interactive sample data. Live database is disconnected.
+            </span>
           </div>
+          <button
+            onClick={loadDashboardData}
+            className="px-3 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer shrink-0"
+          >
+            Connect Live Database
+          </button>
         </div>
       )}
 
@@ -569,7 +619,7 @@ export default function OverviewPage() {
               </Link>
             </div>
 
-            <div className="divide-y divide-white/[0.06] overflow-y-auto max-h-72 mt-4 pr-1">
+            <div className="divide-y divide-white/6 overflow-y-auto max-h-72 mt-4 pr-1">
               {alerts.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 text-sm flex flex-col items-center justify-center">
                   <CheckCircle className="w-8 h-8 text-emerald-500 mb-2" />
@@ -609,7 +659,7 @@ export default function OverviewPage() {
             </div>
           </div>
 
-          <div className="text-[10px] text-slate-400 border-t border-white/[0.06] pt-4 flex items-center gap-2.5 mt-4">
+          <div className="text-[10px] text-slate-400 border-t border-white/6 pt-4 flex items-center gap-2.5 mt-4">
             <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/50 animate-ping"></span>
             <span>Realtime subscription active for Slack and Email webhooks channels.</span>
           </div>
@@ -618,7 +668,7 @@ export default function OverviewPage() {
 
       {/* Bottom Section: At-Risk Table (Top 10 by churn_probability desc) */}
       <div className="glass-panel rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="p-6 border-b border-white/6 flex items-center justify-between">
           <div>
             <h4 className="text-sm font-bold text-[#F8F6F0] uppercase tracking-wider">
               High Churn Probability Clients
@@ -638,7 +688,7 @@ export default function OverviewPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white/[0.015] border-b border-white/[0.06] text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <tr className="bg-white/1.5 border-b border-white/6 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 <th className="p-4">Customer Name</th>
                 <th className="p-4">Plan Level</th>
                 <th className="p-4">Health Badge</th>
@@ -646,7 +696,7 @@ export default function OverviewPage() {
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04] text-sm">
+            <tbody className="divide-y divide-white/4 text-sm">
               {atRiskCustomers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-slate-400 italic">
@@ -671,7 +721,7 @@ export default function OverviewPage() {
                   return (
                     <tr
                       key={cust.id}
-                      className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.04]"
+                      className="hover:bg-white/1 transition-colors border-b border-white/4"
                     >
                       <td className="p-4">
                         <div className="flex items-center gap-1.5">
@@ -705,7 +755,7 @@ export default function OverviewPage() {
                       </td>
 
                       <td className="p-4">
-                        <span className="px-2 py-0.5 bg-white/[0.03] border border-white/[0.08] text-slate-300 rounded text-[10px] font-bold">
+                        <span className="px-2 py-0.5 bg-white/3 border border-white/8 text-slate-300 rounded text-[10px] font-bold">
                           {cust.planTier || cust.plan_tier}
                         </span>
                         <span className="text-xs font-semibold text-slate-400 block mt-1">

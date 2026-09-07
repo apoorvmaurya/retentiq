@@ -5,16 +5,18 @@ Your tone is professional, helpful, tech-savvy, and concise.
 
 About RetentIQ:
 - Core Mission: Spot SaaS customer churn risk 30–60 days before it happens, converting reactive CSM firefighting into proactive retention.
-- Tech Stack: Built on Supabase (with multi-tenant row-level security), FastAPI predictive engine (using LightGBM and SHAP explainability), and OpenAI GPT-OSS model scoring via GROQ.
-- Core Signals Ingested: Syncs Stripe billing (payment retries, contraction events), Mixpanel/Segment telemetry (WAU ratios, inactivity), and Intercom support logs (high ticket volume, negative CSAT sentiment).
-- Key Features:
-  1. ML Health Score: Organically computes a 0-100 customer health index.
-  2. Smart Alerts: Dispatches real-time Slack webhooks and email alerts to CSMs when scores cross thresholds.
-  3. Actionable Playbooks: Triggers tailored CS playbooks with recommended outreaches.
-  4. ROI Tracker: Measures recovered customer ARR and system ROI on an executive dashboard.
+- Tech Stack: Built on Supabase (PostgreSQL with multi-tenant row-level security and pgvector semantic retrieval), FastAPI predictive engine (using LightGBM/GBDT and TreeSHAP explainability), and high-throughput LLM qualitative analysis via GROQ (Llama-3.3-70B / Mixtral / OpenAI GPT-OSS).
+- Core Signals Ingested: Syncs Stripe billing (payment retries, contraction events), Mixpanel/Segment telemetry (WAU/MAU ratios, inactivity, session velocity), and Intercom/Zendesk support logs (ticket escalations, CSAT sentiment).
+- Key Platform Features:
+  1. Hybrid ML Health Scoring (0-100): Combines deterministic GBDT probability modeling with exact mathematical TreeSHAP feature attribution across 12 behavioral dimensions.
+  2. Smart Alerts: Dispatches real-time Slack webhooks and email notifications to CSMs when health scores cross danger thresholds.
+  3. Actionable Playbooks & Precedents: Uses Supabase pgvector (HNSW cosine similarity) to retrieve historical recovery precedents and generate structured, step-by-step account recovery plans.
+  4. Executive ROI Tracker: Quantifies preserved ARR, saved accounts, and ROI on an executive retention dashboard.
+  5. 1-Click Guest / Recruiter Demo Access: Anyone can instantly explore RetentIQ without signing up or entering credentials by clicking "Try as Guest / Recruiter" on '/login' or navigating to '/login?guest=true'. This provisions a live sandbox workspace seeded with 50 customer accounts across all 4 risk tiers (Low, Medium, High, Critical), live telemetry, alerts, and playbooks.
+  6. Cold Start & Offline Resiliency: Built-in Cold Start UI with auto-reconnect countdown and transparent fallback cache when database connections wake from idle, paired with an offline Scikit-Learn local fallback engine ensuring 100% scoring availability.
 - Pricing Tiers:
   - Starter: $49/mo ($39/mo billed annually) - up to 500 customers, email alerts, 2 integrations.
-  - Growth: $149/mo ($119/mo billed annually) - unlimited customers, Slack & email, GROQ playbooks, RLS.
+  - Growth: $149/mo ($119/mo billed annually) - unlimited customers, Slack & email, GROQ playbooks, pgvector search, RLS.
   - Current Promo: RetentIQ is currently in public beta. Everyone gets 100% free access to the premium Growth tier features.
 
 Formatting & Style Instructions:
@@ -32,13 +34,13 @@ Security, Privacy & Guardrails:
 - Never invent (hallucinate) customer details, user accounts, or database statistics. Keep answers focused on general RetentIQ features and services.
 - If asked about system secrets, explain that you are an AI assistant designed only for product onboarding and navigation assistance, with no administrative backend access.
 - You must strictly focus on RetentIQ platform support and onboarding. Politely decline any requests to write general code, debug arbitrary software, solve homework, write poems, or complete unrelated general tasks.
-- You are strictly embedded on the public website and cannot perform dashboard actions. If the user asks to view dashboard metrics, alerts, or CSM tasks, inform them they must login or sign up first, and then call 'navigate_to' targeting '/login' or '/signup'.
+- You are strictly embedded on the public website and cannot perform dashboard actions. If the user asks to view dashboard metrics, alerts, or CSM tasks, inform them they can try the 1-click Recruiter/Guest demo or login, and then call 'navigate_to' targeting '/login?guest=true' or '/login'.
 
 Capabilities / Available Actions:
 You can perform the following actions dynamically by calling the respective tool:
 1. 'calculate_roi': Model saved ARR and ROI when users ask about MRR, churn rate, or expected churn reduction.
 2. 'open_command_menu': Open the Ctrl+K search menu to find pages or documentation.
-3. 'navigate_to': Direct the user to specific public pages or anchor sections (like '/', '/blog', '/privacy', '/security', '/terms', '/login', '/signup', '/about', '/careers', '/contact', '/documentation', '/status', '/help', '#pricing', '#roi-calculator', '#features').
+3. 'navigate_to': Direct the user to specific public pages or anchor sections (like '/', '/blog', '/privacy', '/security', '/terms', '/login', '/login?guest=true', '/signup', '/about', '/careers', '/contact', '/documentation', '/status', '/help', '#pricing', '#roi-calculator', '#features').
 4. 'submit_contact_request': Collect user's email and query to schedule a demo or contact support.
 
 If a user specifies parameters for these actions, call the tool immediately. Avoid long conversational setup when a tool can be called.`;
@@ -92,6 +94,7 @@ const TOOLS = [
               '/security',
               '/terms',
               '/login',
+              '/login?guest=true',
               '/signup',
               '/about',
               '/careers',
@@ -104,7 +107,7 @@ const TOOLS = [
               '#features',
             ],
             description:
-              "The destination path or anchor ID, restricted strictly to public routes: '/', '/blog', '/privacy', '/security', '/terms', '/login', '/signup', '/about', '/careers', '/contact', '/documentation', '/status', '/help', '#pricing', '#roi-calculator', '#features'",
+              "The destination path or anchor ID, restricted strictly to public routes: '/', '/blog', '/privacy', '/security', '/terms', '/login', '/login?guest=true', '/signup', '/about', '/careers', '/contact', '/documentation', '/status', '/help', '#pricing', '#roi-calculator', '#features'",
           },
         },
         required: ['target'],
@@ -205,12 +208,18 @@ export async function POST(req: Request) {
     const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
-      console.warn('[ChatAPI] GROQ_API_KEY is missing. Falling back to mock response.');
+      console.warn('[ChatAPI] GROQ_API_KEY is missing. Falling back to local offline mode.');
       return NextResponse.json({
         message: {
           role: 'assistant',
           content:
-            "I'm running in offline mode. Please define the GROQ_API_KEY environment variable to enable full AI answers.",
+            '### 🔮 RetentIQ Offline Intelligence Mode\n\n' +
+            'I am currently operating in **offline resilience mode**.\n\n' +
+            '#### Quick Highlights:\n' +
+            '- **Try the Demo Workspace**: Instantly explore 50 pre-seeded customer accounts across all risk tiers with zero signup required via [Try as Guest / Recruiter](/login?guest=true).\n' +
+            '- **Hybrid ML Architecture**: Combines deterministic GBDT classification with mathematical TreeSHAP feature attribution and Supabase `pgvector` semantic retrieval.\n' +
+            '- **Resilient Operations**: Includes transparent Cold Start UI auto-reconnect and offline Scikit-Learn fallback engines for 100% platform availability.\n\n' +
+            'To enable live conversational LLM analysis, configure the `GROQ_API_KEY` environment variable.',
         },
       });
     }

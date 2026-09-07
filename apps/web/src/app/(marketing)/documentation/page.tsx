@@ -4,14 +4,14 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { motion } from 'framer-motion';
-import { FileText, Terminal, Layers, RefreshCw } from 'lucide-react';
+import { FileText, Terminal, Layers, RefreshCw, Zap, Brain, ShieldCheck } from 'lucide-react';
 
 export default function DocumentationPage() {
   return (
     <div className="bg-[#0A0F1E] text-[#F8F6F0] min-h-screen overflow-x-hidden font-sans selection:bg-[#00D4FF]/20 selection:text-[#00D4FF]">
       {/* Decorative gradient meshes */}
-      <div className="absolute top-[-10%] left-[10%] w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] rounded-full bg-indigo-950/20 blur-[80px] sm:blur-[120px] pointer-events-none" />
-      <div className="absolute top-[20%] right-[-10%] w-[250px] sm:w-[500px] h-[250px] sm:h-[500px] rounded-full bg-[#00D4FF]/5 blur-[100px] sm:blur-[150px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[10%] w-75 sm:w-150 h-75 sm:h-150 rounded-full bg-indigo-950/20 blur-[80px] sm:blur-[120px] pointer-events-none" />
+      <div className="absolute top-[20%] right-[-10%] w-62.5 sm:w-125 h-62.5 sm:h-125 rounded-full bg-[#00D4FF]/5 blur-[100px] sm:blur-[150px] pointer-events-none" />
 
       <Navbar />
 
@@ -22,7 +22,7 @@ export default function DocumentationPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-md"
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/3 border border-white/8 backdrop-blur-md"
           >
             <FileText className="w-3.5 h-3.5 text-[#00D4FF]" />
             <span className="text-[10px] font-bold tracking-wider text-[#8B95AB] uppercase">
@@ -51,7 +51,7 @@ export default function DocumentationPage() {
         {/* Content Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start">
           {/* Documentation Sections */}
-          <div className="lg:col-span-12 bg-white/[0.015] border border-white/[0.06] rounded-2xl p-4 sm:p-6 md:p-10 backdrop-blur-md shadow-2xl space-y-10 text-slate-400 leading-relaxed font-sans text-xs md:text-sm">
+          <div className="lg:col-span-12 bg-white/1.5 border border-white/6 rounded-2xl p-4 sm:p-6 md:p-10 backdrop-blur-md shadow-2xl space-y-10 text-slate-400 leading-relaxed font-sans text-xs md:text-sm">
             {/* Section 1 */}
             <section id="getting-started" className="space-y-4">
               <div className="flex items-center gap-2.5">
@@ -64,7 +64,7 @@ export default function DocumentationPage() {
                 To ingest customer actions and telemetry logs into RetentIQ, send a POST request
                 containing telemetry data in JSON payload format to our events endpoint.
               </p>
-              <div className="p-4 bg-white/[0.02] border border-white/[0.04] rounded-xl text-[10px] sm:text-xs font-mono text-cyan-400 overflow-x-auto">
+              <div className="p-4 bg-white/2 border border-white/4 rounded-xl text-[10px] sm:text-xs font-mono text-cyan-400 overflow-x-auto">
                 POST /api/events/ingest <br />
                 Authorization: Bearer &lt;YOUR_API_KEY&gt; <br />
                 Content-Type: application/json <br />
@@ -122,9 +122,95 @@ export default function DocumentationPage() {
                 Configure Segment, HubSpot, Salesforce, Stripe, and Intercom webhooks to route
                 customer activity directly to RetentIQ. All endpoints are mapped to path format:
               </p>
-              <div className="p-4 bg-white/[0.02] border border-white/[0.04] rounded-xl text-[10px] sm:text-xs font-mono text-cyan-400">
+              <div className="p-4 bg-white/2 border border-white/4 rounded-xl text-[10px] sm:text-xs font-mono text-cyan-400">
                 https://api.retentiq.com/api/integrations/&lt;provider&gt;/webhook
               </div>
+            </section>
+
+            {/* Section 4 */}
+            <section id="demo-access" className="space-y-4">
+              <div className="flex items-center gap-2.5">
+                <Zap className="w-5 h-5 text-cyan-400 shrink-0" />
+                <h2 className="font-serif text-lg sm:text-2xl text-white font-normal">
+                  4. One-Click Recruiter & Guest Evaluation Sandbox
+                </h2>
+              </div>
+              <p>
+                To evaluate RetentIQ without email verification or manual onboarding, anyone can
+                access our live recruiter demo workspace. Clicking{' '}
+                <strong className="text-white">&quot;Try as Guest / Recruiter&quot;</strong> on the
+                sign-in screen or navigating to{' '}
+                <code className="text-cyan-400">/login?guest=true</code> automatically provisions an
+                isolated demo workspace.
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>
+                  <strong className="text-white">50 Pre-Populated Customer Accounts:</strong> Evenly
+                  distributed across all 4 operational risk tiers (
+                  <span className="text-emerald-400">Low</span>,{' '}
+                  <span className="text-amber-400">Medium</span>,{' '}
+                  <span className="text-orange-400">High</span>,{' '}
+                  <span className="text-rose-400">Critical</span>).
+                </li>
+                <li>
+                  <strong className="text-white">Active Operational Telemetry:</strong> Live Stripe
+                  billing decline events, high-volume telemetry activity, and pre-triggered alert
+                  queues with automated recovery playbooks.
+                </li>
+              </ul>
+            </section>
+
+            {/* Section 5 */}
+            <section id="ai-explainability" className="space-y-4">
+              <div className="flex items-center gap-2.5">
+                <Brain className="w-5 h-5 text-cyan-400 shrink-0" />
+                <h2 className="font-serif text-lg sm:text-2xl text-white font-normal">
+                  5. TreeSHAP Mathematical Attribution & Supabase pgvector
+                </h2>
+              </div>
+              <p>
+                RetentIQ eliminates opaque &quot;black box&quot; churn scores through mathematical
+                game theory and semantic vector retrieval:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>
+                  <strong className="text-white">TreeSHAP Explainability:</strong> Computes exact
+                  Shapley force values across 12 behavioral dimensions (including 7d/14d/30d login
+                  velocities, feature adoption slope, and dunning retries) isolating the precise
+                  root causes behind every score spike.
+                </li>
+                <li>
+                  <strong className="text-white">Supabase pgvector Retrieval:</strong> High-risk
+                  accounts are embedded into a vector space with HNSW cosine indexing to retrieve
+                  proven recovery playbooks from historically preserved customer precedents.
+                </li>
+              </ul>
+            </section>
+
+            {/* Section 6 */}
+            <section id="cold-start-resiliency" className="space-y-4">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-cyan-400 shrink-0" />
+                <h2 className="font-serif text-lg sm:text-2xl text-white font-normal">
+                  6. Cold Start Resiliency & Fallback Guarantee
+                </h2>
+              </div>
+              <p>
+                In the event of database wake delays or external AI service rate limits (HTTP
+                429/503), RetentIQ provides a two-layer fault-tolerance guarantee:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>
+                  <strong className="text-white">Cold Start UI Banner:</strong> Transparent retry
+                  countdown with exponential backoff and seamless local cache fallbacks so dashboard
+                  navigation never crashes.
+                </li>
+                <li>
+                  <strong className="text-white">Local Scikit-Learn Fallback Engine:</strong>{' '}
+                  In-process scoring engine that generates calibrated health scores and risk factors
+                  with zero external API dependencies.
+                </li>
+              </ul>
             </section>
           </div>
         </div>
