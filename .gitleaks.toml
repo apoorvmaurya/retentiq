@@ -2,10 +2,11 @@
 useDefault = true
 
 [allowlist]
-description = "Ignore example env files and test mock keys"
+description = "Ignore example env files, test mock keys, and CI placeholder configurations"
 paths = [
   '''^\.env\.example$''',
   '''^\.env\.local\.example$''',
+  '''^\.github/workflows/.*''',
   '''^apps/ai-service/tests/.*''',
   '''^apps/api/src/.*\.test\.ts$''',
   '''^apps/web/src/.*\.test\.tsx?$'''
@@ -13,5 +14,7 @@ paths = [
 regexes = [
   '''your-.*-key''',
   '''test-key''',
-  '''mock-key'''
+  '''mock-key''',
+  '''mock-anon-key''',
+  '''placeholder'''
 ]

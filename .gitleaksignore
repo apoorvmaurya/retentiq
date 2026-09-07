@@ -1,5 +1,3 @@
-# Gitleaks ignore patterns
-.env.example
-.env.local.example
-apps/ai-service/tests/*
-apps/api/src/*.test.ts
+# Gitleaks ignore fingerprints
+# Fingerprints must be in the format: [commit]:[path]:[rule]:[line]
+bd9fc55f546a2eada2365a0faeb5e30b7d898ad3:.github/workflows/ci.yml:generic-api-key:144
