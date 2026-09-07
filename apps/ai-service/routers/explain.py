@@ -82,7 +82,7 @@ async def explain_customer(customer_id: str):
                 else "under-utilization of core platform features"
             )
             explanation = f"The customer's health score has settled at {latest_score}/100, indicating a {risk_tier} risk tier. The primary churn drivers are {factors_str}. Immediate intervention is recommended: {recommended_action}"
-            return {"explanation": explanation}
+            return {"explanation": explanation, "model": "rule-based-fallback"}
 
         prompt = f"""
         Analyze this customer health telemetry:
@@ -108,10 +108,10 @@ async def explain_customer(customer_id: str):
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.5,
-                max_tokens=200,
+                max_tokens=1000,
             )
 
-            explanation = response.choices[0].message.content.strip()
+            explanation = (response.choices[0].message.content or "").strip()
 
             if explanation.startswith("```"):
                 try:
@@ -122,6 +122,19 @@ async def explain_customer(customer_id: str):
                     pass
 
             explanation = explanation.strip("\"'").strip()
+
+            model_used = settings.MODEL_ID
+            if not explanation:
+                logger.warning(
+                    f"Model {settings.MODEL_ID} produced empty explanation (finish_reason: {response.choices[0].finish_reason}). Using rule-based fallback."
+                )
+                factors_str = (
+                    ", and ".join([f"'{f}'" for f in risk_factors])
+                    if risk_factors
+                    else "under-utilization of core platform features"
+                )
+                explanation = f"The customer's health score has settled at {latest_score}/100, indicating a {risk_tier} risk tier. The primary churn drivers are {factors_str}. Immediate intervention is recommended: {recommended_action}"
+                model_used = "rule-based-fallback"
 
             if org_id:
                 try:
@@ -142,7 +155,7 @@ async def explain_customer(customer_id: str):
                 except Exception as dbe:
                     logger.warning(f"Failed to log usage for explain endpoint: {dbe}")
 
-            return {"explanation": explanation}
+            return {"explanation": explanation, "model": model_used}
         except Exception as groq_err:
             logger.error(f"Groq explanation failed, using fallback: {groq_err}")
             factors_str = (
@@ -151,7 +164,7 @@ async def explain_customer(customer_id: str):
                 else "under-utilization of core platform features"
             )
             explanation = f"The customer's health score has settled at {latest_score}/100, indicating a {risk_tier} risk tier. The primary churn drivers are {factors_str}. Immediate intervention is recommended: {recommended_action}"
-            return {"explanation": explanation}
+            return {"explanation": explanation, "model": "rule-based-fallback"}
 
     except HTTPException:
         raise

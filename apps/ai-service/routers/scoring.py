@@ -111,7 +111,7 @@ async def score_customer(request: ScoreCustomerRequest):
                 {"role": "user", "content": json.dumps(prompt_content)},
             ],
             temperature=0.1,
-            max_tokens=400,
+            max_tokens=800,
         )
         raw_content = response.choices[0].message.content
         logger.info(f"GROQ response: {raw_content}")
@@ -262,7 +262,7 @@ async def score_customer_batch_job(batch_customers: list[CustomerJobItem]) -> li
                     {"role": "user", "content": json.dumps(prompt_content)},
                 ],
                 temperature=0.1,
-                max_tokens=400,
+                max_tokens=800,
             )
             raw_content = response.choices[0].message.content
             data = clean_and_parse_json(raw_content)

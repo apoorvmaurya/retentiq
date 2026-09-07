@@ -126,7 +126,7 @@ async def generate_playbook(customer_id: str):
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.2,
-                max_tokens=350,
+                max_tokens=800,
             )
 
             raw_content = response.choices[0].message.content
