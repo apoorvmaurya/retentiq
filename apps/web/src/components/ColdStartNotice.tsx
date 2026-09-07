@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Database, RefreshCw, Sparkles, CheckCircle2, Server, ArrowRight } from 'lucide-react';
+import { Database, RefreshCw, Sparkles, Server } from 'lucide-react';
 
 interface ColdStartNoticeProps {
   isSlowLoading?: boolean;
@@ -20,7 +20,7 @@ export function ColdStartNotice({
 }: ColdStartNoticeProps) {
   const [retrying, setRetrying] = useState(false);
   const [countdown, setCountdown] = useState(5);
-  const [autoRetryEnabled, setAutoRetryEnabled] = useState(true);
+  const autoRetryEnabled = true;
 
   // Auto-retry countdown timer when an error or slow state occurs
   useEffect(() => {

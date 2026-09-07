@@ -142,27 +142,6 @@ graph TD
 
 ---
 
-## 📄 Resume-Ready Technical Highlights
-
-Use or adapt these high-impact, quantified bullets for software engineering, machine learning, and full-stack resumes:
-
-- **AI & Systems Architecture**:
-
-  > _"Architected RetentIQ, an AI-powered churn prediction & retention platform; built multi-step LLM analysis pipeline with Supabase pgvector and structured outputs, achieving sub-2s streaming insights across 1,000+ customer events."_
-
-- **Machine Learning & Interpretability**:
-
-  > _"Engineered hybrid ML inference pipeline using LightGBM and TreeSHAP to calculate quantitative churn probabilities with exact mathematical feature attribution, dynamically routing high-risk cohorts into specialized LLM recovery playbooks."_
-
-- **Reliability & Error Recovery**:
-
-  > _"Designed resilient multi-tiered AI architecture featuring exponential backoff retries, Pydantic structured output validation, and seamless offline Scikit-Learn fallback, guaranteeing 100% scoring availability during third-party LLM outages."_
-
-- **Data Pipeline & Real-Time Streaming**:
-  > _"Built asynchronous background ingestion queue and real-time WebSocket broadcast engine with Express and Supabase, processing high-throughput telemetry updates with automatic rescoring and instant CSM alert dispatch."_
-
----
-
 ## 🏗️ System Architecture
 
 The diagram below illustrates the real-time communication flow across the full-stack architecture layers:

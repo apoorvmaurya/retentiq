@@ -4,7 +4,7 @@ import { db, schema } from '../lib/db.js';
 import { eq, and, gte, lte, lt, gt, desc, asc, sql } from 'drizzle-orm';
 import { decryptConfig } from '../lib/crypto.js';
 import { logger } from '../lib/logger.js';
-import { ConfigurationError, WorkerError, toAppError } from '../lib/errors.js';
+import { WorkerError, toAppError } from '../lib/errors.js';
 import {
   isAlertSuppressed,
   evaluateDefaultRule,

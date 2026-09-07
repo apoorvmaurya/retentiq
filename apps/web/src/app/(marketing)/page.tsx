@@ -1,15 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useInView,
-  AnimatePresence,
-  animate,
-  useMotionValueEvent,
-} from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { Slack } from '@/components/icons/Slack';
 import {
   ArrowRight,

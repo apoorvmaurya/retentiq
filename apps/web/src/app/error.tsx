@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Database, RefreshCw, ArrowLeft, Server, AlertCircle, Sparkles } from 'lucide-react';
+import { Database, RefreshCw, ArrowLeft, Server, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ErrorBoundary({

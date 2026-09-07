@@ -90,7 +90,6 @@ describe('Feature Engine Module', () => {
   });
 
   it('computes metrics from rich event history', async () => {
-    const now = new Date();
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 3600 * 1000);
     const tenDaysAgo = new Date(Date.now() - 10 * 24 * 3600 * 1000);
 

@@ -4,7 +4,6 @@ import { computeAndTriggerRescore } from '../lib/featureEngine.js';
 import { decryptConfig } from '../lib/crypto.js';
 import { logger } from '../lib/logger.js';
 import {
-  AppError,
   WorkerError,
   ValidationError,
   NotFoundError,

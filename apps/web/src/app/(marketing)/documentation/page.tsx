@@ -3,6 +3,7 @@
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import CodeSnippet from '@/components/CodeSnippet';
 import { motion } from 'framer-motion';
 import { FileText, Terminal, Layers, RefreshCw, Zap, Brain, ShieldCheck } from 'lucide-react';
 
@@ -64,27 +65,49 @@ export default function DocumentationPage() {
                 To ingest customer actions and telemetry logs into RetentIQ, send a POST request
                 containing telemetry data in JSON payload format to our events endpoint.
               </p>
-              <div className="p-4 bg-white/2 border border-white/4 rounded-xl text-[10px] sm:text-xs font-mono text-cyan-400 overflow-x-auto">
-                POST /api/events/ingest <br />
-                Authorization: Bearer &lt;YOUR_API_KEY&gt; <br />
-                Content-Type: application/json <br />
-                <br />
-                {JSON.stringify(
+              <CodeSnippet
+                tabs={[
                   {
-                    events: [
-                      {
-                        customer_id: 'customer-uuid-1234',
-                        event_type: 'feature_use',
-                        source: 'web',
-                        occurred_at: new Date().toISOString(),
-                        payload: { feature: 'dashboard_export' },
-                      },
-                    ],
+                    id: 'curl',
+                    label: 'cURL',
+                    language: 'bash',
+                    code: `curl -X POST https://api.retentiq.com/api/events/ingest \\
+  -H "Authorization: Bearer <YOUR_API_KEY>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "events": [
+      {
+        "customer_id": "customer-uuid-1234",
+        "event_type": "feature_use",
+        "source": "web",
+        "occurred_at": "2026-06-13T12:00:00.000Z",
+        "payload": { "feature": "dashboard_export" }
+      }
+    ]
+  }'`,
                   },
-                  null,
-                  2,
-                )}
-              </div>
+                  {
+                    id: 'json',
+                    label: 'JSON Payload',
+                    language: 'json',
+                    code: JSON.stringify(
+                      {
+                        events: [
+                          {
+                            customer_id: 'customer-uuid-1234',
+                            event_type: 'feature_use',
+                            source: 'web',
+                            occurred_at: '2026-06-13T12:00:00.000Z',
+                            payload: { feature: 'dashboard_export' },
+                          },
+                        ],
+                      },
+                      null,
+                      2,
+                    ),
+                  },
+                ]}
+              />
             </section>
 
             {/* Section 2 */}
@@ -122,9 +145,11 @@ export default function DocumentationPage() {
                 Configure Segment, HubSpot, Salesforce, Stripe, and Intercom webhooks to route
                 customer activity directly to RetentIQ. All endpoints are mapped to path format:
               </p>
-              <div className="p-4 bg-white/2 border border-white/4 rounded-xl text-[10px] sm:text-xs font-mono text-cyan-400">
-                https://api.retentiq.com/api/integrations/&lt;provider&gt;/webhook
-              </div>
+              <CodeSnippet
+                title="Webhook URL Template"
+                language="http"
+                code="https://api.retentiq.com/api/integrations/<provider>/webhook"
+              />
             </section>
 
             {/* Section 4 */}

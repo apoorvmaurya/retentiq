@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Check, Copy, Square, CheckSquare } from 'lucide-react';
+import { copyToClipboard } from '@/lib/clipboard';
 
 interface Block {
   type: 'paragraph' | 'heading' | 'list' | 'code' | 'blockquote' | 'table' | 'hr';
@@ -30,7 +31,7 @@ function renderInline(text: string): React.ReactNode[] {
       return (
         <code
           key={i}
-          className="px-1.5 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.08] text-[#00D4FF] font-mono text-[10.5px]"
+          className="px-1.5 py-0.5 rounded-md bg-white/6 border border-white/8 text-[#00D4FF] font-mono text-[10.5px]"
         >
           {part.slice(1, -1)}
         </code>
@@ -265,18 +266,16 @@ function CodeBlock({ code, language }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
+    const success = await copyToClipboard(code);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy code: ', err);
     }
   };
 
   return (
-    <div className="my-3 rounded-xl overflow-hidden border border-white/[0.08] bg-[#03060f]/95 shadow-lg max-w-full font-mono text-[11px]">
-      <div className="flex justify-between items-center px-4 py-2 bg-white/[0.02] border-b border-white/[0.06] text-[10px] text-slate-400 select-none uppercase tracking-wider font-semibold">
+    <div className="my-3 rounded-xl overflow-hidden border border-white/8 bg-[#03060f]/95 shadow-lg max-w-full font-mono text-[11px]">
+      <div className="flex justify-between items-center px-4 py-2 bg-white/2 border-b border-white/6 text-[10px] text-slate-400 select-none uppercase tracking-wider font-semibold">
         <span>{language}</span>
         <button
           onClick={handleCopy}
@@ -313,7 +312,7 @@ export default function Markdown({ content }: { content: string }) {
           case 'heading': {
             const headingClass =
               block.level === 1
-                ? 'text-lg font-bold text-[#F8F6F0] mt-3 mb-2 pb-1 border-b border-white/[0.06]'
+                ? 'text-lg font-bold text-[#F8F6F0] mt-3 mb-2 pb-1 border-b border-white/6'
                 : block.level === 2
                   ? 'text-base font-bold text-[#F8F6F0] mt-3 mb-1.5'
                   : 'text-sm font-bold text-[#F8F6F0] mt-2.5 mb-1';
@@ -337,13 +336,13 @@ export default function Markdown({ content }: { content: string }) {
             );
 
           case 'hr':
-            return <hr key={idx} className="my-3 border-t border-white/[0.08]" />;
+            return <hr key={idx} className="my-3 border-t border-white/8" />;
 
           case 'blockquote':
             return (
               <blockquote
                 key={idx}
-                className="pl-3.5 border-l-2 border-cyan-500/50 my-3 text-slate-400 italic text-[11.5px] bg-white/[0.01] py-1 rounded-r-md"
+                className="pl-3.5 border-l-2 border-cyan-500/50 my-3 text-slate-400 italic text-[11.5px] bg-white/1 py-1 rounded-r-md"
               >
                 {renderInline(block.content || '')}
               </blockquote>
@@ -411,26 +410,23 @@ export default function Markdown({ content }: { content: string }) {
             return (
               <div
                 key={idx}
-                className="my-3 overflow-x-auto rounded-xl border border-white/[0.08] shadow-md"
+                className="my-3 overflow-x-auto rounded-xl border border-white/8 shadow-md"
               >
                 <table className="w-full border-collapse text-left text-[11px] leading-relaxed">
                   {hasHeaders && (
                     <thead>
-                      <tr className="bg-white/[0.03] border-b border-white/[0.08] text-[#F8F6F0] font-bold">
+                      <tr className="bg-white/3 border-b border-white/8 text-[#F8F6F0] font-bold">
                         {block.headers?.map((h, i) => (
-                          <th key={i} className="px-3.5 py-2 hover:bg-white/[0.01]">
+                          <th key={i} className="px-3.5 py-2 hover:bg-white/1">
                             {renderInline(h)}
                           </th>
                         ))}
                       </tr>
                     </thead>
                   )}
-                  <tbody className="divide-y divide-white/[0.04]">
+                  <tbody className="divide-y divide-white/4">
                     {block.rows?.map((row, rIdx) => (
-                      <tr
-                        key={rIdx}
-                        className={rIdx % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.01]'}
-                      >
+                      <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-transparent' : 'bg-white/1'}>
                         {row.map((cell, cIdx) => (
                           <td key={cIdx} className="px-3.5 py-2 text-slate-300">
                             {renderInline(cell)}

@@ -20,6 +20,14 @@ jobs:
             echo "Please set SUPABASE_URL and SUPABASE_ANON_KEY under repository Settings -> Secrets and variables -> Actions."
             exit 1
           fi
-          curl -s -f -X GET "${SUPABASE_URL}/rest/v1/" \
+          echo "Pinging Supabase Auth Service..."
+          curl -s -f -X GET "${SUPABASE_URL}/auth/v1/health" \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" > /dev/null
+
+          echo "Pinging Supabase Postgres via PostgREST (keeps DB active)..."
+          curl -s -f -X GET "${SUPABASE_URL}/rest/v1/organizations?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" > /dev/null
+
+          echo "Supabase keep-alive ping successful. Project activity registered."

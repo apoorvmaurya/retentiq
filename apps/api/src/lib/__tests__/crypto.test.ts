@@ -76,4 +76,9 @@ describe('Crypto Utility (AES-256-GCM)', () => {
     expect(masked.slackWebhookUrl).toEqual('••••••••');
     expect(masked.regularField).toEqual('public_value');
   });
+
+  it('includes designated secrets in SENSITIVE_KEYS list', () => {
+    expect(SENSITIVE_KEYS).toContain('stripeSecretKey');
+    expect(SENSITIVE_KEYS).toContain('slackWebhookUrl');
+  });
 });

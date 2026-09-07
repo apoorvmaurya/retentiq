@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { fetchFromApi } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { copyToClipboard } from '@/lib/clipboard';
 
 import { PROVIDERS } from './components/constants';
 import { IntegrationConfig } from './components/types';
@@ -38,11 +39,15 @@ export default function IntegrationsPage() {
     return `${baseUrl}/integrations/${providerId}/webhook`;
   };
 
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-    toast.success('Copied to clipboard!');
+  const handleCopy = async (text: string, id: string) => {
+    const success = await copyToClipboard(text);
+    if (success) {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+      toast.success('Copied to clipboard!');
+    } else {
+      toast.error('Failed to copy to clipboard');
+    }
   };
 
   const loadIntegrations = async () => {
