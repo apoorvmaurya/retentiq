@@ -1,104 +1,133 @@
 <div align="center">
   <img src="https://img.shields.io/badge/RetentIQ-Predictive%20CS%20Intelligence-blueviolet?style=for-the-badge&logo=supabase&logoColor=white" alt="RetentIQ Badge" />
 
+# RetentIQ
+
   <p align="center">
-    <strong>🔮 State-of-the-Art Enterprise Churn Intelligence & Health-Scoring Platform</strong>
+    <strong>Open-Source Predictive Churn Intelligence & Customer Health Scoring Platform</strong><br />
+    Deterministic LightGBM inference, game-theoretic TreeSHAP explainability, and resilient LLM playbooks.
   </p>
 
   <p align="center">
-    <a href="#-advanced-ai--machine-learning-architecture">AI Architecture</a> •
-    <a href="#-resume-ready-technical-highlights">Resume Bullets</a> •
-    <a href="#-system-architecture">System Architecture</a> •
-    <a href="#-directory-structure">Directory Structure</a> •
-    <a href="#-workspace-setup--local-execution">Setup Guide</a> •
+    <a href="https://retentiq-chi.vercel.app/login?guest=true"><strong>⚡ Launch Instant Live Sandbox (1-Click, No Signup) »</strong></a>
+  </p>
+
+  <p align="center">
+    <a href="#-why-retentiq">Why RetentIQ</a> •
+    <a href="#-enterprise-comparison">Gainsight vs Totango vs RetentIQ</a> •
+    <a href="#-ai--machine-learning-architecture">AI Architecture</a> •
+    <a href="#-guest-sandbox--demo">Guest Sandbox</a> •
+    <a href="#-monorepo-layout">Monorepo Layout</a> •
+    <a href="#-quickstart--local-development">Quickstart</a> •
     <a href="#-testing--verification">Testing</a> •
-    <a href="#-security-compliance--privacy">Security & Compliance</a>
+    <a href="#-security--governance">Security</a>
   </p>
 
   <p align="center">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT" />
     <img src="https://img.shields.io/badge/TypeScript-5.x-blue?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
-    <img src="https://img.shields.io/badge/Python-3.11+-blue?style=flat-square&logo=python&logoColor=white" alt="Python" />
-    <img src="https://img.shields.io/badge/Next.js-16+-black?style=flat-square&logo=next.js&logoColor=white" alt="Next.js" />
-    <img src="https://img.shields.io/badge/FastAPI-0.115+-emerald?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
-    <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License" />
+    <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.11+" />
+    <img src="https://img.shields.io/badge/Next.js-16+-black?style=flat-square&logo=next.js&logoColor=white" alt="Next.js 16" />
+    <img src="https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+    <img src="https://img.shields.io/badge/LightGBM-4.x-brightgreen?style=flat-square" alt="LightGBM" />
+    <img src="https://img.shields.io/badge/SHAP-TreeSHAP-orange?style=flat-square" alt="SHAP" />
+    <img src="https://img.shields.io/badge/Tests-39%20Passing-success?style=flat-square" alt="Tests: 39 Passing" />
   </p>
 </div>
 
 ---
 
-## 🔮 Overview
+## ⚡ Try It Right Now
 
-RetentIQ is an enterprise-grade SaaS customer churn-intelligence and health-scoring platform. It empowers Customer Success (CS) and Account Management teams by predicting customer churn risks 30–60 days before they happen. The system combines a local **Gradient Boosting & LightGBM Machine Learning Classifier** with **SHAP explanations** (telemetry-based quantitative scoring grounded in model computation) and **Llama-3.3 LLM Qualitative Analysis** (natural language risk factors and dynamic playbooks via Groq) to deliver highly actionable account recovery strategies.
+Skip the clone and evaluate RetentIQ immediately with zero registration:
 
-RetentIQ is architected as a type-safe, high-performance monorepo:
+👉 **[Launch Interactive Guest Sandbox (`https://retentiq-chi.vercel.app/login?guest=true`)](https://retentiq-chi.vercel.app/login?guest=true)**
 
-- **Next.js 16+ (App Router)**: A performant, responsive frontend utilizing Turbopack, Framer Motion, and Tailwind CSS.
-- **Node.js Express API Server**: An ESM-based, type-safe API backend using Drizzle ORM.
-- **FastAPI AI Microservice**: A high-throughput Python service executing ML inference and LLM orchestrations.
-- **Supabase (PostgreSQL)**: Robust data persistence backed by Row Level Security (RLS), `pgvector` semantic indexing, and real-time subscription broadcasts.
-
-### 🌟 Key Enterprise Highlights
-
-- **⚡ One-Click Recruiter & Guest Sandbox (`/login?guest=true`)**: Evaluate the platform immediately without email verification or manual signups. Automatically provisions a live workspace pre-seeded with 50 customer accounts across all 4 risk tiers, live telemetry, and automated playbooks.
-- **🛡️ Cold Start UI & Local Offline Fallback**: Features an auto-reconnecting Cold Start notice with exponential backoff and seamless local fallback caching when databases wake from idle, backed by an in-process Scikit-Learn fallback engine for 100% availability.
-
-For machine learning architecture, feature taxonomy, and reproducibility details, see:
-
-- [Model Card](docs/MODEL_CARD.md)
-- [Reproducibility Guide](docs/REPRODUCIBILITY.md)
-- [AI Architecture Whitepaper](docs/AI_ARCHITECTURE.md)
+- **1-Click Authentication:** Auto-provisions an isolated, real-time workspace.
+- **50 Pre-Seeded Enterprise Accounts:** Balanced across all 4 health tiers (`Low`, `Medium`, `High`, `Critical`).
+- **Live Telemetry & Diagnostics:** Inspect real-time 12-dimensional feature attributions, model confidence scores, and dynamic retention playbooks.
 
 ---
 
-## 🧠 Advanced AI & Machine Learning Architecture
+## 💡 Why RetentIQ?
 
-RetentIQ does not treat AI as a naive single-prompt wrapper. Instead, it implements an enterprise-grade, **multi-step hybrid intelligence pipeline** combining statistical machine learning, mathematical interpretability (TreeSHAP), semantic vector retrieval via Supabase `pgvector`, dynamic prompt routing, and resilient offline fallback engines.
+Most modern "AI-powered" retention tools are either:
+
+1. **Trivial LLM wrappers:** Raw event logs are blindly concatenated into an LLM prompt, producing hallucinated health scores, non-deterministic predictions, and unsustainable API costs.
+2. **Legacy enterprise CS monoliths:** Systems like Gainsight or Totango that require 6-month sales cycles, cost $25k–$50k+/year, rely on manual rule heuristics, and offer zero model transparency.
+
+**RetentIQ bridges this gap with a principled, two-tier hybrid architecture:**
+
+- **Quantitative Scoring Belongs to Deterministic ML:** Numerical churn probabilities ($0.0 \le p \le 1.0$) and baseline health scores ($0 \le s \le 100$) are calculated deterministically by an in-process **LightGBM Gradient Boosted Decision Tree (GBDT)** classifier.
+- **Feature Attribution Belongs to Game Theory:** **TreeSHAP** computes exact Shapley attributions across 12 behavioral dimensions, mathematically proving _why_ an account is at risk (e.g. dropped usage slope vs. billing invoice failures).
+- **Qualitative Playbooks Belong to LLMs:** High-throughput LLMs (Llama-3.3-70B via Groq) synthesize structured account recovery steps grounded directly in top mathematical risk drivers.
+- **Guaranteed Reliability:** If external LLM APIs fail or rate limit, an in-process deterministic rule engine provides instant offline fallback with 100% uptime.
+
+---
+
+## 📊 Enterprise Comparison
+
+| Feature                          |               Gainsight                |              Totango              |                                      RetentIQ (Open Source)                                       |
+| :------------------------------- | :------------------------------------: | :-------------------------------: | :-----------------------------------------------------------------------------------------------: |
+| **License & Code Transparency**  |      Proprietary / Closed Source       |    Proprietary / Closed Source    |                           **MIT Open Source (Full code transparency)**                            |
+| **Annual Starting Cost**         |         ~$25,000 – $60,000+/yr         |      ~$18,000 – $40,000+/yr       |                               **$0 (Self-Hosted) / Free to Deploy**                               |
+| **Evaluation Experience**        | Multi-week sales qualification & demos | Gated sales cycle & trial hurdles | **[1-Click Instant Guest Sandbox](https://retentiq-chi.vercel.app/login?guest=true) (No signup)** |
+| **Predictive ML Engine**         |      Black-box proprietary rules       |    Heuristic scorecard weights    |                          **LightGBM Classifier (Trained on telemetry)**                           |
+| **Attribution & Explainability** |         Opaque health scoring          |     Manual scorecard metrics      |                          **TreeSHAP (Exact Shapley value per feature)**                           |
+| **AI Action Playbooks**          |       Manual checklist playbooks       |     Template-driven playbooks     |                          **Dynamic LLM Playbooks (Llama-3.3 via Groq)**                           |
+| **Offline Fallback Engine**      |         None (SaaS dependent)          |       None (SaaS dependent)       |                           **Deterministic In-Process Fallback Engine**                            |
+| **Extensibility & Schema**       |      Rigid enterprise data model       |    Rigid enterprise data model    |                           **Type-safe Drizzle ORM + Next.js + FastAPI**                           |
+
+---
+
+## 🧠 AI & Machine Learning Architecture
+
+RetentIQ separates quantitative statistical computation from qualitative language generation:
 
 ```mermaid
 graph TD
     %% Telemetry Layer
     subgraph Telemetry [1. Telemetry Ingestion & Feature Engineering]
-        RawEvents[Raw Customer Events: Logins, Billing, Tickets, Feature Usage]
+        RawEvents[Raw Customer Events: Logins, Invoices, Tickets, Feature Usage]
         FeatureEngine[12-Dimensional Feature Vector Extractor]
         RawEvents --> FeatureEngine
     end
 
     %% Quantitative ML Layer
     subgraph MLInference [2. Quantitative ML & Mathematical Attribution]
-        Classifier[LightGBM & GBDT Churn Classifier]
+        Classifier[LightGBM Churn Classifier]
         TreeSHAP[TreeSHAP Attribution Explainer]
-        ScoreClamping[Custom Category Weight Clamping Engine]
+        ScoreClamping[Health Score Clamping Engine]
         FeatureEngine --> Classifier
         FeatureEngine --> TreeSHAP
-        Classifier -->|Continuous Probability 0.0-1.0| ScoreClamping
-        TreeSHAP -->|Exact Shapley Contributions| ScoreClamping
+        Classifier -->|Continuous Probability 0.0 - 1.0| ScoreClamping
+        TreeSHAP -->|Exact Shapley Attributions| ScoreClamping
     end
 
-    %% Context & Routing Layer
-    subgraph PromptRouting [3. Dynamic Prompt Routing & Semantic Context]
-        Router[Dynamic Prompt Router]
-        pgvector[(Supabase pgvector: Historical Churn Precedents & Playbooks)]
-        ScoreClamping -->|Dominant SHAP Risk Drivers| Router
-        Router -->|HNSW Cosine Vector Search| pgvector
-        pgvector -->|Similar Resolved Account Cases| Router
+    %% Context Grounding Layer
+    subgraph PromptGrounding [3. SHAP-Attribution Grounded Prompt Construction]
+        TopDrivers[Identify Top-4 Absolute SHAP Drivers]
+        DynamicLexicon[Inject Targeted Telemetry Feature Lexicon]
+        ScoreClamping --> TopDrivers
+        TopDrivers --> DynamicLexicon
     end
 
-    %% Generation & Validation Layer
+    %% Generation & Fallback Layer
     subgraph LLMExecution [4. Resilient Generation & Structured Validation]
         GroqLLM[Llama-3.3-70B via Async Groq API]
         RetryEngine[Exponential Backoff Retry Engine]
-        OfflineFallback[Scikit-Learn Rule Fallback Engine]
+        OfflineFallback[Deterministic Rule Fallback Engine]
         PydanticSchema[Pydantic Structured Output Validation]
 
-        Router --> RetryEngine
-        RetryEngine -->|Primary Pipeline| GroqLLM
-        RetryEngine -.->|On 429/503/Timeout| OfflineFallback
+        DynamicLexicon --> RetryEngine
+        RetryEngine -->|Primary Inference| GroqLLM
+        RetryEngine -.->|On 429 / 503 / Timeout / Offline| OfflineFallback
         GroqLLM --> PydanticSchema
         OfflineFallback --> PydanticSchema
     end
 
     %% Real-time Delivery Layer
-    subgraph Delivery [5. Real-Time Streaming & Queue Workers]
+    subgraph Delivery [5. Real-Time Streaming & UI Delivery]
         RealtimeBroadcast[Supabase Broadcast Engine / WebSockets]
         DashboardUI[Next.js 16 Client & CSM Alerts]
         JobQueue[Express Background Ingestion & Alert Workers]
@@ -109,96 +138,41 @@ graph TD
     end
 ```
 
-### Core Engineering Decisions & Design Patterns
+### Core Engineering Decisions
 
-1. **Two-Tier Hybrid Scoring (GBDT + TreeSHAP)**:
-   - Numerical churn probability ($0.0 - 1.0$) and baseline health scores ($0 - 100$) are calculated deterministically by a local Gradient Boosting & LightGBM model rather than delegated to an LLM.
-   - **TreeSHAP** computes exact Shapley values for all 12 telemetry features, mathematically isolating whether a risk spike was caused by missed billing, declining session depth, or stale feature adoption.
+1. **Deterministic Churn Probability (LightGBM)**:
+   - Evaluates a 12-dimensional vector: `login_frequency_30d`, `login_frequency_14d`, `login_frequency_7d`, `feature_adoption_score`, `usage_trend`, `days_since_last_login`, `support_ticket_volume`, `support_sentiment_score`, `billing_events`, `onboarding_time`, `nps_csat_score`, and `renewal_proximity`.
+   - Produces a calibrated probability between $0.0$ and $1.0$ without invoking external APIs.
 
-2. **Dynamic Prompt Routing**:
-   - Rather than sending static boilerplate prompts, RetentIQ dynamically inspects the top SHAP contribution dimensions and routes the request to specialized domain prompts:
-     - _Billing Risk Router_: Prioritizes contract restructuring and dunning recovery strategies.
-     - _Engagement Drop Router_: Identifies dropped telemetry funnels and drafts CSM re-onboarding workflows.
-     - _Support Friction Router_: Analyzes open ticket sentiment and flags critical escalations.
+2. **Game-Theoretic Attribution (TreeSHAP)**:
+   - TreeSHAP calculates the exact marginal contribution ($\phi_i$) of each telemetry feature to the customer's churn probability.
+   - Positive SHAP values indicate risk drivers; negative SHAP values indicate retention anchors.
 
-3. **Semantic Retrieval with Supabase `pgvector`**:
-   - Historical customer interventions, churn post-mortems, and recovery playbooks are embedded into Supabase PostgreSQL using `pgvector` with `HNSW` cosine indexing.
-   - When generating mitigation playbooks, the AI service retrieves the top-$k$ historically successful recovery actions from similar account profiles, grounding LLM recommendations in real enterprise outcomes.
+3. **SHAP-Attribution Grounded Prompting**:
+   - Rather than passing unstructured data, the top 4 mathematical risk drivers are isolated and paired with a focused telemetry lexicon before prompting Groq.
+   - Grounded context prevents hallucination and ensures LLM recommendations directly target root causes.
 
-4. **Guaranteed Structured Outputs & Validation**:
-   - Every LLM response is constrained to type-safe JSON contracts enforced by strict Pydantic schemas (`HealthScoreOutput`, `PlaybookResponse`, `PlaybookStep`).
-   - Responses undergo automated markdown-fence stripping, sanitization, confidence scoring, and range clamping ($0 \le \text{score} \le 100$, $0.0 \le \text{churn\_prob} \le 1.0$).
+4. **Strict Pydantic Output Contracts**:
+   - Responses are strictly validated via Pydantic schemas (`HealthScoreOutput`, `PlaybookResponse`, `PlaybookStep`).
+   - Automated fence-stripping, JSON repair, and numeric clamping guarantee that frontend consumers never receive malformed payloads.
 
-5. **Sub-2s Streaming & Broadcast Latency**:
-   - End-to-end inference achieves sub-2s streaming delivery across 1,000+ customer events by pairing Groq's high-throughput LPU inference (<400ms time-to-first-token) with asynchronous `asyncio.gather` batch scoring and Supabase Realtime WebSocket broadcast channels.
-
-6. **Queue Processing & Resilient Error Recovery**:
-   - Heavy telemetry ingestion runs through a database-backed background worker queue (`jobs` state machine: `queued` $\to$ `processing` $\to$ `completed` / `failed`).
-   - LLM API calls utilize exponential backoff retries with jitter (`call_groq_with_retry`) to handle transient rate limits (429/503).
-   - If Groq or external networks are unreachable, RetentIQ instantly and silently degrades to a **local Scikit-Learn fallback engine**, computing health scores, heuristics, and structured recommendations without dropping requests or crashing the UI.
-
-7. **Evals & Model Governance**:
-   - Evaluated using synthetic telemetry benchmarks, Brier score probability calibration (verifying predicted churn probabilities reflect real frequencies), SHAP stability checks, and automated CI test gates (39 tests with >70% coverage requirement).
+5. **In-Process Deterministic Fallback Engine**:
+   - If the Groq API encounters rate limits (429), server errors (503), or network timeouts, the system gracefully degrades to an in-process deterministic fallback engine (`get_fallback_with_sklearn` & rule heuristics), maintaining 100% system availability.
 
 ---
 
-## 🏗️ System Architecture
+## ⚡ Guest Sandbox & Demo
 
-The diagram below illustrates the real-time communication flow across the full-stack architecture layers:
+Anyone can immediately test drive the complete RetentIQ platform without creating an account or providing API keys:
 
-```mermaid
-graph TD
-    %% Frontend Layer
-    subgraph Frontend [Next.js Web Application]
-        NextApp[Next.js App Router]
-        ProxyRules[Next.js Proxy / Route Handlers]
-        RealTimeClient[Supabase Realtime WebSocket client]
-    end
+👉 **[Open Live Sandbox: `/login?guest=true`](https://retentiq-chi.vercel.app/login?guest=true)**
 
-    %% Backend Service Layer
-    subgraph NodeAPI [Express API Server]
-        ExpServer[Express HTTP Server]
-        AuthJWT[verifySupabaseJWT Middleware]
-        IngWorker[Background Ingestion Worker]
-        AlWorker[Background Alert Worker]
-        Drizzle[Drizzle ORM Engine]
-    end
+### What Happens Behind the Scenes:
 
-    %% Python AI Layer
-    subgraph PyAI [AI & Machine Learning Service]
-        FastAPI[FastAPI HTTP Server]
-        LightGBM[GradientBoosting / LightGBM & SHAP]
-        GroqClient[Async Groq API Client]
-        PyDBCompat[Postgres / Supabase Client]
-    end
-
-    %% Database Layer
-    subgraph DataStore [Supabase Database]
-        Postgres[(Postgres DB Instance)]
-        RealtimeBroadcast[Supabase Broadcast Engine]
-    end
-
-    %% Communication Flow
-    NextApp -->|1. Authenticated API Calls| ExpServer
-    NextApp -->|2. Direct AI operations| FastAPI
-
-    ExpServer -->|Verify JWT| AuthJWT
-    AuthJWT -->|Lookup user profile| Drizzle
-    Drizzle -->|Read/Write schema| Postgres
-
-    IngWorker -->|Poll jobs table every 10s| Postgres
-    IngWorker -->|Trigger rescore POST /score/customer| FastAPI
-    AlWorker -->|Poll scores & aggregate ROI| Postgres
-
-    FastAPI -->|Compute features| PyDBCompat
-    PyDBCompat -->|Direct SQL queries| Postgres
-    FastAPI -->|Train model / local inference| LightGBM
-    FastAPI -->|Enrich risk factors| GroqClient
-
-    Postgres -->|3. Row level changes| RealtimeBroadcast
-    RealtimeBroadcast -.->|WebSocket updates| RealTimeClient
-    RealTimeClient -.->|Update UI states dynamically| NextApp
-```
+1. **Instant Session Provisioning:** Creates or resets a temporary demo account (`guest.recruiter@retentiq.io`) backed by Supabase Auth.
+2. **Automated Data Seeding:** Injects 50 synthetic enterprise customer accounts into an isolated workspace (`seedGuestWorkspace.ts`).
+3. **Multi-Tier Risk Distribution:** Accounts are distributed across `Low Risk` (80–100 health score), `Medium Risk` (50–79), `High Risk` (25–49), and `Critical Risk` (<25) tiers.
+4. **Interactive CSM Diagnostics:** Open any customer account to view live TreeSHAP attribution charts, calculate real-time ML risk scores, and trigger on-demand Llama-3.3 playbook generation.
 
 ---
 
@@ -207,106 +181,120 @@ graph TD
 ```
 RetentIQ/
 ├── apps/
-│   ├── api/                  # Express REST API Server (Node 20, TypeScript, Drizzle, Pino)
-│   │   ├── src/lib/          # Structured logger, typed errors, alert rules, crypto
-│   │   └── src/workers/      # Background ingestion & alert dispatch workers
-│   ├── web/                  # Next.js App Router UI (React 19, TailwindCSS, Framer Motion)
-│   │   ├── src/app/dashboard/settings/components/      # Modular settings tab subcomponents
-│   │   ├── src/app/dashboard/integrations/components/  # Modular integrations subcomponents
-│   │   └── src/components/marketing/                   # Modular marketing showcase components
-│   └── ai-service/           # FastAPI Machine Learning Service
-│       ├── routers/          # Modular FastAPI routers (scoring, explain, playbook, legacy)
-│       ├── classifier.py     # Gradient Boosting & LightGBM churn classifier
+│   ├── api/                  # Express REST API Server (Node 20, TypeScript, Drizzle ORM, Pino)
+│   │   ├── src/lib/          # Structured logger, typed errors, alert rules, crypto utilities
+│   │   └── src/workers/      # Background ingestion & alert dispatch queue workers
+│   ├── web/                  # Next.js 16 App Router UI (React 19, Tailwind CSS, Framer Motion)
+│   │   ├── src/app/          # Dashboard routes, auth handlers, and public marketing pages
+│   │   ├── src/components/   # Modular UI components, charts, and interactive drawers
+│   │   └── src/lib/          # Client API services, guest workspace seeding, and Supabase client
+│   └── ai-service/           # FastAPI Machine Learning Microservice (Python 3.11+)
+│       ├── routers/          # Modular endpoints (scoring, explain, playbook, legacy)
+│       ├── classifier.py     # LightGBM churn model & TreeSHAP explainer engine
 │       ├── feature_engine.py # 12-dimensional telemetry feature extractor
-│       ├── scoring.py        # Health score clamping, weights, and fallbacks
-│       ├── prompts.py        # Dynamic lexicon and LLM prompt templates
-│       ├── services.py       # Groq and Supabase service clients with DI
-│       └── tests/            # Pytest test suite (39 tests, >70% coverage gate)
+│       ├── scoring.py        # Health score clamping, weights, and deterministic fallbacks
+│       ├── prompts.py        # SHAP-grounded telemetry lexicons and prompt templates
+│       ├── services.py       # Async Groq client with exponential backoff & Supabase client
+│       └── tests/            # Automated Pytest suite (39 tests, >70% coverage gate)
 ├── packages/
-│   ├── db/                   # Database migrations, schema, and modular seed utilities
-│   └── shared/               # Shared types, validation schemas, and constants
+│   ├── db/                   # Drizzle ORM schema, migrations, and database seed scripts
+│   └── shared/               # Shared TypeScript types, validation schemas, and constants
 ├── docs/
-│   ├── MODEL_CARD.md         # Detailed machine learning model card
-│   └── REPRODUCIBILITY.md    # Model seed and environment reproducibility guide
-├── .github/
-│   ├── dependabot.yml        # Grouped monthly dependency upgrade configuration
-│   └── workflows/
-│       ├── ci.yml            # Automated CI pipeline (lint, typecheck, web/api/ai coverage gates)
-│       └── security-scan.yml # Security vulnerability audit (pnpm audit, pip-audit, gitleaks)
-├── .env.example              # Environment variable template with complete parameter definitions
-├── CHANGELOG.md              # Historical change record
-└── CONTRIBUTING.md           # Developer onboarding and contribution guidelines
+│   ├── AI_ARCHITECTURE.md    # Detailed AI & Machine Learning whitepaper
+│   ├── MODEL_CARD.md         # ML model specification, fairness, and feature taxonomy
+│   └── REPRODUCIBILITY.md    # Training seed, environment setup, and benchmark reproducibility
+├── docker-compose.yml        # Multi-service containerization config
+├── pnpm-workspace.yaml       # Monorepo package topology definition
+└── CHANGELOG.md              # Historical version records
 ```
 
 ---
 
-## 🛠️ Workspace Setup & Local Execution
+## 🛠️ Quickstart & Local Development
 
-### 1. Prerequisites
+### Prerequisites
 
-- Node.js 20 LTS
-- pnpm 10+
-- Python 3.11+
+- **Node.js:** `20.x LTS`
+- **Package Manager:** `pnpm 10.x`
+- **Python:** `3.11+`
+- **Database:** Supabase project or local PostgreSQL instance
 
-### 2. Install Dependencies
+### 1. Clone & Install Dependencies
 
 ```bash
-# Monorepo dependencies
+git clone https://github.com/apoorvmaurya/retentiq.git
+cd retentiq
+
+# Install monorepo Node dependencies
 pnpm install
 
-# Python AI microservice dependencies
+# Setup Python virtual environment for AI microservice
 cd apps/ai-service
 python -m venv .venv
-# On Windows: .venv\Scripts\activate
-# On Linux/macOS: source .venv/bin/activate
+
+# On Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# On Linux/macOS:
+source .venv/bin/activate
+
 pip install -r requirements.txt
 cd ../..
 ```
 
-### 3. Environment Configuration
+### 2. Environment Configuration
 
-Copy the template configuration and set your local credentials:
+Copy the example environment configuration:
 
 ```bash
 cp .env.example .env
 ```
 
-### 4. Running Locally
+Populate the required keys in `.env` (Supabase URL, Service Role Key, and Groq API Key).
+
+### 3. Launch the Stack
+
+Run the web frontend and API server concurrently:
 
 ```bash
-# Run web and api in parallel
 pnpm dev
+```
 
-# In a separate terminal, run the AI microservice
+In a second terminal, activate the virtual environment and start the AI microservice:
+
+```bash
 cd apps/ai-service
 python main.py
 ```
 
-- Web UI: `http://localhost:3000`
-- API Server: `http://localhost:4000/api`
-- AI Microservice: `http://localhost:8000`
-- AI Service Docs: `http://localhost:8000/docs`
+### Service Map
+
+| Service                       |  Port  | Endpoint                     |
+| :---------------------------- | :----: | :--------------------------- |
+| **Web Frontend (Next.js 16)** | `3000` | `http://localhost:3000`      |
+| **API Server (Express)**      | `4000` | `http://localhost:4000/api`  |
+| **AI Microservice (FastAPI)** | `8000` | `http://localhost:8000`      |
+| **Interactive OpenAPI Docs**  | `8000` | `http://localhost:8000/docs` |
 
 ---
 
 ## 🧪 Testing & Verification
 
-RetentIQ includes automated unit and integration tests across all frontend, backend, and machine learning components:
+RetentIQ enforces rigorous automated testing across the entire monorepo:
 
 ```bash
-# 1. Typecheck the entire monorepo
+# 1. Typecheck the entire monorepo (Shared, DB, API, Web)
 pnpm typecheck
 
-# 2. Run web frontend tests (Vitest + JSDOM)
+# 2. Run web frontend test suite (Vitest + JSDOM)
 pnpm test:web
 
-# 3. Run API backend tests (Vitest + Supertest)
+# 3. Run API server test suite (Vitest + Supertest)
 pnpm test:api
 
-# 4. Run AI microservice tests (Pytest + AsyncIO)
+# 4. Run AI microservice test suite (Pytest + AsyncIO)
 pnpm test:ai
 # or:
-pytest apps/ai-service/tests
+pytest apps/ai-service/tests -v
 
 # 5. Full workspace verification & test coverage
 pnpm test
@@ -316,9 +304,15 @@ pnpm build
 
 ---
 
-## 🔒 Security & Governance
+## 🔒 Security & Multi-Tenancy
 
-- **Row-Level Security (RLS)**: Enforces multi-tenant data isolation at the PostgreSQL layer.
-- **Application-Layer Encryption**: Sensitive credentials (e.g. Stripe, Mixpanel, Slack webhooks) are encrypted at rest using AES-256-GCM.
-- **No PII Transmitted to LLMs**: Data sent to Groq is strictly pseudonymized telemetry.
-- **Controlled Dependencies**: Automated PR limits, grouped updates, and pinned container images prevent production disruptions.
+- **Row Level Security (RLS):** Database queries are isolated per organization at the PostgreSQL layer using Supabase RLS.
+- **Application-Layer Encryption:** Third-party integration credentials (Stripe, Slack webhooks) are encrypted at rest using AES-256-GCM.
+- **Zero PII Exposure:** Telemetry transmitted to LLMs is strictly pseudonymized; customer names, emails, and sensitive user identifiers are stripped before inference.
+- **Dependency Auditing:** Automated CI security scanning via `gitleaks`, `pnpm audit`, and `pip-audit`.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
