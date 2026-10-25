@@ -2,8 +2,10 @@ name: Supabase Keep-Alive Ping
 
 on:
   schedule:
-    # Runs every Monday and Thursday at 06:00 UTC
-    - cron: '0 6 * * 1,4'
+    # Runs twice daily at 06:30 and 18:30 UTC (12:00 PM / 12:00 AM IST).
+    # Supabase pauses free projects that lack a few user database requests
+    # each day over the week, so each run makes several small reads.
+    - cron: '30 6,18 * * *'
   workflow_dispatch: # Allows manual trigger anytime
 
 jobs:
@@ -20,14 +22,21 @@ jobs:
             echo "Please set SUPABASE_URL and SUPABASE_ANON_KEY under repository Settings -> Secrets and variables -> Actions."
             exit 1
           fi
-          echo "Pinging Supabase Auth Service..."
-          curl -s -f -X GET "${SUPABASE_URL}/auth/v1/health" \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" > /dev/null
-
           echo "Pinging Supabase Postgres via PostgREST (keeps DB active)..."
-          curl -s -f -X GET "${SUPABASE_URL}/rest/v1/organizations?select=id&limit=1" \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" > /dev/null
-
-          echo "Supabase keep-alive ping successful. Project activity registered."
+          ok=0
+          for i in 1 2 3; do
+            if curl -sS -f --connect-timeout 10 --max-time 20 --retry 2 --retry-delay 3 \
+              -X GET "${SUPABASE_URL}/rest/v1/organizations?select=id&limit=1" \
+              -H "apikey: ${SUPABASE_ANON_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" > /dev/null; then
+              ok=$((ok+1))
+            else
+              echo "WARNING: database read ${i} failed."
+            fi
+            sleep 3
+          done
+          echo "Supabase keep-alive: ${ok}/3 database reads succeeded."
+          if [ "$ok" -lt 3 ]; then
+            echo "ERROR: fewer than 3 database reads succeeded - project may be paused or unreachable."
+            exit 1
+          fi
