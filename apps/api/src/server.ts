@@ -90,6 +90,7 @@ const publicLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path === '/health' || req.path === '/',
   message: { error: 'Too many requests, please try again later.', code: 'RATE_LIMITED' },
 });
 
