@@ -23,7 +23,7 @@ if (!host && process.env.NODE_ENV !== 'test') {
   logger.warn('SMTP_HOST is not set. Email delivery will be unavailable.');
 }
 
-const transportOptions: nodemailer.TransportOptions | any = {
+const transportOptions: any = {
   host: host || 'smtp.mailtrap.io',
   port,
 };
