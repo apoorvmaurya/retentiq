@@ -24,11 +24,11 @@ export const blogPosts: BlogPost[] = [
     readTime: '6 min read',
     category: 'Predictive AI',
     author: {
-      name: 'Dr. Sarah Jenkins',
-      role: 'Chief AI Architect at RetentIQ',
-      avatar: '/images/author-sarah.webp',
+      name: 'Apoorv Maurya',
+      role: 'Creator & Maintainer at RetentIQ',
+      avatar: '/images/author-apoorv.webp',
     },
-    tags: ['Machine Learning', 'FastAPI', 'Customer Success', 'Llama-3.3'],
+    tags: ['Machine Learning', 'FastAPI', 'Customer Success', 'Predictive AI'],
     content: `
 <h2>The Problem of Reactive Customer Success</h2>
 <p>Most SaaS companies discover a customer is churning only when they click "Cancel Subscription" or submit a non-renewal notice. At this stage, the customer has already checked out mentally, evaluated alternatives, and migrated their workflows. Saving the account is close to impossible.</p>
@@ -48,7 +48,7 @@ export const blogPosts: BlogPost[] = [
 </blockquote>
 
 <h2>How RetentIQ Models the Health Index</h2>
-<p>Using a lightweight FastAPI microservice, RetentIQ pulls telemetry from platforms like Stripe, Mixpanel, and Intercom. The data is normalized and passed to our Llama-3.3 predictive engine. The engine computes an organic Health Score between 0 and 100.</p>
+<p>Using a lightweight FastAPI microservice, RetentIQ pulls telemetry from platforms like Stripe, Mixpanel, and Intercom. The data is normalized and passed to our LightGBM and Groq predictive intelligence engine. The engine computes a deterministic Health Score between 0 and 100.</p>
 
 <p>When the score falls below a critical boundary, it triggers a real-time webhook. Customer Success managers are alerted immediately via Slack with custom playbooks, ensuring they can reach out to the customer with solutions immediately.</p>
     `,

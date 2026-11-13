@@ -40,6 +40,7 @@ class PlaybookStep(BaseModel):
 
 class PlaybookResponse(BaseModel):
     playbook: list[PlaybookStep]
+    model: str | None = Field(default=None, description="The LLM or fallback model used to generate the playbook")
 
 
 # Legacy compat schemas

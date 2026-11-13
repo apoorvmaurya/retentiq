@@ -31,7 +31,8 @@
     <img src="https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
     <img src="https://img.shields.io/badge/LightGBM-4.x-brightgreen?style=flat-square" alt="LightGBM" />
     <img src="https://img.shields.io/badge/SHAP-TreeSHAP-orange?style=flat-square" alt="SHAP" />
-    <img src="https://img.shields.io/badge/Tests-39%20Passing-success?style=flat-square" alt="Tests: 39 Passing" />
+    <a href="https://github.com/apoorvmaurya/retentiq/actions/workflows/ci.yml"><img src="https://github.com/apoorvmaurya/retentiq/actions/workflows/ci.yml/badge.svg" alt="RetentIQ CI" /></a>
+    <a href="https://github.com/apoorvmaurya/retentiq/actions/workflows/audit.yml"><img src="https://github.com/apoorvmaurya/retentiq/actions/workflows/audit.yml/badge.svg" alt="Security Audit" /></a>
   </p>
 </div>
 
@@ -60,23 +61,27 @@ Most modern "AI-powered" retention tools are either:
 
 - **Quantitative Scoring Belongs to Deterministic ML:** Numerical churn probabilities ($0.0 \le p \le 1.0$) and baseline health scores ($0 \le s \le 100$) are calculated deterministically by an in-process **LightGBM Gradient Boosted Decision Tree (GBDT)** classifier.
 - **Feature Attribution Belongs to Game Theory:** **TreeSHAP** computes exact Shapley attributions across 12 behavioral dimensions, mathematically proving _why_ an account is at risk (e.g. dropped usage slope vs. billing invoice failures).
-- **Qualitative Playbooks Belong to LLMs:** High-throughput LLMs (Llama-3.3-70B via Groq) synthesize structured account recovery steps grounded directly in top mathematical risk drivers.
-- **Guaranteed Reliability:** If external LLM APIs fail or rate limit, an in-process deterministic rule engine provides instant offline fallback with 100% uptime.
+- **Qualitative Playbooks Belong to LLMs:** High-throughput open-weight models (`openai/gpt-oss-120b` for complex recovery playbooks, `openai/gpt-oss-20b` for low-latency scoring explanations, and support for `llama-3.3-70b-versatile` via Groq) synthesize structured account recovery steps grounded directly in top mathematical risk drivers.
+- **Resilient Fallback Design:** If external LLM APIs encounter rate limits, outages, or network timeouts, an in-process deterministic rule engine provides instant offline fallback without halting pipeline execution.
 
 ---
 
 ## 📊 Enterprise Comparison
 
-| Feature                          |               Gainsight                |              Totango              |                                      RetentIQ (Open Source)                                       |
-| :------------------------------- | :------------------------------------: | :-------------------------------: | :-----------------------------------------------------------------------------------------------: |
-| **License & Code Transparency**  |      Proprietary / Closed Source       |    Proprietary / Closed Source    |                           **MIT Open Source (Full code transparency)**                            |
-| **Annual Starting Cost**         |         ~$25,000 – $60,000+/yr         |      ~$18,000 – $40,000+/yr       |                               **$0 (Self-Hosted) / Free to Deploy**                               |
-| **Evaluation Experience**        | Multi-week sales qualification & demos | Gated sales cycle & trial hurdles | **[1-Click Instant Guest Sandbox](https://retentiq-chi.vercel.app/login?guest=true) (No signup)** |
-| **Predictive ML Engine**         |      Black-box proprietary rules       |    Heuristic scorecard weights    |                          **LightGBM Classifier (Trained on telemetry)**                           |
-| **Attribution & Explainability** |         Opaque health scoring          |     Manual scorecard metrics      |                          **TreeSHAP (Exact Shapley value per feature)**                           |
-| **AI Action Playbooks**          |       Manual checklist playbooks       |     Template-driven playbooks     |                          **Dynamic LLM Playbooks (Llama-3.3 via Groq)**                           |
-| **Offline Fallback Engine**      |         None (SaaS dependent)          |       None (SaaS dependent)       |                           **Deterministic In-Process Fallback Engine**                            |
-| **Extensibility & Schema**       |      Rigid enterprise data model       |    Rigid enterprise data model    |                           **Type-safe Drizzle ORM + Next.js + FastAPI**                           |
+| Feature                             |               Gainsight                |              Totango              |                                      RetentIQ (Open Source)                                       |
+| :---------------------------------- | :------------------------------------: | :-------------------------------: | :-----------------------------------------------------------------------------------------------: |
+| **License & Code Transparency**     |      Proprietary / Closed Source       |    Proprietary / Closed Source    |                           **MIT Open Source (Full code transparency)**                            |
+| **Estimated Annual Starting Cost**¹ |        ~$25,000 – $60,000+/yr*         |      ~$18,000 – $40,000+/yr*      |                               **$0 (Self-Hosted) / Free to Deploy**                               |
+| **Evaluation Experience**           | Multi-week sales qualification & demos | Gated sales cycle & trial hurdles | **[1-Click Instant Guest Sandbox](https://retentiq-chi.vercel.app/login?guest=true) (No signup)** |
+| **Predictive ML Engine**            |      Black-box proprietary rules       |    Heuristic scorecard weights    |                          **LightGBM Classifier (Trained on telemetry)**                           |
+| **Attribution & Explainability**    |         Opaque health scoring          |     Manual scorecard metrics      |                          **TreeSHAP (Exact Shapley value per feature)**                           |
+| **AI Action Playbooks**             |       Manual checklist playbooks       |     Template-driven playbooks     |                    **Dynamic LLM Playbooks (OpenAI GPT-OSS / Llama via Groq)**                    |
+| **Offline Fallback Engine**         |         None (SaaS dependent)          |       None (SaaS dependent)       |                           **Deterministic In-Process Fallback Engine**                            |
+| **Extensibility & Schema**          |      Rigid enterprise data model       |    Rigid enterprise data model    |                           **Type-safe Drizzle ORM + Next.js + FastAPI**                           |
+
+<p className="text-xs text-slate-400">
+  <em>*¹ Estimated annual contract costs based on public industry surveys and procurement data (Vendr, Capiche, and Gartner Peer Insights 2024–2025). Actual enterprise pricing varies with ARR tier and seat count.</em>
+</p>
 
 ---
 
@@ -114,7 +119,7 @@ graph TD
 
     %% Generation & Fallback Layer
     subgraph LLMExecution [4. Resilient Generation & Structured Validation]
-        GroqLLM[Llama-3.3-70B via Async Groq API]
+        GroqLLM[OpenAI GPT-OSS / Llama via Async Groq API]
         RetryEngine[Exponential Backoff Retry Engine]
         OfflineFallback[Deterministic Rule Fallback Engine]
         PydanticSchema[Pydantic Structured Output Validation]
@@ -157,7 +162,7 @@ graph TD
    - Automated fence-stripping, JSON repair, and numeric clamping guarantee that frontend consumers never receive malformed payloads.
 
 5. **In-Process Deterministic Fallback Engine**:
-   - If the Groq API encounters rate limits (429), server errors (503), or network timeouts, the system gracefully degrades to an in-process deterministic fallback engine (`get_fallback_with_sklearn` & rule heuristics), maintaining 100% system availability.
+   - If the Groq API encounters rate limits (429), server errors (503), or network timeouts, the system gracefully degrades to an in-process deterministic fallback engine (`get_fallback_with_sklearn` & rule heuristics), maintaining uninterrupted system availability.
 
 ---
 
@@ -172,7 +177,7 @@ Anyone can immediately test drive the complete RetentIQ platform without creatin
 1. **Instant Session Provisioning:** Creates or resets a temporary demo account (`guest.recruiter@retentiq.io`) backed by Supabase Auth.
 2. **Automated Data Seeding:** Injects 50 synthetic enterprise customer accounts into an isolated workspace (`seedGuestWorkspace.ts`).
 3. **Multi-Tier Risk Distribution:** Accounts are distributed across `Low Risk` (80–100 health score), `Medium Risk` (50–79), `High Risk` (25–49), and `Critical Risk` (<25) tiers.
-4. **Interactive CSM Diagnostics:** Open any customer account to view live TreeSHAP attribution charts, calculate real-time ML risk scores, and trigger on-demand Llama-3.3 playbook generation.
+4. **Interactive CSM Diagnostics:** Open any customer account to view live TreeSHAP attribution charts, calculate real-time ML risk scores, and trigger on-demand AI retention playbook generation (via Groq).
 
 ---
 

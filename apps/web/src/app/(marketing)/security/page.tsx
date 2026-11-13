@@ -179,8 +179,8 @@ export default function SecurityPage() {
                 5. Groq LLM Safeguards
               </h2>
               <p>
-                To generate qualitative risk playbooks, RetentIQ leverages the GROQ API (powered by
-                Llama-3.3).
+                To generate qualitative risk playbooks, RetentIQ leverages the Groq API (powered by
+                high-throughput open-weight models including GPT-OSS and Llama-3.3).
               </p>
               <p>To protect privacy during this processing:</p>
               <ul className="list-disc pl-5 space-y-2">

@@ -91,7 +91,7 @@ async def generate_playbook(customer_id: str):
                     detail="Draft a customized success plan to address the user's adoption bottlenecks and align on their next quarterly goals.",
                 ),
             ]
-            return PlaybookResponse(playbook=playbook_steps)
+            return PlaybookResponse(playbook=playbook_steps, model="rule-based-fallback")
 
         prompt = f"""
         Customer Telemetry:
@@ -169,14 +169,14 @@ async def generate_playbook(customer_id: str):
                             "org_id": org_id,
                             "endpoint": f"/playbook/{customer_id}",
                             "tokens_used": total_tokens,
-                            "model": settings.MODEL_ID,
+                            "model": playbook_model,
                             "cost_usd": round(cost, 6),
                         }
                     ).execute()
                 except Exception as dbe:
                     logger.warning(f"Failed to log usage for playbook endpoint: {dbe}")
 
-            return PlaybookResponse(playbook=playbook_steps)
+            return PlaybookResponse(playbook=playbook_steps, model=playbook_model)
         except Exception as groq_err:
             logger.error(f"Groq playbook generation failed, using fallback: {groq_err}")
             playbook_steps = [
@@ -196,7 +196,7 @@ async def generate_playbook(customer_id: str):
                     detail="Draft a customized success plan to address the user's adoption bottlenecks and align on their next quarterly goals.",
                 ),
             ]
-            return PlaybookResponse(playbook=playbook_steps)
+            return PlaybookResponse(playbook=playbook_steps, model="rule-based-fallback")
 
     except HTTPException:
         raise

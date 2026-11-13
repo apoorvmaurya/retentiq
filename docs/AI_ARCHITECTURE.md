@@ -32,7 +32,7 @@ RetentIQ is an open-source Customer Success (CS) intelligence and predictive chu
         ┌─────────────────┴─────────────────┐
         │ Primary                           │ On 429 / 503 / Timeout / Offline
         ▼                                   ▼
-[Async Groq API (Llama-3.3-70B)]    [In-Process Deterministic Rule Engine]
+[Async Groq API (GPT-OSS-120B / Llama-3.3)]    [In-Process Deterministic Rule Engine]
         │                                   │
         └─────────────────┬─────────────────┘
                           │
@@ -77,10 +77,10 @@ Standard one-size-fits-all prompts generate generic, unhelpful recommendations. 
 
 RetentIQ strictly decouples statistical churn modeling from qualitative text generation:
 
-| Layer                    | Responsibility                                                                           | Technology          | Characteristics                                                                      |
-| :----------------------- | :--------------------------------------------------------------------------------------- | :------------------ | :----------------------------------------------------------------------------------- |
-| **Tier 1: Quantitative** | Churn probability ($0.0 - 1.0$), baseline health score ($0 - 100$), feature attributions | LightGBM + TreeSHAP | In-process, deterministic, sub-10ms computation, zero external API dependencies      |
-| **Tier 2: Qualitative**  | Risk factor translation, plain-English executive summaries, CSM action playbooks         | Groq Llama-3.3-70B  | High-throughput language synthesis, grounded strictly in Tier 1 mathematical outputs |
+| Layer                    | Responsibility                                                                           | Technology                    | Characteristics                                                                      |
+| :----------------------- | :--------------------------------------------------------------------------------------- | :---------------------------- | :----------------------------------------------------------------------------------- |
+| **Tier 1: Quantitative** | Churn probability ($0.0 - 1.0$), baseline health score ($0 - 100$), feature attributions | LightGBM + TreeSHAP           | In-process, deterministic, sub-10ms computation, zero external API dependencies      |
+| **Tier 2: Qualitative**  | Risk factor translation, plain-English executive summaries, CSM action playbooks         | Groq (OpenAI GPT-OSS / Llama) | High-throughput language synthesis, grounded strictly in Tier 1 mathematical outputs |
 
 This separation ensures that health scores cannot fluctuate due to LLM non-determinism, while retaining rich, human-readable qualitative explanations for customer success teams.
 

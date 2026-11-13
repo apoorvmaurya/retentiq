@@ -34,9 +34,22 @@ export async function POST(request: NextRequest) {
 
     if (listError) {
       console.error('[GuestAuth] Failed to list users:', listError);
+      const isPaused =
+        listError.message?.toLowerCase().includes('paused') ||
+        listError.message?.toLowerCase().includes('inactive') ||
+        listError.message?.toLowerCase().includes('timeout') ||
+        (listError as any).status === 503 ||
+        (listError as any).status === 504;
+
       return NextResponse.json(
-        { error: `Database auth error: ${listError.message}` },
-        { status: 500 },
+        {
+          success: false,
+          error: isPaused
+            ? 'Database is currently paused or inactive. Please retry in a few moments.'
+            : `Database auth error: ${listError.message}`,
+          code: isPaused ? 'DB_PAUSED' : 'AUTH_ERROR',
+        },
+        { status: 503 },
       );
     }
 
@@ -66,7 +79,11 @@ export async function POST(request: NextRequest) {
       if (createError || !created?.user) {
         console.error('[GuestAuth] Failed to create guest user:', createError);
         return NextResponse.json(
-          { error: `Failed to create guest credentials: ${createError?.message}` },
+          {
+            success: false,
+            error: `Failed to create guest credentials: ${createError?.message}`,
+            code: 'USER_CREATION_FAILED',
+          },
           { status: 500 },
         );
       }
@@ -87,9 +104,25 @@ export async function POST(request: NextRequest) {
     });
   } catch (err: any) {
     console.error('[GuestAuth] Exception in guest login route:', err);
+    const msg = err?.message || String(err);
+    const isPaused =
+      msg.toLowerCase().includes('fetch failed') ||
+      msg.toLowerCase().includes('fetcherror') ||
+      msg.toLowerCase().includes('timeout') ||
+      msg.toLowerCase().includes('econnrefused') ||
+      msg.toLowerCase().includes('econnreset') ||
+      msg.toLowerCase().includes('503') ||
+      msg.toLowerCase().includes('paused');
+
     return NextResponse.json(
-      { error: err.message || 'Internal error setting up guest session' },
-      { status: 500 },
+      {
+        success: false,
+        error: isPaused
+          ? 'Database is currently paused or inactive. Please retry in a few moments.'
+          : err.message || 'Internal error setting up guest session',
+        code: isPaused ? 'DB_PAUSED' : 'INTERNAL_ERROR',
+      },
+      { status: 503 },
     );
   }
 }

@@ -116,8 +116,8 @@ export default function BlogDetail() {
                 Predict Churn Early
               </h3>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                Connect your Stripe, Mixpanel, and Intercom data to configure Llama-3.3 predictive
-                models and automated CSM outreach alerts.
+                Connect your Stripe, Mixpanel, and Intercom data to configure predictive ML models
+                and automated CSM outreach alerts.
               </p>
               <Link
                 href="/dashboard"

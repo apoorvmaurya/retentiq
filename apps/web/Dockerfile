@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 RUN apk add --no-cache libc6-compat
 ENV PNPM_UPDATE_NOTIFIER=false
 ENV CI=true
@@ -64,7 +64,7 @@ USER nextjs
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD node -e "fetch('http://localhost:3000').then(r => r.status === 200 ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 CMD ["node", "apps/web/server.js"]

@@ -1,29 +1,50 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FloatingInput } from '@/components/FloatingInput';
 import { createClient } from '@/lib/supabase/client';
 import { Chrome } from '@/components/icons/Chrome';
-import { Brain, AlertCircle, Sparkles, Zap, ArrowRight } from 'lucide-react';
+import { Brain, AlertCircle, Sparkles, Zap, ArrowRight, RefreshCw, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
 import { fetchFromApi } from '@/lib/api';
 
-import { Suspense } from 'react';
+const GUEST_CREDENTIALS = {
+  email: 'guest.recruiter@retentiq.io',
+  password: 'RetentIQ2026!GuestDemo',
+};
 
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex flex-col items-center justify-center p-8 text-center text-xs text-[#8B95AB] uppercase tracking-wider font-semibold">
-          <div className="w-5 h-5 rounded-full border border-[#00D4FF] border-r-transparent animate-spin mb-2" />
-          Loading login form...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoginFormSkeleton />}>
       <LoginForm />
     </Suspense>
+  );
+}
+
+function LoginFormSkeleton() {
+  return (
+    <div className="space-y-6 w-full max-w-sm animate-pulse">
+      <div className="space-y-2 text-center lg:text-left">
+        <div className="h-7 w-40 bg-white/10 rounded-lg mx-auto lg:mx-0" />
+        <div className="h-4 w-64 bg-white/5 rounded-md mx-auto lg:mx-0" />
+      </div>
+      <div className="rounded-2xl border border-cyan-500/20 bg-slate-900/40 p-4 space-y-3">
+        <div className="flex justify-between items-center">
+          <div className="h-4 w-28 bg-cyan-400/20 rounded-full" />
+          <div className="h-3 w-24 bg-white/5 rounded" />
+        </div>
+        <div className="h-8 w-full bg-white/5 rounded" />
+        <div className="h-10 w-full bg-cyan-400/20 rounded-xl" />
+      </div>
+      <div className="h-px bg-white/6 w-full" />
+      <div className="space-y-4">
+        <div className="h-12 w-full bg-white/5 rounded-xl" />
+        <div className="h-12 w-full bg-white/5 rounded-xl" />
+        <div className="h-11 w-full bg-cyan-400/30 rounded-xl" />
+      </div>
+    </div>
   );
 }
 
@@ -37,42 +58,146 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Guest flow states
   const [guestLoading, setGuestLoading] = useState(false);
+  const [guestStatusText, setGuestStatusText] = useState('Initializing live workspace...');
+  const [guestError, setGuestError] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleGuestLogin = async () => {
-    setGuestLoading(true);
-    setErrorMsg('');
-    try {
-      // 1. Initialize or verify guest credentials and sample workspace
-      const res = await fetch('/api/auth/guest', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to initialize guest session');
-      }
+  const guestInitiatedRef = useRef(false);
+  const statusTimerRef = useRef<NodeJS.Timeout[]>([]);
 
-      // 2. Sign in directly with pre-confirmed credentials
+  const clearStatusTimers = () => {
+    statusTimerRef.current.forEach(clearTimeout);
+    statusTimerRef.current = [];
+  };
+
+  const scheduleStatusMessages = () => {
+    clearStatusTimers();
+    setGuestStatusText('Connecting to sample workspace...');
+
+    // Progressively update status so user knows it's actively working / waking cold serverless
+    const t1 = setTimeout(() => {
+      setGuestStatusText('Waking up database & serverless API (up to 30s)...');
+    }, 3500);
+
+    const t2 = setTimeout(() => {
+      setGuestStatusText('Verifying 50 sample customer accounts & health metrics...');
+    }, 9000);
+
+    const t3 = setTimeout(() => {
+      setGuestStatusText('Finalizing live recruiter session...');
+    }, 16000);
+
+    statusTimerRef.current = [t1, t2, t3];
+  };
+
+  /**
+   * Robust Guest initialization with 20s per-request timeout and backoff retries.
+   */
+  const handleGuestLogin = async (forceReset = false) => {
+    setGuestLoading(true);
+    setGuestError(null);
+    setErrorMsg('');
+    scheduleStatusMessages();
+
+    const MAX_ATTEMPTS = 3;
+    const REQUEST_TIMEOUT_MS = 20000;
+
+    let lastError: Error | null = null;
+    let successData: any = null;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      try {
+        if (attempt > 1) {
+          setGuestStatusText(
+            `Database is waking up... retrying connection (${attempt}/${MAX_ATTEMPTS})...`,
+          );
+        }
+
+        const res = await fetch(`/api/auth/guest${forceReset ? '?reset=true' : ''}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data.success) {
+          throw new Error(
+            data.error || `Server returned ${res.status}: ${res.statusText || 'Unknown error'}`,
+          );
+        }
+
+        successData = data;
+        break; // Successfully initialized
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        lastError =
+          err.name === 'AbortError'
+            ? new Error('Request timed out while server was waking up (20s limit).')
+            : err;
+
+        console.warn(`[GuestLogin] Attempt ${attempt} failed:`, lastError?.message);
+
+        // Wait with backoff before next retry (except after final attempt)
+        if (attempt < MAX_ATTEMPTS) {
+          const delay = attempt * 2000;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    clearStatusTimers();
+
+    if (!successData) {
+      setGuestLoading(false);
+      setGuestError(
+        lastError?.message ||
+          'Unable to initialize guest session. The cloud database may be paused or waking up.',
+      );
+      return;
+    }
+
+    // 2. Sign in directly with confirmed credentials
+    setGuestStatusText('Authenticating session...');
+    try {
       const supabase = createClient();
       const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
+        email: successData.email || GUEST_CREDENTIALS.email,
+        password: successData.password || GUEST_CREDENTIALS.password,
       });
 
       if (signInErr) {
         throw signInErr;
       }
 
-      // Ensure session is fully written to client cookies before navigating
+      // Ensure session is written to client cookies before navigating
       await supabase.auth.getSession();
 
-      toast.success('Loaded live sample retention workspace!');
+      toast.success('Loaded live sample retention workspace (50 accounts)!');
       router.refresh();
       window.location.href = '/dashboard';
-    } catch (err: any) {
-      console.error('Guest login failed:', err);
-      setErrorMsg(err.message || 'Unable to initialize guest session. Please try again.');
+    } catch (authErr: any) {
+      console.error('[GuestLogin] Auth sign-in failed:', authErr);
       setGuestLoading(false);
+      setGuestError(
+        `Workspace initialized, but sign-in failed: ${authErr.message}. You can try signing in directly with the sample credentials below.`,
+      );
     }
+  };
+
+  const handleFillGuestCredentials = () => {
+    setEmail(GUEST_CREDENTIALS.email);
+    setPassword(GUEST_CREDENTIALS.password);
+    setGuestError(null);
+    toast.info('Sample credentials filled! Click "Sign in" below.');
   };
 
   useEffect(() => {
@@ -80,9 +205,14 @@ function LoginForm() {
     if (errorParam) {
       setErrorMsg(errorParam);
     }
-    if (isGuestParam) {
+    if (isGuestParam && !guestInitiatedRef.current) {
+      guestInitiatedRef.current = true;
       handleGuestLogin();
     }
+
+    return () => {
+      clearStatusTimers();
+    };
   }, [searchParams]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -167,13 +297,49 @@ function LoginForm() {
           </div>
 
           <p className="text-xs text-slate-300 mb-3 leading-relaxed">
-            Instantly explore RetentIQ with a pre-populated B2B SaaS workspace seeded with 50 live
+            Instantly explore RetentIQ with a pre-populated B2B SaaS workspace seeded with 50 sample
             customer accounts across all risk tiers.
           </p>
 
+          {/* Active Guest Loading State */}
+          {guestLoading && (
+            <div className="mb-3 p-3 rounded-xl bg-cyan-950/50 border border-cyan-500/30 text-xs text-cyan-200 flex items-center gap-3">
+              <div className="w-4 h-4 shrink-0 rounded-full border-2 border-cyan-400 border-r-transparent animate-spin" />
+              <div className="flex-1 text-[11px] font-medium leading-snug">{guestStatusText}</div>
+            </div>
+          )}
+
+          {/* Guest Error & Retry Card */}
+          {guestError && (
+            <div className="mb-3 p-3.5 rounded-xl bg-rose-950/50 border border-rose-500/30 text-rose-200 space-y-2.5">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <div className="text-xs leading-relaxed">{guestError}</div>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleGuestLogin(true)}
+                  className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-xs font-semibold text-rose-100 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Retry Live Sandbox
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFillGuestCredentials}
+                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <KeyRound className="w-3 h-3" />
+                  Use Guest Credentials
+                </button>
+              </div>
+            </div>
+          )}
+
           <button
             type="button"
-            onClick={handleGuestLogin}
+            onClick={() => handleGuestLogin(false)}
             disabled={loading || guestLoading}
             className="w-full py-2.5 px-4 rounded-xl bg-linear-to-r from-[#00D4FF] to-indigo-500 hover:from-[#00D4FF]/90 hover:to-indigo-500/90 text-[#0A0F1E] font-extrabold text-xs tracking-wider uppercase transition-all shadow-[0_2px_15px_rgba(0,212,255,0.25)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -204,7 +370,7 @@ function LoginForm() {
         </div>
       )}
 
-      {/* Error Alert */}
+      {/* Standard Error Alert */}
       {errorMsg && (
         <div className="flex items-start gap-2 p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -221,7 +387,7 @@ function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          disabled={loading}
+          disabled={loading || guestLoading}
         />
         <FloatingInput
           label="Password"
@@ -230,7 +396,7 @@ function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
-          disabled={loading}
+          disabled={loading || guestLoading}
         />
 
         <div className="flex items-center justify-end text-xs">
@@ -248,7 +414,7 @@ function LoginForm() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || guestLoading}
           className="w-full py-3 rounded-xl bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0F1E] font-bold text-xs tracking-wider uppercase transition-all shadow-[0_4px_20px_rgba(0,212,255,0.15)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {loading ? 'Signing in...' : 'Sign in'}
@@ -267,7 +433,7 @@ function LoginForm() {
       {/* Google Sign In */}
       <button
         onClick={handleGoogleLogin}
-        disabled={loading}
+        disabled={loading || guestLoading}
         className="w-full py-3 rounded-xl bg-white/2 hover:bg-white/6 border border-white/8 text-white text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       >
         <Chrome className="w-4 h-4 text-rose-400" />

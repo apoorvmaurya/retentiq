@@ -347,8 +347,7 @@ export default function CustomerDetailPage() {
               <div className="text-[10px] text-slate-400 border-t border-white/6 pt-4 flex items-center gap-1.5 mt-4">
                 <Clock className="w-3.5 h-3.5" />
                 <span>
-                  Analyst model:{' '}
-                  {expModel || profile?.healthScore?.model || 'meta-llama/llama-4-scout'}
+                  Analyst model: {expModel || profile?.healthScore?.model || 'openai/gpt-oss-20b'}
                 </span>
               </div>
             </div>

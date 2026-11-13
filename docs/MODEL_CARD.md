@@ -2,7 +2,7 @@
 
 ## Model Details
 
-- **Architecture**: Hybrid ensemble combining **Gradient Boosting / LightGBM** for numerical telemetry scoring with **Groq LLMs** (e.g. `llama-3.3-70b-versatile`) for contextual reasoning, risk factor extraction, and prescriptive retention playbook generation.
+- **Architecture**: Hybrid ensemble combining **Gradient Boosting / LightGBM** for numerical telemetry scoring with **Groq LLMs** (e.g. `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, and `llama-3.3-70b-versatile`) for contextual reasoning, risk factor extraction, and prescriptive retention playbook generation.
 - **Model Version**: 1.2.0
 - **Primary Use**: B2B SaaS Customer Churn Risk Prediction and Account Health Diagnosis.
 - **Frameworks**: `scikit-learn`, `lightgbm`, `fastapi`, `groq-python`, `pydantic`.

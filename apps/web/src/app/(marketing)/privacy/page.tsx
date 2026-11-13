@@ -169,10 +169,10 @@ export default function PrivacyPolicyPage() {
                 <li>
                   <strong className="text-white">Groq AI Enrichment:</strong> To enrich numerical
                   data with qualitative summaries, we send temporary, anonymized customer support
-                  ticket summaries and telemetry factors to the GROQ API (powered by Llama-3.3
-                  models) to generate qualitative risk explanations and suggested playbooks. We
-                  enforce strict data policies with Groq to prevent your data from being retained or
-                  used to train public LLM models.
+                  ticket summaries and telemetry factors to the Groq API (powered by high-throughput
+                  open-weight models including GPT-OSS and Llama-3.3) to generate qualitative risk
+                  explanations and suggested playbooks. We enforce strict data policies with Groq to
+                  prevent your data from being retained or used to train public LLM models.
                 </li>
               </ul>
             </section>
@@ -272,9 +272,9 @@ export default function PrivacyPolicyPage() {
                 data deletion request, please reach out to our legal compliance group:
               </p>
               <div className="p-4 bg-white/[0.02] border border-white/[0.04] rounded-xl text-xs space-y-1 font-semibold text-slate-400">
-                <p className="text-white font-bold">RetentIQ Inc. Legal Operations</p>
-                <p>Email: privacy@retentiq.io</p>
-                <p>Address: 100 Pine Street, San Francisco, CA 94111</p>
+                <p className="text-white font-bold">RetentIQ Open-Source Project</p>
+                <p>Maintainer: Apoorv Maurya</p>
+                <p>Repository: github.com/apoorvmaurya/retentiq</p>
               </div>
             </section>
           </div>

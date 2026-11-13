@@ -1,27 +1,51 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FloatingInput } from '@/components/FloatingInput';
 import { createClient } from '@/lib/supabase/client';
 import { Chrome } from '@/components/icons/Chrome';
-import { Brain, AlertCircle, Sparkles, Zap, ArrowRight } from 'lucide-react';
+import { Brain, AlertCircle, Sparkles, Zap, ArrowRight, RefreshCw, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
 import { fetchFromApi } from '@/lib/api';
 
+const GUEST_CREDENTIALS = {
+  email: 'guest.recruiter@retentiq.io',
+  password: 'RetentIQ2026!GuestDemo',
+};
+
 export default function SignupPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex flex-col items-center justify-center p-8 text-center text-xs text-[#8B95AB] uppercase tracking-wider font-semibold">
-          <div className="w-5 h-5 rounded-full border border-[#00D4FF] border-r-transparent animate-spin mb-2" />
-          Loading sign up form...
-        </div>
-      }
-    >
+    <Suspense fallback={<SignupFormSkeleton />}>
       <SignupForm />
     </Suspense>
+  );
+}
+
+function SignupFormSkeleton() {
+  return (
+    <div className="space-y-6 w-full max-w-sm animate-pulse">
+      <div className="space-y-2 text-center lg:text-left">
+        <div className="h-7 w-44 bg-white/10 rounded-lg mx-auto lg:mx-0" />
+        <div className="h-4 w-64 bg-white/5 rounded-md mx-auto lg:mx-0" />
+      </div>
+      <div className="rounded-2xl border border-cyan-500/20 bg-slate-900/40 p-4 space-y-3">
+        <div className="flex justify-between items-center">
+          <div className="h-4 w-28 bg-cyan-400/20 rounded-full" />
+          <div className="h-3 w-24 bg-white/5 rounded" />
+        </div>
+        <div className="h-8 w-full bg-white/5 rounded" />
+        <div className="h-10 w-full bg-cyan-400/20 rounded-xl" />
+      </div>
+      <div className="h-px bg-white/6 w-full" />
+      <div className="space-y-3">
+        <div className="h-12 w-full bg-white/5 rounded-xl" />
+        <div className="h-12 w-full bg-white/5 rounded-xl" />
+        <div className="h-12 w-full bg-white/5 rounded-xl" />
+        <div className="h-11 w-full bg-cyan-400/30 rounded-xl" />
+      </div>
+    </div>
   );
 }
 
@@ -36,36 +60,128 @@ function SignupForm() {
   const [password, setPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Guest flow states
   const [guestLoading, setGuestLoading] = useState(false);
+  const [guestStatusText, setGuestStatusText] = useState('Initializing live workspace...');
+  const [guestError, setGuestError] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleGuestLogin = async () => {
-    setGuestLoading(true);
-    setErrorMsg('');
-    try {
-      const res = await fetch('/api/auth/guest', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to initialize guest session');
-      }
+  const statusTimerRef = useRef<NodeJS.Timeout[]>([]);
 
+  const clearStatusTimers = () => {
+    statusTimerRef.current.forEach(clearTimeout);
+    statusTimerRef.current = [];
+  };
+
+  const scheduleStatusMessages = () => {
+    clearStatusTimers();
+    setGuestStatusText('Connecting to sample workspace...');
+
+    const t1 = setTimeout(() => {
+      setGuestStatusText('Waking up database & serverless API (up to 30s)...');
+    }, 3500);
+
+    const t2 = setTimeout(() => {
+      setGuestStatusText('Verifying 50 sample customer accounts & health metrics...');
+    }, 9000);
+
+    const t3 = setTimeout(() => {
+      setGuestStatusText('Finalizing live recruiter session...');
+    }, 16000);
+
+    statusTimerRef.current = [t1, t2, t3];
+  };
+
+  const handleGuestLogin = async (forceReset = false) => {
+    setGuestLoading(true);
+    setGuestError(null);
+    setErrorMsg('');
+    scheduleStatusMessages();
+
+    const MAX_ATTEMPTS = 3;
+    const REQUEST_TIMEOUT_MS = 20000;
+
+    let lastError: Error | null = null;
+    let successData: any = null;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      try {
+        if (attempt > 1) {
+          setGuestStatusText(
+            `Database is waking up... retrying connection (${attempt}/${MAX_ATTEMPTS})...`,
+          );
+        }
+
+        const res = await fetch(`/api/auth/guest${forceReset ? '?reset=true' : ''}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data.success) {
+          throw new Error(
+            data.error || `Server returned ${res.status}: ${res.statusText || 'Unknown error'}`,
+          );
+        }
+
+        successData = data;
+        break;
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        lastError =
+          err.name === 'AbortError'
+            ? new Error('Request timed out while server was waking up (20s limit).')
+            : err;
+
+        console.warn(`[GuestLogin] Attempt ${attempt} failed:`, lastError?.message);
+
+        if (attempt < MAX_ATTEMPTS) {
+          const delay = attempt * 2000;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    clearStatusTimers();
+
+    if (!successData) {
+      setGuestLoading(false);
+      setGuestError(
+        lastError?.message ||
+          'Unable to initialize guest session. The cloud database may be paused or waking up.',
+      );
+      return;
+    }
+
+    setGuestStatusText('Authenticating session...');
+    try {
       const supabase = createClient();
       const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
+        email: successData.email || GUEST_CREDENTIALS.email,
+        password: successData.password || GUEST_CREDENTIALS.password,
       });
 
       if (signInErr) {
         throw signInErr;
       }
 
-      toast.success('Welcome! Loaded live sample retention workspace.');
+      await supabase.auth.getSession();
+
+      toast.success('Welcome! Loaded live sample retention workspace (50 accounts).');
       router.refresh();
       window.location.href = '/dashboard';
-    } catch (err: any) {
-      console.error('Guest login failed:', err);
-      setErrorMsg(err.message || 'Unable to start guest session. Please try again.');
+    } catch (authErr: any) {
+      console.error('[GuestLogin] Auth sign-in failed:', authErr);
       setGuestLoading(false);
+      setGuestError(`Workspace initialized, but sign-in failed: ${authErr.message}.`);
     }
   };
 
@@ -103,7 +219,6 @@ function SignupForm() {
         }
       }
       router.refresh();
-      // If invitation token exists, redirect to dashboard, otherwise onboarding
       window.location.href = token ? '/dashboard' : '/onboarding?step=1';
     }
   };
@@ -159,17 +274,52 @@ function SignupForm() {
               <Sparkles className="w-3 h-3 text-cyan-400" />
               Recruiter & Guest Access
             </div>
-            <span className="text-[10px] text-slate-400 font-semibold">Skip sign up</span>
+            <span className="text-[10px] text-slate-400 font-semibold">No signup required</span>
           </div>
 
           <p className="text-xs text-slate-300 mb-3 leading-relaxed">
-            Test the live platform with pre-populated customer retention data without creating
-            credentials or verifying email.
+            Instantly explore RetentIQ with a pre-populated B2B SaaS workspace seeded with 50 sample
+            customer accounts across all risk tiers.
           </p>
+
+          {/* Active Guest Loading State */}
+          {guestLoading && (
+            <div className="mb-3 p-3 rounded-xl bg-cyan-950/50 border border-cyan-500/30 text-xs text-cyan-200 flex items-center gap-3">
+              <div className="w-4 h-4 shrink-0 rounded-full border-2 border-cyan-400 border-r-transparent animate-spin" />
+              <div className="flex-1 text-[11px] font-medium leading-snug">{guestStatusText}</div>
+            </div>
+          )}
+
+          {/* Guest Error & Retry Card */}
+          {guestError && (
+            <div className="mb-3 p-3.5 rounded-xl bg-rose-950/50 border border-rose-500/30 text-rose-200 space-y-2.5">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <div className="text-xs leading-relaxed">{guestError}</div>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleGuestLogin(true)}
+                  className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-xs font-semibold text-rose-100 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Retry Live Sandbox
+                </button>
+                <Link
+                  href="/login"
+                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-slate-300 flex items-center gap-1.5 transition-colors"
+                >
+                  <KeyRound className="w-3 h-3" />
+                  Go to Login
+                </Link>
+              </div>
+            </div>
+          )}
 
           <button
             type="button"
-            onClick={handleGuestLogin}
+            onClick={() => handleGuestLogin(false)}
             disabled={loading || guestLoading}
             className="w-full py-2.5 px-4 rounded-xl bg-linear-to-r from-[#00D4FF] to-indigo-500 hover:from-[#00D4FF]/90 hover:to-indigo-500/90 text-[#0A0F1E] font-extrabold text-xs tracking-wider uppercase transition-all shadow-[0_2px_15px_rgba(0,212,255,0.25)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -194,7 +344,7 @@ function SignupForm() {
         <div className="relative flex py-1 items-center">
           <div className="grow border-t border-white/6"></div>
           <span className="shrink mx-3 text-[10px] text-[#8B95AB] font-bold uppercase tracking-wider">
-            Or register new credentials
+            Or register with email
           </span>
           <div className="grow border-t border-white/6"></div>
         </div>
@@ -217,7 +367,7 @@ function SignupForm() {
           onChange={(e) => setFullName(e.target.value)}
           required
           autoComplete="name"
-          disabled={loading}
+          disabled={loading || guestLoading}
         />
         <FloatingInput
           label="Email address"
@@ -226,52 +376,35 @@ function SignupForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          disabled={loading}
+          disabled={loading || guestLoading}
         />
         <FloatingInput
-          label="Password (min 6 chars)"
+          label="Password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="new-password"
-          disabled={loading}
+          disabled={loading || guestLoading}
         />
 
-        {/* Terms Agreement Checkbox */}
+        {/* Terms Checkbox */}
         <div className="flex items-start gap-2.5 pt-1">
           <input
-            id="agreeTerms"
+            id="terms"
+            name="terms"
             type="checkbox"
             checked={agreeTerms}
             onChange={(e) => setAgreeTerms(e.target.checked)}
-            disabled={loading}
-            className="w-4 h-4 rounded border-white/8 bg-slate-950 text-[#00D4FF] focus:ring-[#00D4FF] focus:ring-offset-slate-950 mt-0.5 cursor-pointer accent-[#00D4FF]"
+            className="w-4 h-4 mt-0.5 rounded border border-white/20 bg-white/5 text-[#00D4FF] focus:ring-[#00D4FF] focus:ring-offset-0 focus:ring-1 cursor-pointer accent-[#00D4FF]"
           />
-          <label
-            htmlFor="agreeTerms"
-            className="text-xs text-[#8B95AB] leading-relaxed cursor-pointer select-none"
-          >
+          <label htmlFor="terms" className="text-xs text-[#8B95AB] leading-relaxed cursor-pointer">
             I agree to the{' '}
-            <Link
-              href="#"
-              className="text-[#00D4FF] hover:underline font-semibold"
-              onClick={(e) => {
-                e.preventDefault();
-                toast.info('Terms of Service is coming soon.');
-              }}
-            >
+            <Link href="/terms" className="text-[#00D4FF] hover:underline font-semibold">
               Terms of Service
             </Link>{' '}
             and{' '}
-            <Link
-              href="#"
-              className="text-[#00D4FF] hover:underline font-semibold"
-              onClick={(e) => {
-                e.preventDefault();
-                toast.info('Privacy Policy is coming soon.');
-              }}
-            >
+            <Link href="/privacy" className="text-[#00D4FF] hover:underline font-semibold">
               Privacy Policy
             </Link>
           </label>
@@ -279,7 +412,7 @@ function SignupForm() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || guestLoading}
           className="w-full py-3 rounded-xl bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0F1E] font-bold text-xs tracking-wider uppercase transition-all shadow-[0_4px_20px_rgba(0,212,255,0.15)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {loading ? 'Creating account...' : 'Create account'}
@@ -298,7 +431,7 @@ function SignupForm() {
       {/* Google Sign In */}
       <button
         onClick={handleGoogleLogin}
-        disabled={loading}
+        disabled={loading || guestLoading}
         className="w-full py-3 rounded-xl bg-white/2 hover:bg-white/6 border border-white/8 text-white text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       >
         <Chrome className="w-4 h-4 text-rose-400" />

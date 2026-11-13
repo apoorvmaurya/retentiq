@@ -116,21 +116,50 @@ async def select_best_model():
                 models = data.get("data", [])
                 model_ids = [m.get("id") for m in models if m.get("id")]
 
+                explicit_model = os.getenv("GROQ_MODEL")
+                explicit_playbook_model = os.getenv("GROQ_PLAYBOOK_MODEL")
+
                 # 1. Primary scoring & telemetry explanation model
-                if "openai/gpt-oss-20b" in model_ids:
-                    settings.MODEL_ID = "openai/gpt-oss-20b"
-                elif "openai/gpt-oss-120b" in model_ids:
-                    settings.MODEL_ID = "openai/gpt-oss-120b"
-                elif any("llama-3.3" in m for m in model_ids):
-                    settings.MODEL_ID = next(m for m in model_ids if "llama-3.3" in m)
-                elif any("llama-3.1" in m for m in model_ids):
-                    settings.MODEL_ID = next(m for m in model_ids if "llama-3.1" in m)
+                if explicit_model and explicit_model in model_ids:
+                    settings.MODEL_ID = explicit_model
+                elif explicit_model:
+                    logger.warning(
+                        f"Explicit GROQ_MODEL '{explicit_model}' not found in Groq models list. Evaluating alternatives."
+                    )
+                    if "openai/gpt-oss-20b" in model_ids:
+                        settings.MODEL_ID = "openai/gpt-oss-20b"
+                    elif "openai/gpt-oss-120b" in model_ids:
+                        settings.MODEL_ID = "openai/gpt-oss-120b"
+                    elif any("llama-3.3" in m for m in model_ids):
+                        settings.MODEL_ID = next(m for m in model_ids if "llama-3.3" in m)
+                    elif any("llama-3.1" in m for m in model_ids):
+                        settings.MODEL_ID = next(m for m in model_ids if "llama-3.1" in m)
+                else:
+                    if "openai/gpt-oss-20b" in model_ids:
+                        settings.MODEL_ID = "openai/gpt-oss-20b"
+                    elif "openai/gpt-oss-120b" in model_ids:
+                        settings.MODEL_ID = "openai/gpt-oss-120b"
+                    elif any("llama-3.3" in m for m in model_ids):
+                        settings.MODEL_ID = next(m for m in model_ids if "llama-3.3" in m)
+                    elif any("llama-3.1" in m for m in model_ids):
+                        settings.MODEL_ID = next(m for m in model_ids if "llama-3.1" in m)
 
                 # 2. Playbook model (prefers higher reasoning 120b)
-                if "openai/gpt-oss-120b" in model_ids:
-                    settings.PLAYBOOK_MODEL_ID = "openai/gpt-oss-120b"
+                if explicit_playbook_model and explicit_playbook_model in model_ids:
+                    settings.PLAYBOOK_MODEL_ID = explicit_playbook_model
+                elif explicit_playbook_model:
+                    logger.warning(
+                        f"Explicit GROQ_PLAYBOOK_MODEL '{explicit_playbook_model}' not found in Groq models list. Falling back."
+                    )
+                    if "openai/gpt-oss-120b" in model_ids:
+                        settings.PLAYBOOK_MODEL_ID = "openai/gpt-oss-120b"
+                    else:
+                        settings.PLAYBOOK_MODEL_ID = settings.MODEL_ID
                 else:
-                    settings.PLAYBOOK_MODEL_ID = settings.MODEL_ID
+                    if "openai/gpt-oss-120b" in model_ids:
+                        settings.PLAYBOOK_MODEL_ID = "openai/gpt-oss-120b"
+                    else:
+                        settings.PLAYBOOK_MODEL_ID = settings.MODEL_ID
 
                 logger.info(
                     f"✓ Selected Groq models: scoring={settings.MODEL_ID}, playbook={settings.PLAYBOOK_MODEL_ID}"

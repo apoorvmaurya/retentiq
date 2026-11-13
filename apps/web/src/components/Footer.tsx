@@ -269,7 +269,9 @@ export default function Footer() {
 
         {/* Bottom copyright & status bar */}
         <div className="border-t border-white/4 pt-8 flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-[#8B95AB]">
-          <p>© {new Date().getFullYear()} RetentIQ Inc. All rights reserved.</p>
+          <p>
+            © {new Date().getFullYear()} RetentIQ. Open-source portfolio project by Apoorv Maurya.
+          </p>
 
           <div className="flex items-center gap-2 text-[11px] font-medium text-emerald-400 bg-emerald-500/5 border border-emerald-500/12 px-3 py-1 rounded-full select-none">
             <span className="relative flex h-1.5 w-1.5">

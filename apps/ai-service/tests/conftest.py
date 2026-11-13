@@ -10,6 +10,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from schemas import FeatureDict
 
 
+@pytest.fixture(autouse=True)
+def mock_select_best_model(monkeypatch):
+    async def noop_select():
+        return
+    monkeypatch.setattr("main.select_best_model", noop_select)
+    monkeypatch.setattr("services.select_best_model", noop_select)
+
+
 @pytest.fixture
 def sample_feature_dict():
     return FeatureDict(

@@ -18,7 +18,7 @@ services:
           '-c',
           "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
         ]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 3
       start_period: 5s
@@ -47,7 +47,7 @@ services:
           '-e',
           "fetch('http://localhost:4000/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))",
         ]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 3
       start_period: 5s
@@ -79,7 +79,7 @@ services:
           '-e',
           "fetch('http://localhost:3000').then(r => r.status === 200 ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))",
         ]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 3
       start_period: 5s
