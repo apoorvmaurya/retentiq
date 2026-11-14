@@ -48,6 +48,13 @@ function LoginFormSkeleton() {
   );
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMsg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMsg)), timeoutMs)),
+  ]);
+}
+
 function LoginForm() {
   const toast = useToast();
   const router = useRouter();
@@ -169,17 +176,25 @@ function LoginForm() {
     setGuestStatusText('Authenticating session...');
     try {
       const supabase = createClient();
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email: successData.email || GUEST_CREDENTIALS.email,
-        password: successData.password || GUEST_CREDENTIALS.password,
-      });
+      const { error: signInErr } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email: successData.email || GUEST_CREDENTIALS.email,
+          password: successData.password || GUEST_CREDENTIALS.password,
+        }),
+        15000,
+        'Authentication timed out after 15s contacting Supabase Auth.',
+      );
 
       if (signInErr) {
         throw signInErr;
       }
 
       // Ensure session is written to client cookies before navigating
-      await supabase.auth.getSession();
+      await withTimeout(
+        supabase.auth.getSession(),
+        10000,
+        'Session verification timed out after 10s.',
+      );
 
       toast.success('Loaded live sample retention workspace (50 accounts)!');
       router.refresh();

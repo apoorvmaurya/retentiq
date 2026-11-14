@@ -132,4 +132,4 @@ Production systems cannot tolerate downtime when external AI APIs experience out
   $$\text{BS} = \frac{1}{N} \sum_{t=1}^N (f_t - o_t)^2$$
   Monitors whether predicted churn probabilities match true empirical event frequencies.
 - **SHAP Stability Tests**: Unit tests assert that monotonic degradation in login frequency or billing status consistently yields positive risk contribution $\phi_i > 0$.
-- **Automated Regression Suite**: 39 automated tests with pytest and CI coverage gating (>70% threshold).
+- **Automated Regression Suite**: Comprehensive automated tests with pytest and CI coverage gating (>70% threshold).

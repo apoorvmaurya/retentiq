@@ -18,7 +18,7 @@ export default function AboutPage() {
       icon: <Brain className="w-6 h-6 text-cyan-400" />,
       title: 'Predictive Proactivity',
       description:
-        'Identifying account risk 30–60 days before contract renewals to prevent emergency customer firefighting.',
+        'Identifying account risk well ahead of contract renewals to prevent emergency customer firefighting.',
     },
     {
       icon: <Users className="w-6 h-6 text-cyan-400" />,
@@ -95,16 +95,16 @@ export default function AboutPage() {
             <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
               By engineering a platform that combines real-time event ingestion (Stripe, Intercom,
               Mixpanel, Segment) with mathematical LightGBM classifiers and SHAP local
-              explainability, we help teams act 30–60 days before contract expirations.
+              explainability, we help teams act proactively before contract expirations.
             </p>
           </div>
           <div className="relative p-6 sm:p-8 rounded-2xl border border-white/[0.06] bg-white/[0.015] backdrop-blur-md">
             <div className="space-y-4 text-center">
               <span className="text-3xl sm:text-4xl md:text-5xl font-serif text-cyan-400 block font-normal">
-                30-60 Days
+                Real-Time
               </span>
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">
-                Early Risk Warning Window
+                Continuous Telemetry Scoring
               </span>
               <div className="h-px bg-white/[0.06] my-4" />
               <p className="text-slate-500 text-[10px] sm:text-xs">

@@ -9,7 +9,7 @@ const systemHighlights = [
   {
     title: 'Real-Time Risk Scoring',
     description:
-      'Deterministic LightGBM gradient boosting paired with TreeSHAP feature importance to uncover churn signals 30–60 days before contract renewals.',
+      'Deterministic LightGBM gradient boosting paired with TreeSHAP feature importance to uncover leading churn indicators before contract renewal windows.',
     badge: 'ML Engine',
   },
   {

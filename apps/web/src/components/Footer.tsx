@@ -33,7 +33,7 @@ export default function Footer() {
             </div>
             <p className="text-xs text-[#8B95AB] leading-relaxed max-w-sm mx-auto lg:mx-0">
               AI-powered customer churn-intelligence platform built on Supabase, FastAPI, and OpenAI
-              GPT-OSS. Spot churn risk 30–60 days before it happens.
+              GPT-OSS. Proactive customer health scoring and churn intelligence.
             </p>
 
             {/* Social Icons */}

@@ -14,13 +14,12 @@
 
   <p align="center">
     <a href="#-why-retentiq">Why RetentIQ</a> •
-    <a href="#-enterprise-comparison">Gainsight vs Totango vs RetentIQ</a> •
     <a href="#-ai--machine-learning-architecture">AI Architecture</a> •
     <a href="#-guest-sandbox--demo">Guest Sandbox</a> •
     <a href="#-monorepo-layout">Monorepo Layout</a> •
     <a href="#-quickstart--local-development">Quickstart</a> •
     <a href="#-testing--verification">Testing</a> •
-    <a href="#-security--governance">Security</a>
+    <a href="#-security--multi-tenancy">Security</a>
   </p>
 
   <p align="center">
@@ -32,7 +31,7 @@
     <img src="https://img.shields.io/badge/LightGBM-4.x-brightgreen?style=flat-square" alt="LightGBM" />
     <img src="https://img.shields.io/badge/SHAP-TreeSHAP-orange?style=flat-square" alt="SHAP" />
     <a href="https://github.com/apoorvmaurya/retentiq/actions/workflows/ci.yml"><img src="https://github.com/apoorvmaurya/retentiq/actions/workflows/ci.yml/badge.svg" alt="RetentIQ CI" /></a>
-    <a href="https://github.com/apoorvmaurya/retentiq/actions/workflows/audit.yml"><img src="https://github.com/apoorvmaurya/retentiq/actions/workflows/audit.yml/badge.svg" alt="Security Audit" /></a>
+    <a href="https://github.com/apoorvmaurya/retentiq/actions/workflows/security-scan.yml"><img src="https://github.com/apoorvmaurya/retentiq/actions/workflows/security-scan.yml/badge.svg" alt="Security Audit" /></a>
   </p>
 </div>
 
@@ -55,7 +54,7 @@ Skip the clone and evaluate RetentIQ immediately with zero registration:
 Most modern "AI-powered" retention tools are either:
 
 1. **Trivial LLM wrappers:** Raw event logs are blindly concatenated into an LLM prompt, producing hallucinated health scores, non-deterministic predictions, and unsustainable API costs.
-2. **Legacy enterprise CS monoliths:** Systems like Gainsight or Totango that require 6-month sales cycles, cost $25k–$50k+/year, rely on manual rule heuristics, and offer zero model transparency.
+2. **Legacy enterprise customer success monoliths:** Complex platforms that require lengthy onboarding cycles, expensive vendor lock-in, heuristic scoring weights, and opaque black-box metrics.
 
 **RetentIQ bridges this gap with a principled, two-tier hybrid architecture:**
 
@@ -63,25 +62,6 @@ Most modern "AI-powered" retention tools are either:
 - **Feature Attribution Belongs to Game Theory:** **TreeSHAP** computes exact Shapley attributions across 12 behavioral dimensions, mathematically proving _why_ an account is at risk (e.g. dropped usage slope vs. billing invoice failures).
 - **Qualitative Playbooks Belong to LLMs:** High-throughput open-weight models (`openai/gpt-oss-120b` for complex recovery playbooks, `openai/gpt-oss-20b` for low-latency scoring explanations, and support for `llama-3.3-70b-versatile` via Groq) synthesize structured account recovery steps grounded directly in top mathematical risk drivers.
 - **Resilient Fallback Design:** If external LLM APIs encounter rate limits, outages, or network timeouts, an in-process deterministic rule engine provides instant offline fallback without halting pipeline execution.
-
----
-
-## 📊 Enterprise Comparison
-
-| Feature                             |               Gainsight                |              Totango              |                                      RetentIQ (Open Source)                                       |
-| :---------------------------------- | :------------------------------------: | :-------------------------------: | :-----------------------------------------------------------------------------------------------: |
-| **License & Code Transparency**     |      Proprietary / Closed Source       |    Proprietary / Closed Source    |                           **MIT Open Source (Full code transparency)**                            |
-| **Estimated Annual Starting Cost**¹ |        ~$25,000 – $60,000+/yr*         |      ~$18,000 – $40,000+/yr*      |                               **$0 (Self-Hosted) / Free to Deploy**                               |
-| **Evaluation Experience**           | Multi-week sales qualification & demos | Gated sales cycle & trial hurdles | **[1-Click Instant Guest Sandbox](https://retentiq-chi.vercel.app/login?guest=true) (No signup)** |
-| **Predictive ML Engine**            |      Black-box proprietary rules       |    Heuristic scorecard weights    |                          **LightGBM Classifier (Trained on telemetry)**                           |
-| **Attribution & Explainability**    |         Opaque health scoring          |     Manual scorecard metrics      |                          **TreeSHAP (Exact Shapley value per feature)**                           |
-| **AI Action Playbooks**             |       Manual checklist playbooks       |     Template-driven playbooks     |                    **Dynamic LLM Playbooks (OpenAI GPT-OSS / Llama via Groq)**                    |
-| **Offline Fallback Engine**         |         None (SaaS dependent)          |       None (SaaS dependent)       |                           **Deterministic In-Process Fallback Engine**                            |
-| **Extensibility & Schema**          |      Rigid enterprise data model       |    Rigid enterprise data model    |                           **Type-safe Drizzle ORM + Next.js + FastAPI**                           |
-
-<p className="text-xs text-slate-400">
-  <em>*¹ Estimated annual contract costs based on public industry surveys and procurement data (Vendr, Capiche, and Gartner Peer Insights 2024–2025). Actual enterprise pricing varies with ARR tier and seat count.</em>
-</p>
 
 ---
 
@@ -200,7 +180,7 @@ RetentIQ/
 │       ├── scoring.py        # Health score clamping, weights, and deterministic fallbacks
 │       ├── prompts.py        # SHAP-grounded telemetry lexicons and prompt templates
 │       ├── services.py       # Async Groq client with exponential backoff & Supabase client
-│       └── tests/            # Automated Pytest suite (39 tests, >70% coverage gate)
+│       └── tests/            # Automated Pytest suite (>70% coverage gate)
 ├── packages/
 │   ├── db/                   # Drizzle ORM schema, migrations, and database seed scripts
 │   └── shared/               # Shared TypeScript types, validation schemas, and constants

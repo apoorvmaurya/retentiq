@@ -118,8 +118,9 @@ export default function MarketingPage() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-base md:text-lg text-[#8B95AB] leading-relaxed max-w-xl"
           >
-            RetentIQ spots churn risk 30–60 days before it happens by aggregating usage metrics,
-            payment patterns, and tickets. Keep the revenue you've already earned.
+            RetentIQ detects customer churn risk early by aggregating usage telemetry, payment
+            patterns, and tickets into predictive health scores. Keep the revenue you've already
+            earned.
           </motion.p>
 
           {/* Ticker */}

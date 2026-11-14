@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://retentiq-chi.vercel.app'),
   title: 'RetentIQ — Customer Health Intelligence',
   description:
-    'Spot SaaS churn risk 30–60 days early. AI-powered health scores, smart alerts, and retention playbooks.',
+    'Proactive SaaS customer churn intelligence. AI-powered health scores, TreeSHAP attribution, and retention playbooks.',
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.ico',
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'RetentIQ — Customer Health Intelligence',
     description:
-      'Spot SaaS churn risk 30–60 days early. AI-powered health scores, smart alerts, and retention playbooks.',
+      'Proactive SaaS customer churn intelligence. AI-powered health scores, TreeSHAP attribution, and retention playbooks.',
     images: [
       {
         url: '/og-image.png',

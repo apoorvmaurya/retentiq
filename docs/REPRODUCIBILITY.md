@@ -30,7 +30,7 @@ To prevent drift or upstream breaking changes:
 
 - **Node.js**: `pnpm-lock.yaml` pins exact npm package versions across all workspaces.
 - **Python**: `apps/ai-service/requirements.lock` pins exact Python wheel hashes and versions.
-- **Docker**: Base images are pinned to `node:20-alpine` and `python:3.11-slim`.
+- **Docker**: Base images are pinned to `node:24-alpine` and `python:3.11-slim`.
 
 ---
 

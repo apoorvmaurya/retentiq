@@ -17,7 +17,7 @@ export interface BlogPost {
 export const blogPosts: BlogPost[] = [
   {
     slug: 'predicting-b2b-saas-churn-early',
-    title: 'Spotting Churn Signals: Predicting B2B SaaS Churn 60 Days Early',
+    title: 'Spotting Churn Signals: Predicting B2B SaaS Churn with Telemetry & ML',
     excerpt:
       'How combining billing data, support tickets, and telemetry logs inside a centralized ML scoring model helps Customer Success teams act before it is too late.',
     publishedAt: 'June 12, 2026',
@@ -33,7 +33,7 @@ export const blogPosts: BlogPost[] = [
 <h2>The Problem of Reactive Customer Success</h2>
 <p>Most SaaS companies discover a customer is churning only when they click "Cancel Subscription" or submit a non-renewal notice. At this stage, the customer has already checked out mentally, evaluated alternatives, and migrated their workflows. Saving the account is close to impossible.</p>
 
-<p>To prevent this, customer success organizations must shift from reactive firefighting to predictive intelligence. By analyzing behavioral signals 30 to 60 days before a renewal cycle, companies can identify accounts exhibiting micro-behaviors that correlate with churn.</p>
+<p>To prevent this, customer success organizations must shift from reactive firefighting to predictive intelligence. By analyzing behavioral signals in the lead-up to renewal cycles, companies can identify accounts exhibiting micro-behaviors that correlate with churn.</p>
 
 <h2>The Three Core Signaling Layers</h2>
 <p>To predict customer health accurately, your model must ingest and weigh signals across three distinct layers:</p>
